@@ -9,7 +9,7 @@ namespace codename\core\session;
 class session extends \codename\core\session implements \codename\core\session\sessionInterface {
 
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \codename\core\session_interface::start($data)
      */
@@ -18,9 +18,9 @@ class session extends \codename\core\session implements \codename\core\session\s
         $_SESSION = $data;
         return $this;
     }
-    
+
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \codename\core\session_interface::destroy()
      */
@@ -28,9 +28,9 @@ class session extends \codename\core\session implements \codename\core\session\s
         unset($_SESSION);
         return;
     }
-    
+
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \codename\core\session_interface::getData($key)
      */
@@ -43,9 +43,9 @@ class session extends \codename\core\session implements \codename\core\session\s
         }
         return $_SESSION[$key];
     }
-    
+
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \codename\core\session_interface::setData($key, $value)
      */
@@ -53,14 +53,22 @@ class session extends \codename\core\session implements \codename\core\session\s
         $_SESSION[$key] = $value;
         return;
     }
-    
+
     /**
-     * 
+     *
+     */
+    public function identify() : bool {
+        $data = $this->getData();
+        return (is_array($data) && count($data) != 0);
+    }
+
+    /**
+     *
      * {@inheritDoc}
      * @see \codename\core\session_interface::isDefined($key)
      */
     public function isDefined(string $key) : bool {
         return isset($_SESSION[$key]);
     }
-    
+
 }
