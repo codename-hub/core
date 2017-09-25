@@ -1214,9 +1214,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
         } while (self::getInstance('filesystem_local')->fileAvailable($parentfile));
 
-        // do not add core as a discrete app
-        // array_push($stack, array('vendor' => 'codename', 'app' => 'core'));
-
+        array_push($stack, array('vendor' => 'codename', 'app' => 'core'));
         self::$appstack = new \codename\core\value\structure\appstack($stack);
         return $stack;
     }
