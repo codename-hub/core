@@ -1,0 +1,19 @@
+{
+    "name": "codename/core",
+    "description": "This is THE core framework.",
+    "version": "0.0.1",
+    "type": "package",
+    "keywords": ["codename", "core", "framework"],
+    "time": "2018-09-25",
+    "authors": [
+        {
+            "name": "Kevin Dargel",
+            "role": "Software Developer"
+        }
+    ],
+    "autoload": {
+      "psr-4": {
+          "codename\\core\\": "src/"
+      }
+    }
+}

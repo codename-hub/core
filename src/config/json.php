@@ -1,0 +1,117 @@
+<?php
+namespace codename\core\config;
+
+use \codename\core\app;
+
+/**
+ * Loading configuration from JSON files
+ * @package core
+ * @since 2016-05-02
+ */
+class json extends \codename\core\config {
+    
+    /**
+     * The requested file name cannot be found in the directories.
+     * <br />Consider using the appstack reverse search (pass $appstack = TRUE into the method)
+     * @var string
+     */
+    CONST EXCEPTION_GETFULLPATH_FILEMISSING = 'EXCEPTION_GETFULLPATH_FILEMISSING';
+    
+    /**
+     * You succeeded finding a configuration file that is matching the desired file name.
+     * <br />Anyhow, the file that I managed to find is empty
+     * @var string
+     */
+    CONST EXCEPTION_DECODEFILE_FILEISEMPTY = 'EXCEPTION_DECODEFILE_FILEISEMPTY';
+    
+    /**
+     * The file that I found is containing information.
+     * <br />Anyway, the given information cannot be resolved into a JSON object.
+     * @var string
+     */
+    CONST EXCEPTION_DECODEFILE_FILEISINVALID = 'EXCEPTION_DECODEFILE_FILEISINVALID';
+    
+    /**
+     * You told the json class to inherit it's content by using the appstack
+     * <br />But you missed to allow the constructor to access the appstack.
+     * @var string
+     */
+    CONST EXCEPTION_CONSTRUCT_INVALIDBEHAVIOR = 'EXCEPTION_CONSTRUCT_INVALIDBEHAVIOR';
+
+    /**
+     * Creates a config instance and loads the given JSON configuration file as content
+     * <br />If $appstack is true, I will try loading the configuration from a parent app, if it does not exist in the curreent app
+     * <br />If $inherit is true, I will load all the configurations from parents, and the lower children will always overwrite the parents
+     * @param string $file
+     * @param bool $appstack
+     * @param bool $inherit
+     * @return \codename\core\config
+     */
+    public function __CONSTRUCT(string $file, bool $appstack = false, bool $inherit = false) {
+        $config = array();
+        if(!$inherit) {
+            $config = $this->decodeFile($this->getFullpath($file, $appstack));
+            $this->data = $config;
+            return $this;
+        }
+        
+        if($inherit && !$appstack) {
+            throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_INVALIDBEHAVIOR, \codename\core\exception::$ERRORLEVEL_FATAL, array('file' => $fullpath, 'info' => 'Need Appstack to inherit config!'));
+        }
+        foreach(array_reverse(app::getAppstack()) as $app) {
+            $fullpath = app::getHomedir($app['vendor'], $app['app']) . $file;
+            if(!app::getInstance('filesystem_local')->fileAvailable($fullpath)) {
+                continue;
+            }
+            $thisConf = $this->decodeFile($fullpath);
+            $config = array_replace_recursive($config, $thisConf);
+        }
+        
+        $this->data = $config;
+        return $this;
+    }
+    
+    /**
+     * I will give you the lowest level full path that exists in the appstack.
+     * <br />If I don't use the appstack ($appstack = false), then I only search in the current app.
+     * <br />I will throw an exception, if neither in the app nor the appstack I can find the file
+     * @param string $file
+     * @param bool $appstack
+     * @throws exception
+     * @todo REFACTOR simplify
+     */
+    protected function getFullpath(string $file, bool $appstack) : string {
+        $fullpath = app::getHomedir() . $file;
+        
+        if(app::getInstance('filesystem_local')->fileAvailable($fullpath)) {
+            return $fullpath;
+        }
+        
+        if(!$appstack) {
+            throw new \codename\core\exception(self::EXCEPTION_GETFULLPATH_FILEMISSING, \codename\core\exception::$ERRORLEVEL_FATAL, array('file' => $fullpath, 'info' => 'use appstack?'));
+        }
+        return app::getInheritedPath($file);
+    }
+    
+    /**
+     * I will decode the given file and return the array of configuration it holds.
+     * @param string $fullpath
+     * @throws exception
+     */
+    protected function decodeFile(string $fullpath) : array {
+        $text = app::getInstance('filesystem_local')->fileRead($fullpath);
+        
+        if(strlen($text) == 0) {
+            throw new \codename\core\exception(self::EXCEPTION_DECODEFILE_FILEISEMPTY, \codename\core\exception::$ERRORLEVEL_FATAL, $fullpath);
+        }
+
+        $json = json_decode($text, true);
+        
+        if(is_null($json)) {
+            throw new \codename\core\exception(self::EXCEPTION_DECODEFILE_FILEISINVALID, \codename\core\exception::$ERRORLEVEL_FATAL, $fullpath);
+        }
+        
+        return app::object2array($json);
+    }
+    
+}

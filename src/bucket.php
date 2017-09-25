@@ -1,0 +1,206 @@
+<?php
+namespace codename\core;
+
+/**
+ * abstract bucket class
+ * @package core
+ * @since 2016-04-21
+ */
+abstract class bucket implements \codename\core\bucket\bucketInterface {
+
+    /**
+     * Contains the base directory where all files in this bucket will be stored
+     * @var string $basedir
+     */
+    protected $basedir = null;
+
+    /**
+     * Contains an instance of \codename\core\errorstack
+     * @var \codename\core\errorstack
+     */
+    protected $errorstack = null;
+
+    /**
+     * Creates the instance, establishes the connection and authenticates
+     * @param array $data
+     * @return \codename\core\bucket
+     */
+    public function __construct(array $data) {
+        $this->errorstack = new \codename\core\errorstack('BUCKET');
+
+        return $this;
+    }
+
+    /**
+     * This method normaliuzes the remote path by trying
+     * <br />to prepend the basepath if it is not prepended yet.
+     * @param string $path
+     * @return string
+     */
+    public function normalizePath(string $path) : string {
+        if(substr($path, 0, strlen($this->basedir)) == $this->basedir) {
+            return $path;
+        }
+        return $this->basedir . $path;
+    }
+
+    /**
+     * Returns the errorstack of the bucket
+     * @return \codename\core\errorstack
+     */
+    public function getErrorstack() : \codename\core\errorstack {
+        return $this->errorstack;
+    }
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see \codename\core\bucket\bucketInterface::downloadToClient()
+     * @todo errorhandling
+     */
+    public function downloadToClient(\codename\core\value\text\filerelative $remotefile, \codename\core\value\text\filename $filename, array $option = array()) {
+        if(!$this->fileAvailable($remotefile->get())) {
+            app::writeActivity('BUCKET_FILE_DOWNLOAD_FAIL', $remotefile->get());
+            return;
+        }
+
+        $tempfile = '/tmp/' . md5($remotefile->get() . microtime() . $filename->get());
+
+        $this->filePull($remotefile->get(), $tempfile);
+        app::writeActivity('BUCKET_FILE_DOWNLOAD', $remotefile->get());
+
+        if(array_key_exists('inline', $option) === TRUE && $option['inline'] === TRUE) {
+
+          // Determine Mime Type by extension. I know it's bad.
+          $path_parts = pathinfo($remotefile->get());
+          $ext = strtolower($path_parts["extension"]);
+
+          // Determine Content Type (only for inlining)
+          switch ($ext) {
+              case "pdf": $ctype="application/pdf"; break;
+              case "gif": $ctype="image/gif"; break;
+              case "png": $ctype="image/png"; break;
+              case "jpeg":
+              case "jpg": $ctype="image/jpg"; break;
+              default: $ctype="application/force-download";
+          }
+
+          header('Content-Type: ' . $ctype);
+          header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+          header("Cache-Control: post-check=0, pre-check=0", false);
+          header("Pragma: no-cache");
+          header('Content-Disposition: inline; filename="' . $filename->get() . '"');
+          header('Content-Length: ' . filesize($tempfile));
+          header('Content-Transfer-Encoding: binary');
+
+        } else {
+
+          header('Content-Description: File Transfer');
+          header('Content-Type: application/octet-stream');
+          header('Content-Transfer-Encoding: binary');
+          header('Pragma: public');
+          header('Content-Length: ' . filesize($tempfile));
+          header('Content-Disposition: attachment; filename="' . $filename->get() . '"');
+        }
+        if (ob_get_contents()) ob_clean();
+        flush();
+        readfile($tempfile);
+        exit;
+    }
+
+    /**
+     * Normalizes a file name by it's given $filename
+     * @param string $filename
+     * @todo CENTRAL METHOD STORAGE
+     * @todo one day move to factory class structure
+     * @return \codename\core\value\text\filename
+     */
+    final public static function factoryFilename(string $filename) : \codename\core\value\text\filename {
+        $text = $filename;
+        $text = preg_replace("/[∂άαáàâãªä]/u",      "a", $text);
+        $text = preg_replace("/[∆лДΛдАÁÀÂÃÄ]/u",     "A", $text);
+        $text = preg_replace("/[ЂЪЬБъь]/u",           "b", $text);
+        $text = preg_replace("/[βвВ]/u",            "B", $text);
+        $text = preg_replace("/[çς©с]/u",            "c", $text);
+        $text = preg_replace("/[ÇС]/u",              "C", $text);
+        $text = preg_replace("/[δ]/u",             "d", $text);
+        $text = preg_replace("/[éèêëέëèεе℮ёєэЭ]/u", "e", $text);
+        $text = preg_replace("/[ÉÈÊË€ξЄ€Е∑]/u",     "E", $text);
+        $text = preg_replace("/[₣]/u",               "F", $text);
+        $text = preg_replace("/[НнЊњ]/u",           "H", $text);
+        $text = preg_replace("/[ђћЋ]/u",            "h", $text);
+        $text = preg_replace("/[ÍÌÎÏ]/u",           "I", $text);
+        $text = preg_replace("/[íìîïιίϊі]/u",       "i", $text);
+        $text = preg_replace("/[Јј]/u",             "j", $text);
+        $text = preg_replace("/[ΚЌК]/u",            'K', $text);
+        $text = preg_replace("/[ќк]/u",             'k', $text);
+        $text = preg_replace("/[ℓ∟]/u",             'l', $text);
+        $text = preg_replace("/[Мм]/u",             "M", $text);
+        $text = preg_replace("/[ñηήηπⁿ]/u",            "n", $text);
+        $text = preg_replace("/[Ñ∏пПИЙийΝЛ]/u",       "N", $text);
+        $text = preg_replace("/[óòôõºöοФσόо]/u", "o", $text);
+        $text = preg_replace("/[ÓÒÔÕÖθΩθОΩ]/u",     "O", $text);
+        $text = preg_replace("/[ρφрРф]/u",          "p", $text);
+        $text = preg_replace("/[®яЯ]/u",              "R", $text);
+        $text = preg_replace("/[ГЃгѓ]/u",              "r", $text);
+        $text = preg_replace("/[Ѕ]/u",              "S", $text);
+        $text = preg_replace("/[ѕ]/u",              "s", $text);
+        $text = preg_replace("/[Тт]/u",              "T", $text);
+        $text = preg_replace("/[τ†‡]/u",              "t", $text);
+        $text = preg_replace("/[úùûüџμΰµυϋύ]/u",     "u", $text);
+        $text = preg_replace("/[√]/u",               "v", $text);
+        $text = preg_replace("/[ÚÙÛÜЏЦц]/u",         "U", $text);
+        $text = preg_replace("/[Ψψωώẅẃẁщш]/u",      "w", $text);
+        $text = preg_replace("/[ẀẄẂШЩ]/u",          "W", $text);
+        $text = preg_replace("/[ΧχЖХж]/u",          "x", $text);
+        $text = preg_replace("/[ỲΫ¥]/u",           "Y", $text);
+        $text = preg_replace("/[ỳγўЎУуч]/u",       "y", $text);
+        $text = preg_replace("/[ζ]/u",              "Z", $text);
+
+        $text = preg_replace("/[‚‚]/u", ",", $text);
+        $text = preg_replace("/[`‛′’‘]/u", "'", $text);
+        $text = preg_replace("/[″“”«»„]/u", '"', $text);
+        $text = preg_replace("/[—–―−–‾⌐─↔→←]/u", '-', $text);
+        $text = preg_replace("/[  ]/u", ' ', $text);
+
+        $text = str_replace("…", "...", $text);
+        $text = str_replace("≠", "!=", $text);
+        $text = str_replace("≤", "<=", $text);
+        $text = str_replace("≥", ">=", $text);
+        $text = preg_replace("/[‗≈≡]/u", "=", $text);
+        $text = str_replace("ыЫ", "bl", $text);
+        $text = str_replace("℅", "c/o", $text);
+        $text = str_replace("₧", "Pts", $text);
+        $text = str_replace("™", "tm", $text);
+        $text = str_replace("№", "No", $text);
+        $text = str_replace("Ч", "4", $text);
+        $text = str_replace("‰", "%", $text);
+        $text = preg_replace("/[∙•]/u", "*", $text);
+        $text = str_replace("‹", "<", $text);
+        $text = str_replace("›", ">", $text);
+        $text = str_replace("‼", "!!", $text);
+        $text = str_replace("⁄", "/", $text);
+        $text = str_replace("∕", "/", $text);
+        $text = str_replace("⅞", "7/8", $text);
+        $text = str_replace("⅝", "5/8", $text);
+        $text = str_replace("⅜", "3/8", $text);
+        $text = str_replace("⅛", "1/8", $text);
+        $text = preg_replace("/[‰]/u", "%", $text);
+        $text = preg_replace("/[Љљ]/u", "Ab", $text);
+        $text = preg_replace("/[Юю]/u", "IO", $text);
+        $text = preg_replace("/[ﬁﬂ]/u", "fi", $text);
+        $text = preg_replace("/[зЗ]/u", "3", $text);
+        $text = str_replace("£", "(pounds)", $text);
+        $text = str_replace("₤", "(lira)", $text);
+        $text = preg_replace("/[‰]/u", "%", $text);
+        $text = preg_replace("/[↨↕↓↑│]/u", "|", $text);
+        $text = preg_replace("/[∞∩∫⌂⌠⌡]/u", "", $text);
+        $text = str_replace(',', '', $text);
+        $text = str_replace('_', '', $text);
+        $text = str_replace('/', '', $text);
+        $text = str_replace('\\/', '', $text);
+        $text = str_replace(' ', '', $text);
+        return new \codename\core\value\text\filename($text);
+    }
+
+}
