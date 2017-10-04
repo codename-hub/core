@@ -481,7 +481,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             $env = null;
             if(
                 isset($_SERVER['HTTP_HOST'])
-                && (strpos($_SERVER['HTTP_HOST'], 'some-dev-domain.com') !== false
+                && (strpos($_SERVER['HTTP_HOST'], '.localhost') !== false
                 || strpos($_SERVER['HTTP_HOST'], 'kdargel.com') !== false)
             ) {
                 $env = 'dev';
