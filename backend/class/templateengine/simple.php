@@ -3,7 +3,8 @@ namespace codename\core\templateengine;
 use \codename\core\app;
 
 /**
- * [simple description]
+ * Simple Template Engine
+ * for just using .php files (inline-code-based)
  */
 class simple extends \codename\core\templateengine {
 
@@ -18,15 +19,22 @@ class simple extends \codename\core\templateengine {
   /**
    * @inheritDoc
    */
+  public function render(string $referencePath, \codename\core\datacontainer $data): string {
+    return app::parseFile(app::getInheritedPath("frontend/" . $referencePath . ".php"), $data->getData());
+  }
+
+  /**
+   * @inheritDoc
+   */
   public function renderView(string $viewPath, \codename\core\datacontainer $data): string {
-    return app::parseFile(app::getInheritedPath("frontend/view/" . $data->getData('context') . "/" . $viewPath . ".php"), $data->getData());
+    return $this->render("view/" . $data->getData('context') . "/" . $viewPath, $data);
   }
 
   /**
    * @inheritDoc
    */
   public function renderTemplate( string $templatePath, \codename\core\datacontainer $data): string {
-    return app::parseFile(app::getInheritedPath("frontend/template/" . $templatePath . "/template.php"), $data->getData());
+    return $this->render("template/" . $templatePath . "/template.php", $data);
   }
 
 }
