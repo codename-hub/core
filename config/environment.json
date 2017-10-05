@@ -1,0 +1,17 @@
+{
+  "production" : {
+    "templateengine" : {
+      "default" : {
+        "driver" : "simple"
+      }
+    }
+  },
+  "dev" : {
+    "templateengine" : {
+      "default" : {
+        "driver" : "simple"
+      }
+    }
+  }
+}
+

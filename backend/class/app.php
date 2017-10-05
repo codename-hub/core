@@ -323,8 +323,13 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
         if (!$this->getRequest()->isDefined('template')) {
             if(self::getConfig()->exists("context>".self::getRequest()->getData('context').">view>".self::getRequest()->getData('view').">template")) {
+                // view-level template config
                 $this->getRequest()->setData('template', self::getConfig()->get("context>".self::getRequest()->getData('context').">view>".self::getRequest()->getData('view').">template"));
+            } else if(self::getConfig()->exists("context>".self::getRequest()->getData('context').">template")) {
+                // context-level template config
+                $this->getRequest()->setData('template', self::getConfig()->get("context>".self::getRequest()->getData('context').">template"));
             } else {
+                // app-level template config
                 $this->getRequest()->setData('template', self::getConfig()->get("defaulttemplate"));
             }
         }
@@ -1056,8 +1061,24 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\app
      */
     protected function doShow() : \codename\core\app {
-        $this->getResponse()->setData('content', self::parseFile(self::getInheritedPath("frontend/view/" . $this->getResponse()->getData('context') . "/" . $this->getResponse()->getData('view') . ".php")));
-        return $this;
+      // $this->getResponse()->setData('content', self::parseFile(self::getInheritedPath("frontend/view/" . $this->getResponse()->getData('context') . "/" . $this->getResponse()->getData('view') . ".php")));
+      if($this->getResponse()->isDefined('templateengine')) {
+        $templateengine = $this->getResponse()->getData('templateengine');
+      } else {
+        // look in view
+        $templateengine = app::getConfig()->get('context>' . $this->getResponse()->getData('context') . '>view>'.$this->getResponse()->getData('view').'>templateengine');
+        // look in context
+        if($templateengine == null) {
+          $templateengine = app::getConfig()->get('context>' . $this->getResponse()->getData('context') . '>templateengine');
+        }
+        // fallback
+        if($templateengine == null) {
+          $templateengine = 'default';
+        }
+      }
+
+      $this->getResponse()->setData('content', app::getTemplateEngine($templateengine)->renderView($this->getResponse()->getData('view'), $this->getResponse()));
+      return $this;
     }
 
     /**
@@ -1065,10 +1086,47 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return null
      */
     protected function doOutput() {
-        self::getResponse()->setOutput(self::parseFile(self::getInheritedPath("frontend/template/" . $this->getRequest()->getData('template') . "/template.php")));
-        self::getResponse()->pushOutput();
-        return;
+
+      if($this->getResponse()->isDefined('templateengine')) {
+        $templateengine = $this->getResponse()->getData('templateengine');
+      } else {
+        $templateengine = app::getConfig()->get('defaulttemplateengine');
+      }
+      if($templateengine == null) {
+        $templateengine = 'default';
+      }
+
+      // self::getResponse()->setOutput(self::parseFile(self::getInheritedPath("frontend/template/" . $this->getRequest()->getData('template') . "/template.php")));
+      self::getResponse()->setOutput(app::getTemplateEngine($templateengine)->renderTemplate($this->getResponse()->getData('template'), $this->getResponse()));
+      self::getResponse()->pushOutput();
+      return;
     }
+
+    /**
+     * Returns the templateengine instance that is configured as $identifier
+     * @param string $identifier
+     * @return \codename\core\templateengine
+     */
+    final public static function getTemplateEngine(string $identifier = 'default') : \codename\core\templateengine {
+        if(self::$templateengineValueObjecttype == NULL) {
+          self::$templateengineValueObjecttype = new \codename\core\value\text\objecttype('templateengine');
+        }
+        if(!array_key_exists($identifier, self::$templateengineValueObjectidentifierArray)) {
+          self::$templateengineValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
+        }
+
+        return self::getClient(self::$templateengineValueObjecttype, self::$templateengineValueObjectidentifierArray[$identifier]);
+    }
+
+    /**
+     * @var \codename\core\value\text\objectidentifier[]]
+     */
+    protected static $templateengineValueObjectidentifierArray = array();
+
+    /**
+     * @var \codename\core\value\text\objecttype
+     */
+    protected static $templateengineValueObjecttype = NULL;
 
     /**
      * Returns the (maybe cached) client that is stored as "driver" in $identifier (app.json) for the given $type.
