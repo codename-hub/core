@@ -1,6 +1,7 @@
 <?php
 namespace codename\core\templateengine;
 use \codename\core\app;
+use \codename\core\exception;
 
 /**
  * [twig description]
@@ -24,6 +25,11 @@ class twig extends \codename\core\templateengine {
    */
   public function __construct(array $config = array())
   {
+    // Check for existance of Twig Classes.
+    if (!class_exists('\\Twig\\Environment')) {
+      throw new exception("CORE_TEMPLATEENGINE_TWIG_CLASS_DOES_NOT_EXIST", exception::$ERRORLEVEL_FATAL);
+    }
+
     parent::__construct($config);
     $paths = array();
 
