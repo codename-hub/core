@@ -409,14 +409,18 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * returns a multidimensional assoc array like:
      * models[schema][table][model] = array( 'fields' => ... )
      * @author Kevin Dargel
-  	 * @return model[]
+  	 * @return array
   	 */
-  	public static function getAllModels(string $filterByApp = '', string $filterByVendor = '') : array {
+  	public static function getAllModels(string $filterByApp = '', string $filterByVendor = '', array $useAppstack = null) : array {
 
   		$result = array();
 
+      if($useAppstack == null) {
+        $useAppstack = self::getAppstack();
+      }
+
       // Traverse Appstack
-  		foreach(self::getAppstack() as $app ) {
+  		foreach($useAppstack as $app) {
 
         if($filterByApp !== '') {
           if($app !== $app['app']) {
@@ -584,7 +588,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      */
     final public static function getAppstack() : array {
         if(self::$appstack == null) {
-            self::makeAppstack();
+            self::makeCurrentAppstack();
         }
         return self::$appstack->get();
     }
@@ -661,7 +665,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         $path = self::getHomedir($vendor, $app) . 'config/parent.app';
 
         if(!self::getInstance('filesystem_local')->fileAvailable($path)) {
-            return 'coename_core';
+            return 'codename_core';
         }
 
         return trim(self::getInstance('filesystem_local')->fileRead($path));
@@ -1243,13 +1247,24 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     }
 
     /**
+     * creates and sets the appstack for the current app
+     * @return array [description]
+     */
+    final protected static function makeCurrentAppstack() : array {
+      $stack = self::makeAppstack(self::getVendor(), self::getApp());
+      self::$appstack = new \codename\core\value\structure\appstack($stack);
+      return $stack;
+    }
+
+    /**
      * Generates an array of application names that depend from each other. Lower array positions are lower priorities
-     * @param string $app
+     * @param string $vendor [vendor]
+     * @param string $app    [app]
      * @return array
      */
-    final protected static function makeAppstack() : array {
-        $stack = array(array('vendor' => self::getVendor(), 'app' => self::getApp()));
-        $parentfile = self::getHomedir(self::getVendor(), self::getApp()) . 'config/parent.app';
+    final protected static function makeAppstack(string $vendor, string $app) : array {
+        $stack = array(array('vendor' => $vendor, 'app' => $app));
+        $parentfile = self::getHomedir($vendor, $app) . 'config/parent.app';
 
         $current_vendor = '';
         $current_app = '';
@@ -1273,7 +1288,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         } while (self::getInstance('filesystem_local')->fileAvailable($parentfile));
 
         array_push($stack, array('vendor' => 'codename', 'app' => 'core'));
-        self::$appstack = new \codename\core\value\structure\appstack($stack);
+        // self::$appstack = new \codename\core\value\structure\appstack($stack);
         return $stack;
     }
 
