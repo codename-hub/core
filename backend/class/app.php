@@ -423,13 +423,13 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
   		foreach($useAppstack as $app) {
 
         if($filterByApp !== '') {
-          if($app !== $app['app']) {
+          if($filterByApp !== $app['app']) {
             continue;
           }
         }
 
         if($filterByVendor !== '') {
-          if($app !== $app['vendor']) {
+          if($filterByVendor !== $app['vendor']) {
             continue;
           }
         }
@@ -455,7 +455,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
   					$schema = $comp[0];
   					$table = $comp[1];
 
-  					$model = (new \codename\core\config\json("config/model/" . $fileInfo->getFilename(), true, true))->get();
+  					$model = (new \codename\core\config\json("config/model/" . $fileInfo->getFilename(), true, true, $useAppstack))->get();
   					$result[$schema][$table][] = $model;
   				}
   			}
@@ -639,13 +639,17 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @param string $file
      * @return string
      */
-    final public static function getInheritedPath(string $file) : string {
+    final public static function getInheritedPath(string $file, array $useAppstack = null) : string {
         $filename = self::getHomedir() . $file;
         if(self::getInstance('filesystem_local')->fileAvailable($filename)) {
             return $filename;
         }
 
-        foreach(self::getAppstack() as $parentapp) {
+        if($useAppstack == null) {
+          $useAppstack = self::getAppstack();
+        }
+
+        foreach($useAppstack as $parentapp) {
             $vendor = $parentapp['vendor'];
             $app = $parentapp['app'];
             $filename = CORE_VENDORDIR . $vendor . '/' . $app . '/' . $file;
