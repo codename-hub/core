@@ -54,7 +54,16 @@ class database extends \codename\core\observable {
             } else {
               throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONNECTIONERROR, \codename\core\exception::$ERRORLEVEL_FATAL, array('ENV_PASS_NOT_SET'));
             }
-            $this->connection = new \PDO($this->driver . ":dbname=" . $config['database'] . ';host=' . $config['host'] . (isset($config['charset']) ? (';charset='.$config['charset']) : ''), $config['user'], $pass);
+
+            // allow connections without database name
+            // just put in autoconnect_database = false
+            $autoconnectDatabase = true;
+            if(isset($config['autoconnect_database'])) {
+              $autoconnectDatabase = $config['autoconnect_database'];
+            }
+            
+            $this->connection = new \PDO($this->driver . ":" . ( $autoconnectDatabase ? "dbname=" . $config['database'] . ";" : '') . 'host=' . $config['host'] . (isset($config['charset']) ? (';charset='.$config['charset']) : ''), $config['user'], $pass);
+
             $this->connection->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true);
         }
         catch (\PDOException $e) {
