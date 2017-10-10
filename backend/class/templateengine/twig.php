@@ -2,6 +2,7 @@
 namespace codename\core\templateengine;
 use \codename\core\app;
 use \codename\core\exception;
+use codename\core\templateengine\twig\extension;
 
 /**
  * Twig Template Engine Abstractor
@@ -45,6 +46,7 @@ class twig extends \codename\core\templateengine {
 
     $this->twigLoader = new \Twig\Loader\FilesystemLoader($paths, CORE_VENDORDIR);
     $this->twigInstance = new \Twig\Environment($this->twigLoader, $config['environment'] ?? array());
+    $this->twigInstance->addExtension(new extension\routing);
   }
 
   /**
