@@ -47,6 +47,16 @@ class twig extends \codename\core\templateengine {
     $this->twigLoader = new \Twig\Loader\FilesystemLoader($paths, CORE_VENDORDIR);
     $this->twigInstance = new \Twig\Environment($this->twigLoader, $config['environment'] ?? array());
     $this->twigInstance->addExtension(new extension\routing);
+
+    // add testing for array
+    $this->twigInstance->addTest(new \Twig\TwigTest('array', function ($value) {
+      return is_array($value);
+    }));
+
+    // add testing for string
+    $this->twigInstance->addTest(new \Twig\TwigTest('string', function ($value) {
+      return is_string($value);
+    }));
   }
 
   /**
