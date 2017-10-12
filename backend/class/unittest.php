@@ -17,14 +17,6 @@ if(getenv('core_bootstrap_path') !== false) {
 class unittest extends \PHPUnit\Framework\TestCase {
 
     /**
-     * I will test all validators
-     * @return void
-     */
-    /* public function testValidator() {
-        $this->testAll();
-    }*/
-
-    /**
      * I will try finding all tests that are located below the current test.
      * <br />I must be overridden in the last testing level or endless recursion will be created.
      * @return void
