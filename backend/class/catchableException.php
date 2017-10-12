@@ -14,9 +14,10 @@ class catchableException extends \codename\core\exception {
      * @param multitype $info
      */
     public function __CONSTRUCT(string $code, int $level, $info = null) {
-    	  app::getHook()->fire($code);
-       	app::getHook()->fire('EXCEPTION');
-        return $this;
+      $this->message = $this->translateExceptionCode($code);
+  	  app::getHook()->fire($code);
+     	app::getHook()->fire('EXCEPTION');
+      return $this;
     }
 
 

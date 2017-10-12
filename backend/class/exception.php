@@ -23,32 +23,44 @@ class exception extends \Exception {
      * @param multitype $info
      */
     public function __CONSTRUCT(string $code, int $level, $info = null) {
-    	app::getHook()->fire($code);
-       	app::getHook()->fire('EXCEPTION');
-        app::getResponse()->setStatuscode(500, "Internal Server Error");
 
-        if(defined('CORE_ENVIRONMENT') && CORE_ENVIRONMENT != 'production') {
-            echo "<h3>Hicks!</h3>";
-            echo "<h6>{$code}</h6>";
+      $this->message = $this->translateExceptionCode($code);
 
-            if(!is_null($info)) {
-                echo "<h6>Information:</h6>";
-                echo "<pre>";
-                print_r($info);
-                echo "</pre>";
-            }
+      app::getHook()->fire($code);
+    	app::getHook()->fire('EXCEPTION');
+      app::getResponse()->setStatuscode(500, "Internal Server Error");
 
-            echo "<h6>Stacktrace:</h6>";
+      if(defined('CORE_ENVIRONMENT') && CORE_ENVIRONMENT != 'production') {
+        echo "<h3>Hicks!</h3>";
+        echo "<h6>{$code}</h6>";
+
+        if(!is_null($info)) {
+            echo "<h6>Information:</h6>";
             echo "<pre>";
-            print_r($this->getTrace());
+            print_r($info);
             echo "</pre>";
-            die();
         }
 
-        (new \codename\core\api\loggly())->send(array('exception' => array( 'code'=>$code, 'level' => $level, 'info' => $info, 'stack' => $this->getTrace())), 1);
+        echo "<h6>Stacktrace:</h6>";
+        echo "<pre>";
+        print_r($this->getTrace());
+        echo "</pre>";
+        die();
+      }
 
-        app::getResponse()->pushOutput();
-        return $this;
+      // (new \codename\core\api\loggly())->send(array('exception' => array( 'code'=>$code, 'level' => $level, 'info' => $info, 'stack' => $this->getTrace())), 1);
+
+      app::getResponse()->pushOutput();
+      return $this;
+    }
+
+    /**
+     * [translateExceptionCode description]
+     * @param  string $code [description]
+     * @return string       [description]
+     */
+    protected function translateExceptionCode(string $code) : string {
+      return app::getTranslate('exception')->translate('EXCEPTION.' . $code);
     }
 
 
