@@ -17,6 +17,12 @@ class exception extends \Exception {
     public static $ERRORLEVEL_FATAL = 3;
 
     /**
+     * additional information
+     * @var null|mixed
+     */
+    public $info;
+
+    /**
      * Create an errormessage that will stop execution of this request.
      * @param string $code
      * @param int $level
@@ -25,9 +31,13 @@ class exception extends \Exception {
     public function __CONSTRUCT(string $code, int $level, $info = null) {
 
       $this->message = $this->translateExceptionCode($code);
+      $this->code = $code;
+      $this->info = $info;
 
       app::getHook()->fire($code);
     	app::getHook()->fire('EXCEPTION');
+
+      /*
       app::getResponse()->setStatuscode(500, "Internal Server Error");
 
       if(defined('CORE_ENVIRONMENT') && CORE_ENVIRONMENT != 'production') {
@@ -52,6 +62,7 @@ class exception extends \Exception {
 
       app::getResponse()->pushOutput();
       return $this;
+      */
     }
 
     /**

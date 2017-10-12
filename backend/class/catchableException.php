@@ -15,6 +15,8 @@ class catchableException extends \codename\core\exception {
      */
     public function __CONSTRUCT(string $code, int $level, $info = null) {
       $this->message = $this->translateExceptionCode($code);
+      $this->code = $code;
+      $this->info = $info;
   	  app::getHook()->fire($code);
      	app::getHook()->fire('EXCEPTION');
       return $this;
