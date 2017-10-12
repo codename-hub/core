@@ -289,7 +289,14 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         }
 
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_MAIN);
-        $this->doAction()->doView()->doShow()->doOutput();
+
+        try {
+          $this->doAction()->doView()->doShow()->doOutput();
+        } catch (\Exception $e) {
+          // display exception using the current response class
+          // which may be either http or even CLI !
+          $this->getResponse()->displayException($e);
+        }
 
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_END);
         return;
