@@ -9,6 +9,20 @@ namespace codename\core;
 abstract class translate implements \codename\core\translate\translateInterface {
 
     /**
+     * client configuration
+     * @var array
+     */
+    protected $config;
+
+    /**
+     *
+     */
+    public function __construct($config = array())
+    {
+      $this->config = $config;
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\translate_interface::translate($key, $data)
