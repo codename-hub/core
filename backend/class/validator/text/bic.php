@@ -18,8 +18,10 @@ class bic extends \codename\core\validator\text implements \codename\core\valida
      */
     public function validate($value): array
     {
-      parent::validate($value);
-
+      if(count(parent::validate($value)) != 0) {
+          return $this->errorstack->getErrors();
+      }
+      
       /**
        * @see https://github.com/ronanguilloux/IsoCodes/blob/master/src/IsoCodes/SwiftBic.php
        */
