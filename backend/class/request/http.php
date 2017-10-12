@@ -9,6 +9,17 @@ namespace codename\core\request;
 class http extends \codename\core\request {
 
     /**
+     * @inheritDoc
+     */
+    public function __construct(array $data = array())
+    {
+      parent::__construct($data);
+      $this->addData($_GET);
+      $this->addData($_POST);
+      $this->setData('lang', "de_DE");
+    }
+
+    /**
      * Contains data for redirecting the user after finishing the request
      * @var array | string
      */

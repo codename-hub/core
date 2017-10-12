@@ -30,11 +30,8 @@ class request extends \codename\core\datacontainer {
      * Create instance of request, merge _POST and _GET superglobals to the instane data
      * @return \codename\core\request
      */
-    public function __CONSTRUCT() {
-        $this->datacontainer = new \codename\core\datacontainer(array());
-        $this->addData($_GET);
-        $this->addData($_POST);
-        $this->setData('lang', "de_DE");
+    public function __construct() {
+        parent::__construct();
         return $this;
     }
 
