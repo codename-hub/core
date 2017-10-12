@@ -174,18 +174,18 @@ class http extends \codename\core\response {
 
       if(defined('CORE_ENVIRONMENT') && CORE_ENVIRONMENT != 'production') {
         echo "<h3>Hicks!</h3>";
-        echo "<h6>{$code}</h6>";
+        echo "<h6>{$e->getMessage()} (Code: {$e->getCode()})</h6>";
 
-        if(!is_null($info)) {
+        if($e instanceof \codename\core\exception && !is_null($e->info)) {
             echo "<h6>Information:</h6>";
             echo "<pre>";
-            print_r($info);
+            print_r($e->info);
             echo "</pre>";
         }
 
         echo "<h6>Stacktrace:</h6>";
         echo "<pre>";
-        print_r($this->getTrace());
+        print_r($e->getTrace());
         echo "</pre>";
         die();
       }
