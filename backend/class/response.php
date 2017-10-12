@@ -92,4 +92,13 @@ class response extends \codename\core\datacontainer {
         return;
     }
 
+    /**
+     * [displayException description]
+     * @param  Exception $e [description]
+     * @return [type]       [description]
+     */
+    public function displayException(\Exception $e) {
+        echo($e->getMessage());
+    }
+
 }

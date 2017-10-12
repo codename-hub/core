@@ -25,6 +25,14 @@ class http extends \codename\core\response {
     CONST EXCEPTION_REQUIRERESOURCE_RESOURCENOTFOUND = 'EXCEPTION_REQUIRERESOURCE_RESOURCENOTFOUND';
 
     /**
+     * @inheritDoc
+     */
+    public function __construct(array $data = array())
+    {
+      parent::__construct($data);
+    }
+
+    /**
      * Contains data for redirecting the user after finishing the request
      * @var array | string
      */
@@ -155,6 +163,34 @@ class http extends \codename\core\response {
 
         $this->addJs("joNotify('{$subject}', '{$text}', '{$image}', '{$sound}');");
         return;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function displayException(\Exception $e)
+    {
+      app::getResponse()->setStatuscode(500, "Internal Server Error");
+
+      if(defined('CORE_ENVIRONMENT') && CORE_ENVIRONMENT != 'production') {
+        echo "<h3>Hicks!</h3>";
+        echo "<h6>{$code}</h6>";
+
+        if(!is_null($info)) {
+            echo "<h6>Information:</h6>";
+            echo "<pre>";
+            print_r($info);
+            echo "</pre>";
+        }
+
+        echo "<h6>Stacktrace:</h6>";
+        echo "<pre>";
+        print_r($this->getTrace());
+        echo "</pre>";
+        die();
+      }
+
+      app::getResponse()->pushOutput();
     }
 
 }
