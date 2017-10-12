@@ -4,12 +4,24 @@
       "default" : {
         "driver" : "simple"
       }
+    },
+    "translate" : {
+      "exception" : {
+        "driver" : "json",
+        "inherit" : true
+      }
     }
   },
   "dev" : {
     "templateengine" : {
       "default" : {
         "driver" : "simple"
+      }
+    },
+    "translate" : {
+      "exception" : {
+        "driver" : "json",
+        "inherit" : true
       }
     }
   }
