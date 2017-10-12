@@ -1,0 +1,7 @@
+<phpunit bootstrap="../../bootstrap.php">
+  <testsuites>
+    <testsuite name="Core Framework TestSuite">
+      <file>./backend/class/unittest.php</file>
+    </testsuite>
+  </testsuites>
+</phpunit>

@@ -1,24 +1,29 @@
 <?php
 namespace codename\core;
 
-require DIRNAME(DIRNAME(DIRNAME(DIRNAME(DIRNAME(DIRNAME(__FILE__)))))).'/bootstrap.php';
+/*
+if(getenv('core_bootstrap_path') !== false) {
+  require_once getenv('core_bootstrap_path');
+} else {
+  require_once DIRNAME(DIRNAME(DIRNAME(DIRNAME(DIRNAME(DIRNAME(__FILE__)))))).'/src/bootstrap.php';
+}
+*/
 
 /**
  * I will automatically start all test in the testing framework
- * <br />Be sure to check out my method testAll() to 
+ * <br />Be sure to check out my method testAll() to
  * @package codename\core
- * @since 2016-11-02
  */
 class unittest extends \PHPUnit\Framework\TestCase {
-    
+
     /**
      * I will test all validators
      * @return void
      */
-    public function testValidator() {
+    /* public function testValidator() {
         $this->testAll();
-    }
-    
+    }*/
+
     /**
      * I will try finding all tests that are located below the current test.
      * <br />I must be overridden in the last testing level or endless recursion will be created.
@@ -32,7 +37,7 @@ class unittest extends \PHPUnit\Framework\TestCase {
         }
         return;
     }
-    
+
     /**
      * I will return all subtests of the current test instance
      * <br />To find subtests, I will have a look inside the subdirectory of my class' folder
@@ -46,5 +51,5 @@ class unittest extends \PHPUnit\Framework\TestCase {
         }
         return array_unique($subclasses);
     }
-    
+
 }

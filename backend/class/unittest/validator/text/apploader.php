@@ -16,7 +16,7 @@ class apploader extends \codename\core\unittest\validator\text {
      * @see \codename\core\unittest::testAll()
      */
     public function testAll() {
-        $this->testValueNotAString();
+        parent::testAll();
         $this->testValueStringTooShort();
         $this->testValueStringTooLong();
         $this->testValueStringContainsInvalidCharacters();
@@ -25,11 +25,11 @@ class apploader extends \codename\core\unittest\validator\text {
     }
 
     /**
-     * Testing validators for Erors
+     * apploader value must be lowercase
      * @return void
      */
-    public function testValueNotAString() {
-        $this->assertEquals('VALIDATION.VALUE_NOT_A_STRING', app::getValidator('text_apploader')->validate(array())[0]['__CODE'] );
+    public function testTextApploaderValueStringMustBeLowercase() {
+        $this->assertEquals('VALIDATION.VALUE_NOT_A_STRING', $this->getValidator()->validate('A')[0]['__CODE'] );
         return;
     }
 
@@ -38,7 +38,7 @@ class apploader extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueStringTooShort() {
-        $this->assertEquals('VALIDATION.STRING_TOO_SHORT', app::getValidator('text_apploader')->validate('A')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.STRING_TOO_SHORT', $this->getValidator()->validate('a')[0]['__CODE'] );
         return;
     }
 
@@ -47,7 +47,7 @@ class apploader extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueStringTooLong() {
-        $this->assertEquals('VALIDATION.STRING_TOO_LONG', app::getValidator('text_apploader')->validate('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.STRING_TOO_LONG', $this->getValidator()->validate('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')[0]['__CODE'] );
         return;
     }
 
@@ -56,7 +56,7 @@ class apploader extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueStringContainsInvalidCharacters() {
-        $this->assertEquals('VALIDATION.STRING_CONTAINS_INVALID_CHARACTERS', app::getValidator('text_apploader')->validate('*ASDASD')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.STRING_CONTAINS_INVALID_CHARACTERS', $this->getValidator()->validate('*ASDASD')[0]['__CODE'] );
         return;
     }
 
@@ -65,7 +65,7 @@ class apploader extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueValid() {
-        $this->assertEquals(array(), app::getValidator('text_apploader')->validate('codename\\core'));
+        $this->assertEquals(array(), $this->getValidator()->validate('codename\\core'));
         return;
     }
 

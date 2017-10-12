@@ -16,7 +16,7 @@ class email extends \codename\core\unittest\validator\text {
      * @see \codename\core\unittest::testAll()
      */
     public function testAll() {
-        $this->testValueNotString();
+        parent::testAll();
         $this->testValueTooLong();
         $this->testValueInvalidchars();
         $this->testValueAtNotFound();
@@ -31,7 +31,7 @@ class email extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueNotString() {
-        $this->assertEquals('VALIDATION.VALUE_NOT_A_STRING', app::getValidator('text_email')->validate(array())[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.VALUE_NOT_A_STRING', $this->getValidator()->validate(array())[0]['__CODE'] );
     }
 
     /**
@@ -39,7 +39,7 @@ class email extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueTooLong() {
-        $this->assertEquals('VALIDATION.STRING_TOO_LONG', app::getValidator('text_email')->validate('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.STRING_TOO_LONG', $this->getValidator()->validate('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')[0]['__CODE'] );
     }
 
     /**
@@ -47,7 +47,7 @@ class email extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueInvalidchars() {
-        $this->assertEquals('VALIDATION.STRING_CONTAINS_INVALID_CHARACTERS', app::getValidator('text_email')->validate('*ASDASD')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.STRING_CONTAINS_INVALID_CHARACTERS', $this->getValidator()->validate('*ASDASD')[0]['__CODE'] );
     }
 
     /**
@@ -55,7 +55,7 @@ class email extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueAtNotFound() {
-        $this->assertEquals('VALIDATION.EMAIL_AT_NOT_FOUND', app::getValidator('text_email')->validate('invalid')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.EMAIL_AT_NOT_FOUND', $this->getValidator()->validate('invalid')[0]['__CODE'] );
     }
 
     /**
@@ -63,7 +63,7 @@ class email extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueDomainInvalid() {
-        $this->assertEquals('VALIDATION.EMAIL_DOMAIN_INVALID', app::getValidator('text_email')->validate('invalid@')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.EMAIL_DOMAIN_INVALID', $this->getValidator()->validate('invalid@')[0]['__CODE'] );
     }
 
     /**
@@ -71,7 +71,7 @@ class email extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueAtNotUnique() {
-        $this->assertEquals('VALIDATION.EMAIL_AT_NOT_UNIQUE', app::getValidator('text_email')->validate('invalid@sadas@as')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.EMAIL_AT_NOT_UNIQUE', $this->getValidator()->validate('invalid@sadas@as')[0]['__CODE'] );
     }
 
     /**
@@ -79,7 +79,7 @@ class email extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueDomainBlocked() {
-        $this->assertEquals('VALIDATION.EMAIL_DOMAIN_BLOCKED', app::getValidator('text_email')->validate('invalid@whyspam.me')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.EMAIL_DOMAIN_BLOCKED', $this->getValidator()->validate('invalid@whyspam.me')[0]['__CODE'] );
     }
 
     /**
@@ -87,7 +87,7 @@ class email extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueValid() {
-        $this->assertEquals(array(), app::getValidator('text_email')->validate('mymail@example.com'));
+        $this->assertEquals(array(), $this->getValidator()->validate('mymail@example.com'));
     }
 
 }
