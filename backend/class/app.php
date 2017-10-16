@@ -232,6 +232,28 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     }
 
     /**
+     * [initDebug description]
+     * @return [type] [description]
+     */
+    protected function initDebug() {
+      if(self::getEnv() == 'dev' && (self::getRequest()->getData('template') !== 'json' && self::getRequest()->getData('template') !== 'blank')) {
+        $this->getHook()->add(\codename\core\hook::EVENT_APP_RUN_START, function() {
+          $_REQUEST['start'] = microtime(true);
+        })->add(\codename\core\hook::EVENT_APP_RUN_END, function() {
+          if(self::getRequest()->getData('template') !== 'json' && self::getRequest()->getData('template') !== 'blank') {
+            echo '<pre style="position: fixed; bottom: 0; right: 0; opacity:0.5;">Generated in '.round(abs(($_REQUEST['start'] - microtime(true)) * 1000),2).'ms
+            '.\codename\core\observer\database::$query_count . ' Queries
+            '. \codename\core\observer\cache::$set . ' Cache SETs
+            '. \codename\core\observer\cache::$get . ' Cache GETs
+            '. \codename\core\observer\cache::$hit . ' Cache HITs
+            '. \codename\core\observer\cache::$miss . ' Cache MISSes
+            </pre>';
+          }
+        });
+      }
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\app_interface::contextExists($context)
@@ -1298,8 +1320,9 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
         } while (self::getInstance('filesystem_local')->fileAvailable($parentfile));
 
-        array_push($stack, array('vendor' => 'codename', 'app' => 'core'));
-        // self::$appstack = new \codename\core\value\structure\appstack($stack);
+        // do we really need to add the core framework?
+        // it may be there, already
+        // array_push($stack, array('vendor' => 'codename', 'app' => 'core'));
         return $stack;
     }
 
