@@ -19,21 +19,21 @@ class simple extends \codename\core\templateengine {
   /**
    * @inheritDoc
    */
-  public function render(string $referencePath, \codename\core\datacontainer $data): string {
-    return app::parseFile(app::getInheritedPath("frontend/" . $referencePath . ".php"), $data->getData());
+  public function render(string $referencePath, $data): string {
+    return app::parseFile(app::getInheritedPath("frontend/" . $referencePath . ".php"), $data);
   }
 
   /**
    * @inheritDoc
    */
-  public function renderView(string $viewPath, \codename\core\datacontainer $data): string {
+  public function renderView(string $viewPath, $data): string {
     return $this->render("view/" . $data->getData('context') . "/" . $viewPath, $data);
   }
 
   /**
    * @inheritDoc
    */
-  public function renderTemplate( string $templatePath, \codename\core\datacontainer $data): string {
+  public function renderTemplate( string $templatePath, $data): string {
     return $this->render("template/" . $templatePath . "/template.php", $data);
   }
 

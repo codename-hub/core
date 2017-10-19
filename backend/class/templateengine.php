@@ -43,7 +43,7 @@ abstract class templateengine {
    * @param  datacontainer $data     [data container / data context]
    * @return string                  [rendered view]
    */
-  public abstract function render(string $referencePath, datacontainer $data) : string;
+  public abstract function render(string $referencePath, $data) : string;
 
   /**
    * [renderView description]
@@ -51,7 +51,7 @@ abstract class templateengine {
    * @param  datacontainer $data     [data container / data context]
    * @return string                  [rendered view]
    */
-  public abstract function renderView(string $viewPath, datacontainer $data) : string;
+  public abstract function renderView(string $viewPath, $data) : string;
 
   /**
    * [renderTemplate description]
@@ -59,6 +59,6 @@ abstract class templateengine {
    * @param  datacontainer $data         [data container / data context]
    * @return string                      [rendered template]
    */
-  public abstract function renderTemplate(string $templatePath, datacontainer $data) : string;
+  public abstract function renderTemplate(string $templatePath, $data) : string;
 
 }
