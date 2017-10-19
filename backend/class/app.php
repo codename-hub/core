@@ -1320,9 +1320,16 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
         } while (self::getInstance('filesystem_local')->fileAvailable($parentfile));
 
-        // do we really need to add the core framework?
-        // it may be there, already
-        // array_push($stack, array('vendor' => 'codename', 'app' => 'core'));
+        // we don't need to add the core framework explicitly
+        // as an 'app', as it is returned by app::getParentapp
+        // if there's no parent app defined
+
+        // inject core-ui app before core app, if defined
+        if(class_exists("\\codename\\core\\ui\\app")) {
+          $uiApp = array('vendor' => 'codename', 'app' => 'core-ui');
+          array_splice($stack, -1, 0, array($uiApp));
+        }
+
         return $stack;
     }
 
