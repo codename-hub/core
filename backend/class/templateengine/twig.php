@@ -48,6 +48,9 @@ class twig extends \codename\core\templateengine {
     $this->twigInstance = new \Twig\Environment($this->twigLoader, $config['environment'] ?? array());
     $this->twigInstance->addExtension(new extension\routing);
 
+    $this->twigInstance->addGlobal('request', app::getRequest());
+    $this->twigInstance->addGlobal('response', app::getResponse());
+
     // add testing for array
     $this->twigInstance->addTest(new \Twig\TwigTest('array', function ($value) {
       return is_array($value);
