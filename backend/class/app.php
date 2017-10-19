@@ -955,7 +955,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         foreach(self::getAppstack() as $parentapp) {
             $filename = CORE_VENDORDIR . $parentapp['vendor'] . '/' . $parentapp['app'] . '/backend/class/' . $file . '.php';
             if(self::getInstance('filesystem_local')->fileAvailable($filename)) {
-                return '\\' . $parentapp['vendor'] . '\\' . $parentapp['app'] . '\\' . $classname;
+                $namespace = $parentapp['namespace'] ?? '\\' . $parentapp['vendor'] . '\\' . $parentapp['app'];
+                return $namespace . '\\' . $classname;
             }
         }
         throw new \codename\core\exception(self::EXCEPTION_GETINHERITEDCLASS_CLASSFILENOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $classname);
@@ -1201,8 +1202,9 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
           foreach(self::getAppstack() as $parentapp) {
             $vendor = $parentapp['vendor'];
             $app = $parentapp['app'];
+            $namespace = $parentapp['namespace'] ?? "\\{$vendor}\\{$app}";
             $classpath = self::getHomedir($vendor, $app) . '/backend/class/' . $type . '/' . $config['driver'] . '.php';
-            $classname = "\\{$vendor}\\{$app}\\{$type}\\" . $config['driver'];
+            $classname = $namespace . "\\{$type}\\" . $config['driver'];
 
             if(self::getInstance('filesystem_local')->fileAvailable($classpath)) {
               $found = true;
@@ -1326,7 +1328,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
         // inject core-ui app before core app, if defined
         if(class_exists("\\codename\\core\\ui\\app")) {
-          $uiApp = array('vendor' => 'codename', 'app' => 'core-ui');
+          $uiApp = array(
+            'vendor' => 'codename',
+            'app' => 'core-ui',
+            'namespace' => '\\codename\\core\\ui'
+          );
           array_splice($stack, -1, 0, array($uiApp));
         }
 
