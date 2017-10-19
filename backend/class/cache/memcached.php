@@ -54,14 +54,14 @@ class memcached extends \codename\core\cache {
      * {@inheritDoc}
      * @see \codename\core\cache_interface::set($group, $key, $value)
      */
-    public function set(string $group, string $key, $value = null, int $timeout = 0) {
+    public function set(string $group, string $key, $value = null, int $timeout = null) {
         if(is_null($value)) {
             app::getLog('debug')->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_SET::EMPTY VALUE ($group = ' . $group . ', $key= ' . $key . ')');
             return;
         }
 
         $this->notify('CACHE_SET');
-        if ($timeout == 0) {
+        if ($timeout == 0 || $timeout == null) {
             $timeout = 86400;
         }
         app::getLog('debug')->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_SET::SETTING ($group = ' . $group . ', $key= ' . $key . ')');
