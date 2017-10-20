@@ -1115,7 +1115,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         }
       }
 
-      $this->getResponse()->setData('content', app::getTemplateEngine($templateengine)->renderView($this->getResponse()->getData('view'), $this->getResponse()));
+      $this->getResponse()->setData('content', app::getTemplateEngine($templateengine)->renderView($this->getResponse()->getData('context') . '/' . $this->getResponse()->getData('view')));
       return $this;
     }
 
