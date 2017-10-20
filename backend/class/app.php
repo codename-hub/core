@@ -301,7 +301,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         self::getLog('access')->info(json_encode($this->getRequest()->getData()));
         header("APP-SRV: " . gethostname());
 
-        $this->makeRequest();
+        try {
+          $this->makeRequest();
+        } catch (\Exception $e) {
+          $this->getResponse()->displayException($e);
+        }
 
         if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
             self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
