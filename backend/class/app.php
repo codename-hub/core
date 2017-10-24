@@ -1221,7 +1221,14 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         }
 
         // instanciate
-        return $_REQUEST['instances'][$simplename] = new $classname($config);
+        $instance = new $classname($config);
+
+        // make its own name public to the client itself
+        if($instance instanceof \codename\core\clientInterface) {
+          $instance->setClientName($simplename);
+        }
+
+        return $_REQUEST['instances'][$simplename] = $instance;
     }
 
     /**
