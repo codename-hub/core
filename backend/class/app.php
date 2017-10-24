@@ -1103,7 +1103,6 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\app
      */
     protected function doShow() : \codename\core\app {
-      // $this->getResponse()->setData('content', self::parseFile(self::getInheritedPath("frontend/view/" . $this->getResponse()->getData('context') . "/" . $this->getResponse()->getData('view') . ".php")));
       if($this->getResponse()->isDefined('templateengine')) {
         $templateengine = $this->getResponse()->getData('templateengine');
       } else {
