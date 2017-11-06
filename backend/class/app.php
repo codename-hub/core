@@ -1354,6 +1354,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         // as an 'app', as it is returned by app::getParentapp
         // if there's no parent app defined
 
+        // inject apps, if available
+        foreach(self::$injectedApps as $injectApp) {
+          array_splice($stack, -1, 0, array($injectApp));
+        }
+
         // inject core-ui app before core app, if defined
         if(class_exists("\\codename\\core\\ui\\app")) {
           $uiApp = array(
@@ -1365,6 +1370,24 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         }
 
         return $stack;
+    }
+
+    /**
+     * array of injected or to-be-injected apps during makeAppstack
+     * @var array
+     */
+    protected static $injectedApps = array();
+
+    /**
+     * [final description]
+     * @var [type]
+     */
+    final protected static function injectApp(array $injectApp) {
+      if(isset($injectApp['vendor']) && isset($injectApp['app']) && isset($injectApp['namespace'])) {
+        self::$injectedApps[] = $injectApp;
+      } else {
+        throw new exception("EXCEPTION_APP_INJECTAPP_CANNOT_INJECT_APP", exception::$ERRORLEVEL_FATAL, $injectApp);
+      }
     }
 
 }
