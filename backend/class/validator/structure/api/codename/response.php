@@ -25,17 +25,17 @@ class response extends \codename\core\validator\structure\api\codename implement
      */
     public function validate($value) : array {
         parent::validate($value);
-        
+
         if(count($this->errorstack->getErrors()) > 0) {
             return $this->errorstack->getErrors();
         }
-        
-        if(count(app::getValidator('number_natural')->validate($value['success'])) > 0) {
+
+        if(count($errors = app::getValidator('number_natural')->validate($value['success'])) > 0) {
             $this->errorstack->addError('VALUE', 'INVALID_SUCCESS_IDENTIFIER', $errors);
             return $this->errorstack->getErrors();
         }
 
         return $this->errorstack->getErrors();
     }
-    
+
 }
