@@ -325,7 +325,25 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         }
 
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_END);
+
+        // fire exit code
+        exit(self::$exitCode);
+
         return;
+    }
+
+    /**
+     * the current exit code to be sent after app's execution
+     * @var int
+     */
+    protected static $exitCode = 0;
+
+    /**
+     * set an exitcode for the application (on exiting normally)
+     * @param int $exitCode [description]
+     */
+    public static function setExitCode(int $exitCode) {
+      self::$exitCode = $exitCode;
     }
 
     /**
