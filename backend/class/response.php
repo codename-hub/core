@@ -6,11 +6,35 @@ namespace codename\core;
  * @package core
  * @since 2016-01-25
  */
-class response extends \codename\core\datacontainer {
+abstract class response extends \codename\core\datacontainer {
+
+    /**
+     * Status Constant: Successful response
+     * @var string
+     */
+    public const STATUS_SUCCESS = 'STATUS_SUCCESS';
+
+    /**
+     * Status Constant: Errorneous response
+     * @var string
+     */
+    public const STATUS_INTERNAL_ERROR = 'STATUS_INTERNAL_ERROR';
+
+    /**
+     * Status Constant: NotFound response
+     * @var string
+     */
+    public const STATUS_NOTFOUND = 'STATUS_NOTFOUND';
+
+    /**
+     * Status Constant: AccessDenied response
+     * @var string
+     */
+    public const STATUS_ACCESS_DENIED = 'STATUS_ACCESS_DENIED';
 
     /**
      * Contains the derived output
-     * @var strubg
+     * @var string
      */
     protected $output = '';
 
@@ -21,22 +45,11 @@ class response extends \codename\core\datacontainer {
     protected $resources = array();
 
     /**
-     * Contains the status code
-     * @var int
-     */
-    protected $statusCode = 200;
-
-    /**
-     * Contains the status text
-     * @var string
-     */
-    protected $statusText = 'OK';
-
-    /**
      * Creates instance and sets the data equal to the request container
      * @return response
      */
     public function __CONSTRUCT() {
+        $this->status = $this->getDefaultStatus();
         $this->addData(array(
             'context' => app::getInstance('request')->getData('context'),
             'view' => app::getInstance('request')->getData('view'),
@@ -47,32 +60,39 @@ class response extends \codename\core\datacontainer {
     }
 
     /**
-     * Returns the status code of the current response
-     * @return int
+     * [getDefaultStatus description]
+     * @return string
      */
-    public function getStatuscode() : int {
-        return $this->statusCode;
+    protected function getDefaultStatus() {
+      return self::STATUS_SUCCESS;
     }
 
     /**
-     * Helper to set HTTP status codes
-     * @param int $statusCode
-     * @param string $statusText
+     * [protected description]
+     * @var [type]
      */
-    public function setStatuscode(int $statusCode, string $statusText) : \codename\core\response {
-        $this->statusCode = $statusCode;
-        $this->statusText = $statusText;
-        return $this;
+    protected $status = null;
+
+    /**
+     * [setStatus description]
+     * @param string $status [description]
+     */
+    public function setStatus(string $status) {
+      $this->status = $status;
     }
 
     /**
-     * Actually sends output to the response HTTP Stream
+     * translate current internal status to a responsetype specific one
+     * @var [type]
+     */
+    protected abstract function translateStatus();
+
+    /**
+     * Push output to whatever we're outputting to.
+     * Depends on the response type (inherited class)
      * @return void
      */
-    public function pushOutput() {
-        echo $this->getOutput();
-        return;
-    }
+    public abstract function pushOutput();
 
     /**
      * Returns the output content of this response

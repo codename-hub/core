@@ -11,6 +11,29 @@ class cli extends \codename\core\response {
   /**
    * @inheritDoc
    */
+  protected function translateStatus()
+  {
+    $translate = array(
+      self::STATUS_SUCCESS => 0,
+      self::STATUS_INTERNAL_ERROR => 1,
+      self::STATUS_NOTFOUND => 1 // ?
+    );
+    return $translate[$this->status];
+  }
+
+  /**
+   * @inheritDoc
+   * output to cli/console
+   */
+  public function pushOutput()
+  {
+    echo $this->getOutput();
+    app::setExitCode($this->translateStatus());
+  }
+
+  /**
+   * @inheritDoc
+   */
   public function displayException(\Exception $e)
   {
     $formatter = new \codename\core\helper\clicolors();
@@ -35,5 +58,5 @@ class cli extends \codename\core\response {
 
     return $value;
   }
-  
+
 }

@@ -11,6 +11,60 @@ use \codename\core\app;
 class http extends \codename\core\response {
 
     /**
+     * Contains the status code
+     * @var int
+     */
+    protected $statusCode = 200;
+
+    /**
+     * Contains the status text
+     * @var string
+     */
+    protected $statusText = 'OK';
+
+    /**
+     * @inheritDoc
+     */
+    protected function translateStatus()
+    {
+      $translate = array(
+        self::STATUS_SUCCESS => 200,
+        self::STATUS_INTERNAL_ERROR => 500,
+        self::STATUS_NOTFOUND => 404
+      );
+      return $translate[$this->status];
+    }
+
+    /**
+     * @inheritDoc
+     * simply output/echo to HTTP stream
+     */
+    public function pushOutput()
+    {
+      echo $this->getOutput();
+    }
+
+    /**
+     * Returns the status code of the current response
+     * @return int
+     */
+    public function getStatuscode() : int {
+        // return $this->statusCode;
+        return $this->translateStatus();
+    }
+
+    /**
+     * Helper to set HTTP status codes
+     * @param int $statusCode
+     * @param string $statusText
+     */
+    public function setStatuscode(int $statusCode, string $statusText) : \codename\core\response {
+        $this->statusCode = $statusCode;
+        $this->statusText = $statusText;
+        return $this;
+    }
+
+    /**
      * You are requesting a resource for the front-end to load additionally.
      * <br />I'm afraid that I don't know the type of resource you requested
      * @var string
