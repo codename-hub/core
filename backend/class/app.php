@@ -1146,17 +1146,19 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      */
     protected function doOutput() {
 
-      if($this->getResponse()->isDefined('templateengine')) {
-        $templateengine = $this->getResponse()->getData('templateengine');
-      } else {
-        $templateengine = app::getConfig()->get('defaulttemplateengine');
-      }
-      if($templateengine == null) {
-        $templateengine = 'default';
-      }
+      if(!($this->getResponse() instanceof \codename\core\response\json)) {
+        if($this->getResponse()->isDefined('templateengine')) {
+          $templateengine = $this->getResponse()->getData('templateengine');
+        } else {
+          $templateengine = app::getConfig()->get('defaulttemplateengine');
+        }
+        if($templateengine == null) {
+          $templateengine = 'default';
+        }
 
-      // self::getResponse()->setOutput(self::parseFile(self::getInheritedPath("frontend/template/" . $this->getRequest()->getData('template') . "/template.php")));
-      self::getResponse()->setOutput(app::getTemplateEngine($templateengine)->renderTemplate($this->getResponse()->getData('template'), $this->getResponse()));
+        // self::getResponse()->setOutput(self::parseFile(self::getInheritedPath("frontend/template/" . $this->getRequest()->getData('template') . "/template.php")));
+        self::getResponse()->setOutput(app::getTemplateEngine($templateengine)->renderTemplate($this->getResponse()->getData('template'), $this->getResponse()));
+      }
       self::getResponse()->pushOutput();
       return;
     }

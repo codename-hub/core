@@ -14,13 +14,13 @@ class bootstrap {
      * @var array
      */
     protected static $instances = array();
-    
+
     /**
      * I did not find the requested model in the appstack.
      * @var string
      */
     CONST EXCEPTION_GETMODEL_MODELNOTFOUND = 'EXCEPTION_GETMODEL_MODELNOTFOUND';
-    
+
     /**
      * The current app's parent has the same name as my current app. I won't do that due to risks of infinite loops.
      * @var string
@@ -80,6 +80,10 @@ class bootstrap {
     protected static function getRequesttype() : string {
         if(php_sapi_name() === 'cli') {
             return 'cli';
+        }
+        // ?
+        if(strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+            return 'json';
         }
         return 'https';
     }

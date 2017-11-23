@@ -6,7 +6,15 @@ namespace codename\core\response;
  * @package core
  * @since 2016-05-31
  */
-class json extends \codename\core\response {
+class json extends \codename\core\response\http {
+
+  /**
+   * @inheritDoc
+   */
+  public function pushOutput()
+  {
+    echo(json_encode($this->getData()));
+  }
 
   /**
    * @inheritDoc
