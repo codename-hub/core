@@ -21,14 +21,14 @@ class api {
     protected $application;
 
     /**
-     * @param string $header_app
-     * @param string $header_auth
-     * @param string $header_token
+     * @-param string $header_app
+     * @-param string $header_auth
+     * @-param string $header_token
      * @return \codename\core\api
      */
-    public function __construct(\codename\core\datacontainer $application, string $header_auth, string $header_token) {
+    public function __construct() {
         $this->errorstack = new \codename\core\errorstack($this->type);
-        $this->application = $application;
+        // $this->application = $application;
         return $this;
     }
 

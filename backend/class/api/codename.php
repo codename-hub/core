@@ -112,7 +112,7 @@ class codename extends \codename\core\api {
      * Mapper for the request function.
      * <br />This method will concatenate the URL and return the (void) result of doRequest($url).
      * @param string $url
-     * @return void
+     * @return mixed
      */
     public function request(string $url) {
         return $this->doRequest($this->serviceprovider->getUrl() . $url);
@@ -192,9 +192,9 @@ class codename extends \codename\core\api {
     /**
      * Performs the request
      * @param string $type
-     * @return bool
+     * @return mixed|bool
      */
-    protected function doRequest(string $url) : bool {
+    protected function doRequest(string $url) {
         $this->curlHandler = curl_init();
 
         curl_setopt($this->curlHandler, CURLOPT_SSL_VERIFYHOST, 0);
@@ -208,7 +208,7 @@ class codename extends \codename\core\api {
         ));
 
         $this->sendData();
-        app::getLog('codenameapi')->debug(serialize($this));
+        // app::getLog('codenameapi')->debug(serialize($this));
 
         $res = $this->decodeResponse(curl_exec($this->curlHandler));
 
@@ -218,7 +218,7 @@ class codename extends \codename\core\api {
             return false;
         }
 
-        return true;
+        return $res;
     }
 
     /**
@@ -247,9 +247,9 @@ class codename extends \codename\core\api {
      * <br />Will return false on any error.
      * <br />Will output cURL errors on development environments
      * @param string $response
-     * @return false
+     * @return mixed
      */
-    protected function decodeResponse(string $response) : bool {
+    protected function decodeResponse(string $response) {
         app::getLog('debug')->debug('CORE_BACKEND_CLASS_API_CODENAME_DECODERESPONSE::START ($response = ' . $response . ')');
 
         if(defined('CORE_ENVIRONMENT') && CORE_ENVIRONMENT == 'dev') {
@@ -280,7 +280,7 @@ class codename extends \codename\core\api {
             return false;
         }
 
-        return true;
+        return $response;
     }
 
 }
