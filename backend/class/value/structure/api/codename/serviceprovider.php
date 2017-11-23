@@ -13,7 +13,7 @@ class serviceprovider extends \codename\core\value\structure {
      * @see \codename\core\value::$validator
      */
     protected $validator = 'structure_api_codename_serviceprovider';
-    
+
     /**
      * Returns the host name of the service provider
      * @return string
@@ -21,7 +21,7 @@ class serviceprovider extends \codename\core\value\structure {
     public function getHost() : string {
         return $this->value['host'];
     }
-    
+
     /**
      * Returns the port number of the service provider
      * @return int
@@ -29,7 +29,7 @@ class serviceprovider extends \codename\core\value\structure {
     public function getPort() : int {
         return $this->value['port'];
     }
-    
+
     /**
      * Will return the complete URL to the service provider's base
      * @return string
@@ -37,5 +37,5 @@ class serviceprovider extends \codename\core\value\structure {
     public function getUrl() : string {
         return $this->value['host'] . ':' . $this->value['port'];
     }
-    
+
 }
