@@ -1,5 +1,6 @@
 <?php
 namespace codename\core\response;
+use codename\core\app;
 
 /**
  * I handle all the data for a CLI response
