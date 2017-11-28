@@ -109,8 +109,8 @@ __NOTES:__
 __Step 4: Use!__
 
 ~~~php
-$model = app::getModel('stuff');
-~~
+$model = app::getModel('stuff'); // do your stuff.
+~~~
 
 __NOTES:__
 
