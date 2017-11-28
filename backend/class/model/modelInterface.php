@@ -9,7 +9,7 @@ namespace codename\core\model;
 interface modelInterface {
 
     /**
-     * Performs a search with the given criterua from the other functions
+     * Performs a search with the given criteria from the other functions
      * @return \codename\core\model
      */
     public function search() : \codename\core\model;
