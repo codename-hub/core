@@ -109,7 +109,7 @@ __NOTES:__
 __Step 4: Use!__
 
 ~~~php
-$model = app::getModel('stuff'); // anywhere you like.
+$model = app::getModel('stuff');
 ~~
 
 __NOTES:__
