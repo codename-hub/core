@@ -6,6 +6,8 @@ This Tutorial is for giving you a quick overview about the most important compon
 
 __TODO__
 
+-----------------------
+
 # Basic I/O #
 
 __Requirements__
@@ -20,12 +22,14 @@ __Files to be touched__
 * _<your-project>_/frontend/view/__your-context__/__your-view__.php (_create_)
 * _<your-project>_/config/app.json (_modify/create_)
 
+- - - -
+
 __Step 1: Create your backing class__
 
 Create a new PHP file in backend/class/context/.
 This is your "context" (you can think of it as a controller).
 
-```php
+~~~php
 <?php
 namespace codename\demo\context;
 use codename\core\exception;
@@ -44,16 +48,16 @@ class mycontext extends \codename\core\context {
   }
 
 }
-```
+~~~
 
 _NOTES:_
 
 * Make sure you're using the correct namespace (e.g. _namespace codename\demo\context_ if your app is called "_demo_")
 * Make sure your class is inheriting from a context class (e.g. _\codename\core\context_ )
-* Make sure you prefix all your view functions with _view
+* Make sure you prefix all your view functions with view_
 * You may omit the PHP closing tag (some modern-stylish PHP programming stuff...)
 
-
+- - - -
 
 __Step 2: Create your view code__
 
@@ -63,11 +67,11 @@ This may be the raw HTML/PHP-Inline code of your view.
 If you're using __Twig__ for templating/writing views, it may be called __your-view__.twig
 
 
-```php
+~~~php
 <?php namespace codename\demo;?>
 <p>Some output code</p>
 <p>Get a value from the response: <?= app::getResponse()->getData('mykey') ?>
-```
+~~~
 
 _NOTES:_
 
@@ -75,7 +79,7 @@ _NOTES:_
 * Don't forget to namespace the code if you're using *.php files (irrelevant if you're using Twig)
 * Then, you can access the response constainer via app::getResponse()->getData( ... );
 
-
+- - - -
 
 __Step 3: Allow your view to be accessed__
 
@@ -83,7 +87,7 @@ Open your app configuration at __config/app.json__.
 Under the key "__context__" create a json object declaring your context outline:
 
 
-```json
+~~~json
 {
 	...
 	"context": {
@@ -98,7 +102,7 @@ Under the key "__context__" create a json object declaring your context outline:
         ...
     }
 }
-```
+~~~
 
 _NOTES:_
 
