@@ -53,6 +53,8 @@ _NOTES:_
 * Make sure you prefix all your view functions with _view
 * You may omit the PHP closing tag (some modern-stylish PHP programming stuff...)
 
+
+
 __Step 2: Create your view code__
 
 Create a new PHP file (depending on your preferred templating engine)
@@ -72,6 +74,7 @@ _NOTES:_
 * The example is a bare inline PHP code
 * Don't forget to namespace the code if you're using *.php files (irrelevant if you're using Twig)
 * Then, you can access the response constainer via app::getResponse()->getData( ... );
+
 
 
 __Step 3: Allow your view to be accessed__
@@ -107,3 +110,9 @@ _NOTES:_
    "type": optionally, you can define "crud" or another inheritable context type. Then, you might not need to define stuff that is already present in the base context type.
    "template": explicitly use a template here
    "defaulttemplateengine": explicitly use a template engine defined in environment.json here
+
+
+__Step 3.5: Test!__
+
+Fine, now you're good to go!
+Fire up your browser at _http://your.url/?context=mycontext&view=myview_ (or even leave the view parameter, as you've defined the default view in your app.json).
