@@ -56,6 +56,7 @@ _NOTES:_
 * Make sure your class is inheriting from a context class (e.g. _\codename\core\context_ )
 * Make sure you prefix all your view functions with view_
 * You may omit the PHP closing tag (some modern-stylish PHP programming stuff...)
+* Don't you ever dare to use __camelCasing__ for context backing class files
 
 - - - -
 
