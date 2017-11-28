@@ -13,7 +13,7 @@ __Requirements__
 
 __Files to be touched__
 
-* _<your-project>_/config/model/__your-model__.json (_create_)
+* _<your-project>_/config/model/__your-schema_your-model__.json (_create_)
 * _<your-project>_/backend/class/model/__your-model__.php (_create_)
 * _<your-project>_/backend/class/context/__some-place-to-work-in__.php (_create/modify_)
 
@@ -21,7 +21,9 @@ __Files to be touched__
 
 __Step 1: Create your model definition__
 
-Create a new json file in config/model/.
+Create a new json file in config/model/, e.g. demo_stuff.json.
+It is always <schema>_<model>.json. Schema MAY be "demo", but it can also be "abc" or whatever you want it to become.
+The schema translates to DB Schemata (or, if you're using MySQL, it matches up with a "database"). And yes, you can cross-join them.
 
 ~~~json
 {
@@ -72,12 +74,47 @@ To execute the pending tasks, append the GET-Parameter exec=1 to the url.
 
 __Step 3: Create the backing class__
 
-...
+Create a new PHP file at backend/class/model/<your-schema>_<your-model-name>.json
+
+~~~php
+<?php
+namespace codename\demo\model;
+
+/**
+ * this is an example model
+ * without function
+ */
+class stuff extends \codename\core\model\schematic\mysql {
+
+  /**
+   *
+   * {@inheritDoc}
+   */
+  public function __CONSTRUCT(array $modeldata) {
+      parent::__CONSTRUCT($modeldata);
+      $this->setConfig(null, 'demo', 'stuff');
+  }
+
+}
+~~~
+
+__NOTES:__
+
+* watch the namespace
+* correctly name your class and let it inherit from the right model base class (see above)
+* watch: $this->setConfig(null, '<schema>', '<model>');
 
 - - - -
 
 __Step 4: Use!__
 
-...
+~~~php
+$model = app::getModel('stuff'); // anywhere you like.
+~~
+
+__NOTES:__
+
+* If you're using app::getModel(), you have to be in the namespace codename\core; (or even your own app namespace). Otherwise, require it using "use \codename\core\app;".
+* If you're working inside a context, you can also use $this->getModel( ... ), as the base context class provides you this method.
 
 - - - -
