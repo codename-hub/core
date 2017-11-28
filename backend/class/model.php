@@ -1542,4 +1542,10 @@ abstract class model implements \codename\core\model\modelInterface {
         return;
     }
 
+    /**
+     * Gets the current model identifier (name)
+     * @return string
+     */
+    public abstract function getIdentifier() : string;
+
 }
