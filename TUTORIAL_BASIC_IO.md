@@ -1,14 +1,12 @@
-# TUTORIAL - CORE FRAMEWORK QUICKSTART #
+# TUTORIAL - BASIC IO #
 
 This Tutorial is for giving you a quick overview about the most important components of the core framework.
 
-# App Bootstrapping #
+Requires the following knowledge:
 
-__TODO__
+* __TUTORIAL - APP BOOTSTRAPPING__
 
 -----------------------
-
-# Basic I/O #
 
 __Requirements__
 
