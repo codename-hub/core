@@ -6,7 +6,7 @@ namespace codename\core\model\plugin;
  * @package core
  * @since 2017-11-28
  */
-class join extends \codename\core\model\plugin {
+abstract class join extends \codename\core\model\plugin {
 
   /**
    * use current model default
@@ -67,7 +67,7 @@ class join extends \codename\core\model\plugin {
    * {@inheritDoc}
    * @see \codename\core\model_plugin_filter::__CONSTRUCT(string $field, string $value, string $operator)
    */
-  public function __CONSTRUCT(\codename\core\model $field, string $type, string $modelField, string $referenceField) {
+  public function __CONSTRUCT(\codename\core\model $model, string $type, string $modelField, string $referenceField) {
       $this->model = $model;
       $this->type = $type;
       $this->referenceField = $referenceField;
