@@ -71,7 +71,8 @@ class exception extends \Exception {
      * @return string       [description]
      */
     protected function translateExceptionCode(string $code) : string {
-      return app::getTranslate('exception')->translate('EXCEPTION.' . $code);
+      return $code;
+      // return app::getTranslate('exception')->translate('EXCEPTION.' . $code);
     }
 
 

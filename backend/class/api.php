@@ -90,7 +90,7 @@ class api {
      * @return void
      */
     protected function printAnswer(array $data) {
-        header('Content-Type: application/json');
+        app::getResponse()->setHeader('Content-Type: application/json');
         echo json_encode($data);
         exit;
         return;
