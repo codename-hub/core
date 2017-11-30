@@ -94,10 +94,21 @@ class bootstrap {
      */
     public static function getResponse() : \codename\core\response {
         if(!array_key_exists('response', self::$instances)) {
+          if(array_key_exists('request', self::$instances)) {
             $classname = "\\codename\\core\\response\\" . self::getRequesttype();
             self::$instances['response'] = new $classname();
+          } else {
+            throw new exception(self::EXCEPTION_BOOTSTRAP_GETRESPONSE_REQUEST_INSTANCE_NOT_CREATED, exception::$ERRORLEVEL_FATAL);
+          }
         }
         return self::$instances['response'];
     }
+
+    /**
+     * exception thrown, if getResponse called without existing request
+     * e.g. makeRequest hasn't been called
+     * @var string
+     */
+    public const EXCEPTION_BOOTSTRAP_GETRESPONSE_REQUEST_INSTANCE_NOT_CREATED = 'EXCEPTION_BOOTSTRAP_GETRESPONSE_REQUEST_INSTANCE_NOT_CREATED';
 
 }

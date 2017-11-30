@@ -299,7 +299,14 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_START);
         self::getLog('debug')->debug('CORE_BACKEND_CLASS_APP_RUN::START - ' . json_encode(self::getRequest()->getData()));
         self::getLog('access')->info(json_encode($this->getRequest()->getData()));
-        header("APP-SRV: " . gethostname());
+
+        // Warning:
+        // "Chicken or the egg" problem.
+        // We have to call $this->makeRequest();
+        // Before we're using app::getResponse();
+        // --
+        // originally, we set APP-SRV header here.
+        // this has been moved to the core response class.
 
         try {
           $this->makeRequest();
