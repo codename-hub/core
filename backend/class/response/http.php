@@ -45,12 +45,11 @@ class http extends \codename\core\response {
     }
 
     /**
-     * Returns the status code of the current response
-     * @return int
+     * @inheritDoc
      */
-    public function getStatuscode() : int {
-        // return $this->statusCode;
-        return $this->translateStatus();
+    public function setHeader(string $header)
+    {
+      header($header);
     }
 
     /**

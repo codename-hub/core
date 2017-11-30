@@ -69,12 +69,12 @@ class http extends \codename\core\request {
         }
 
         if(is_string($this->redirect)) {
-            header("Location: " . $this->redirect);
+            $this->setHeader("Location: " . $this->redirect);
         }
 
         if(is_array($this->redirect)) {
             $url = '/?' . http_build_query($this->redirect);
-            header("Location: " . $url);
+            $this->setHeader("Location: " . $url);
         }
         return;
     }

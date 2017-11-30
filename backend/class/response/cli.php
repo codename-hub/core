@@ -35,6 +35,14 @@ class cli extends \codename\core\response {
   /**
    * @inheritDoc
    */
+  public function setHeader(string $header)
+  {
+    return; // do nothing
+  }
+
+  /**
+   * @inheritDoc
+   */
   public function displayException(\Exception $e)
   {
     $formatter = new \codename\core\helper\clicolors();
