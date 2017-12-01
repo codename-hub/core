@@ -8,6 +8,23 @@ namespace codename\core\helper;
  */
 class clicolors {
 
+		/**
+		 * static instance
+		 * @var clicolors
+		 */
+		protected static $instance = null;
+
+		/**
+		 * [getInstance description]
+		 * @return self [description]
+		 */
+		public static function getInstance() : self {
+			if(self::$instance == null) {
+				self::$instance = new self();
+			}
+			return self::$instance;
+		}
+
 		protected $foreground_colors = array();
 		protected $background_colors = array();
 
