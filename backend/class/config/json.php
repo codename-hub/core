@@ -71,10 +71,28 @@ class json extends \codename\core\config {
             }
             $thisConf = $this->decodeFile($fullpath);
             $config = array_replace_recursive($config, $thisConf);
+            $this->inheritance[] = $fullpath;
         }
 
         $this->data = $config;
         return $this;
+    }
+
+    /**
+     * contains a list of elements (file paths) this config is composed of
+     * (if inheritance was allowed during construction of this object)
+     * @var string[]
+     */
+    protected $inheritance = array();
+
+    /**
+     * returns an array of file paths this config is composed of
+     * ordered from base to top level app
+     * also contains the topmost app (e.g. the current app)
+     * @return string[]
+     */
+    public function getInheritance() : array {
+      return $this->inheritance;
     }
 
     /**
