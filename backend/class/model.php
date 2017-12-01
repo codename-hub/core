@@ -1014,7 +1014,7 @@ abstract class model implements \codename\core\model\modelInterface {
                 continue;
             }
 
-            if (count($errors = app::getValidator($this->getFieldtype(\codename\core\value\text\modelfield::getInstance($field)))->validate($data[$field])) > 0) {
+            if (count($errors = app::getValidator($this->getFieldtype(\codename\core\value\text\modelfield::getInstance($field)))->reset()->validate($data[$field])) > 0) {
                 $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
             }
         }
