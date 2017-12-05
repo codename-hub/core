@@ -27,6 +27,12 @@ abstract class json extends \codename\core\model\schemeless implements \codename
   protected $name = '';
 
   /**
+   * I contain the prefix of the model to use
+   * @var string $prefix
+   */
+  protected $prefix = '';
+
+  /**
    * Creates an instance
    * @param array $modeldata [e.g. app => appname]
    * @return model
@@ -44,8 +50,9 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    * @param  string               $name [model name for getting the config itself]
    * @return model                [description]
    */
-  public function setConfig(string $file = null, string $name) : model {
+  public function setConfig(string $file = null, string $prefix, string $name) : model {
     $this->file = $file;
+    $this->prefix = $prefix;
     $this->name = $name;
     $this->config = $this->loadConfig();
     return $this;
@@ -56,7 +63,7 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    * @return \codename\core\config
    */
   protected function loadConfig() : \codename\core\config {
-    return new \codename\core\config\json('config/model/' . $this->name . '.json', true);
+    return new \codename\core\config\json('config/model/' . $this->prefix . '_' . $this->name . '.json', true);
   }
 
   /**
@@ -65,7 +72,6 @@ abstract class json extends \codename\core\model\schemeless implements \codename
   public function getIdentifier() : string
   {
     return $this->name;
-    // throw new \LogicException('Not implemented'); // TODO
   }
 
   /**
@@ -74,7 +80,14 @@ abstract class json extends \codename\core\model\schemeless implements \codename
   public function search() : model
   {
     return $this;
-    // throw new \LogicException('Not implemented'); // TODO
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected function internalQuery(string $query, array $params = array())
+  {
+    return;
   }
 
   /**
@@ -104,7 +117,7 @@ abstract class json extends \codename\core\model\schemeless implements \codename
   /**
    * @inheritDoc
    */
-  public function getResult() : array
+  protected function internalGetResult(): array
   {
     return $this->doQuery('');
   }
@@ -143,15 +156,9 @@ abstract class json extends \codename\core\model\schemeless implements \codename
                   $pass = false;
                   continue;
                 }
+              } else {
+                // we may warn for incompatible filters?
               }
-              /*
-              // echo("filterResults: {$filter->field} {$entry}");
-              print_r($filter->field->get());
-              if(!array_key_exists($filter->field->get(), $entry) || $entry[$filter->field->get()] !== $filter->value) {
-                  $pass = false;
-                  continue;
-              }
-              */
           }
           if(!$pass) {
               continue;
@@ -167,13 +174,7 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    * @return array       [description]
    */
   protected function mapResults(array $data) : array {
-      $results = array();
-      foreach ($data as $result) {
-          // $result[$this->getPrimarykey()] = $result['@attributes']['id'];
-          // unset($result['@attributes']);
-          $results[] = $result;
-      }
-      return $results;
+      return $data;
   }
 
   /**
