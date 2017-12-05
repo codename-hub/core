@@ -56,8 +56,15 @@ class cli extends \codename\core\response {
       echo chr(10);
       die();
     }
-
     return $value;
+  }
+
+  /**
+   * returns Statuscodes
+   */
+  public function getStatusCode()
+  {
+    return 0;
   }
 
 }
