@@ -1,6 +1,7 @@
 <?php
 namespace codename\core;
 use codename\core\exception;
+use codename\core\model\plugin;
 
 /**
  * Storing data in different storage types (SQL, noSQL). Is one very important core of the framework
@@ -259,45 +260,44 @@ abstract class model implements \codename\core\model\modelInterface {
     protected $data = null;
 
     /**
-     * Contains the additional tables the query will use
-     * @var array
-     */
-    protected $tables = array();
-
-    /**
-     *
-     * @var \codename\core\model[]
-     */
-    protected $models = array();
-
-    /**
      * Contains the configuration
      * @var \codename\core\config
      */
     public $config = null;
 
-    public function getNestedmodels() : array {
-        return $this->models;
+    /**
+     * [getNestedJoins description]
+     * @return \codename\core\model\plugin\join[]
+     */
+    public function getNestedJoins() : array {
+        return $this->nestedModels;
     }
 
     /**
-     *
-     * @var \codename\core\model[]
+     * [getSiblingJoins description]
+     * @return \codename\core\model\plugin\join[]
      */
-    protected $siblings = array();
+    public function getSiblingJoins() : array {
+        return $this->siblingModels;
+    }
 
-    public function getSiblingModels() : array {
-        return $this->siblings;
+    /**
+     * determines if the model is joinable
+     * in the same run (e.g. DB compatibility and stuff)
+     * @return bool
+     */
+    protected function compatibleJoin(\codename\core\model $model) : bool {
+      return $this->getType() == $model->getType();
     }
 
     /**
      * @var array
      */
-    protected $siblingJoins = array();
-
+    // protected $siblingJoins = array();
+    /*
     protected function getSiblingJoin(string $key) : array {
         return $this->siblingJoins[$key];
-    }
+    }*/
 
     /**
      * I will set the given $field's value to $value of the previously loaded dataset / entry.
@@ -370,38 +370,131 @@ abstract class model implements \codename\core\model\modelInterface {
     /**
      * @todo DOCUMENTATION
      */
-    public function addModel(\codename\core\model $model) : \codename\core\model {
-        $this->tables[] = array(
-                'schema' => $model->schema,
-                'table' => $model->table,
-                'primarykey' => $model->getPrimarykey()
-        );
+    public function addModel(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT, string $modelField = null, string $referenceField = null) : \codename\core\model {
 
-        $this->models[] = $model;
+        $thisKey = null;
+        $joinKey = null;
+
+        // model field provided
+        //
+        //
+        if($modelField != null) {
+          // modelField is already provided
+          $thisKey = $modelField;
+
+          // look for reference field in foreign key config
+          $fkeyConfig = $this->config->get('foreign>'.$modelField);
+          if($fkeyConfig != null) {
+            if($referenceField == null || $referenceField == $fkeyConfig['key']) {
+              $joinKey = $fkeyConfig['key'];
+            } else {
+              // reference field is not equal
+              // e.g. you're trying to join on unjoinable fields
+              // throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_INVALID_REFERENCEFIELD', exception::$ERRORLEVEL_ERROR, array($this->getIdentifer(), $referenceField));
+            }
+          } else {
+            // we're missing the foreignkey config for the field provided
+            // throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_UNKNOWN_FOREIGNKEY_CONFIG', exception::$ERRORLEVEL_ERROR, array($this->getIdentifer(), $modelField));
+          }
+        } else {
+          // search for modelfield, as it is null
+          if($this->config->exists('foreign')) {
+            foreach($this->config->get('foreign') as $fkeyName => $fkeyConfig) {
+              // if we found compatible models
+              if($fkeyConfig['model'] == $model->getIdentifier()) {
+                $thisKey = $fkeyName;
+                if($referenceField == null || $referenceField == $fkeyConfig['key']) {
+                  $joinKey = $fkeyConfig['key'];
+                }
+                break;
+              }
+            }
+          }
+        }
+
+        // Try Reverse Join
+        if(($thisKey == null) || ($joinKey == null)) {
+          if($model->config->exists('foreign')) {
+            foreach($model->config->get('foreign') as $fkeyName => $fkeyConfig) {
+              if($fkeyConfig['model'] == $this->getIdentifier()) {
+                if($thisKey == null || $thisKey == $fkeyConfig['key']) {
+                  $joinKey = $fkeyName;
+                }
+                if($joinKey == null || $joinKey == $fkeyName) {
+                  $thisKey = $fkeyConfig['key'];
+                }
+                // $thisKey = $fkeyConfig['key'];
+                // $joinKey = $fkeyName;
+                break;
+              }
+            }
+          }
+        }
+
+        if(($thisKey == null) || ($joinKey == null)) {
+          throw new exception('EXCEPTION_MODEL_ADDMODEL_INVALID_OPERATION', exception::$ERRORLEVEL_ERROR, array($this->getIdentifier(), $model->getIdentifier(), $modelField, $referenceField));
+        }
+
+        // fallback to bare model joining
+        $pluginDriver = $this->compatibleJoin($model) ? $this->getType() : 'bare';
+
+        $class = '\\codename\\core\\model\\plugin\\join\\' . $pluginDriver;
+        array_push($this->nestedModels, new $class($model, $type, $thisKey, $joinKey));
+        // check for already-added ?
+
         return $this;
     }
+
+    /**
+     * contains configured join plugin instances for nested models
+     * @var \codename\core\model\plugin\join[]
+     */
+    protected $nestedModels = array();
+
+    /**
+     * contains configured join plugin instances for sibling models
+     * @var \codename\core\model\plugin\join[]
+     */
+    protected $siblingModels = array();
 
     /**
      * Adds a model as a Sibling (and not as a nested model)
      * to be used for joining two or more tables by foreign keys, without another model/table in-between
      */
-    public function addSiblingModel(\codename\core\model $model) : \codename\core\model {
-        $this->tables[] = array(
+    public function addSiblingModel(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT, string $modelField = null, string $referenceField = null) : \codename\core\model {
+        /* $this->tables[] = array(
                 'schema' => $model->schema,
                 'table' => $model->table,
                 'primarykey' => $model->getPrimarykey()
-        );
+        );*/
         if($this->config->exists("foreign")) {
           foreach($this->config->get("foreign") as $thisForeignKey => $thisForeign) {
             if($model->config->exists("foreign")) {
               foreach($model->config->get("foreign") as $otherForeignKey => $otherForeign) {
                 if($thisForeign['model'] == $otherForeign['model']) {
                   // we have a cross-like join
-                  $this->siblings[] = $model;
+                  //  $this->siblings[] = $model;
+
+
+                  // TODO: should we switch ?
+
+                  // if a specific model field is given, use it as requirement
+                  if($modelField != null && $modelField != $thisForeign['key']) {
+                    continue;
+                  }
+
+                  // if a specific reference field is given, use it as requirement
+                  if($referenceField != null && $referenceField != $otherForeign['key']) {
+                    continue;
+                  }
+
+                  $class = '\\codename\\core\\model\\plugin\\join\\' . $this->getType();
+                  array_push($this->siblingModels, new $class($model, $type, $thisForeignKey, $otherForeignKey));
+                  /*
                   $this->siblingJoins[$model->schema.'.'.$model->table] = array(
                     'this_field' => $thisForeignKey,
                     'sibling_field' => $otherForeignKey
-                  );
+                  );*/
                   return $this;
                 }
               }
@@ -927,24 +1020,28 @@ abstract class model implements \codename\core\model\modelInterface {
       if(array_key_exists($specifier, $this->cachedFieldtype)) {
         return $this->cachedFieldtype[$specifier];
       } else {
+
+        // fieldtype not in current model config
         if(!$this->config->exists("datatype>" . $specifier)) {
           // check nested model configs
-          foreach($this->models as $model) {
-            $fieldtype = $model->getFieldtype($field);
+          foreach($this->nestedModels as $joinPlugin) {
+            $fieldtype = $joinPlugin->model->getFieldtype($field);
             if($fieldtype != 'text') {
               return $fieldtype;
             }
           }
 
-          foreach($this->siblings as $model) {
-            $fieldtype = $model->getFieldtype($field);
+          // check sibling model configs
+          foreach($this->siblingModels as $joinPlugin) {
+            $fieldtype = $joinPlugin->model->getFieldtype($field);
             if($fieldtype != 'text') {
               return $fieldtype;
             }
           }
-
           return 'text';
         }
+
+        // use cached value
         $this->cachedFieldtype[$specifier] = $this->config->get("datatype>".$specifier);
         return $this->cachedFieldtype[$specifier];
       }
@@ -1014,7 +1111,7 @@ abstract class model implements \codename\core\model\modelInterface {
                 continue;
             }
 
-            if (count($errors = app::getValidator($this->getFieldtype(\codename\core\value\text\modelfield::getInstance($field)))->validate($data[$field])) > 0) {
+            if (count($errors = app::getValidator($this->getFieldtype(\codename\core\value\text\modelfield::getInstance($field)))->reset()->validate($data[$field])) > 0) {
                 $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
             }
         }
@@ -1250,7 +1347,7 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     protected function doQuery(string $query, array $params = array()) {
         // if cache, load it
-        if($this->cache ) {
+        if($this->cache) {
             $cacheObj = app::getCache();
             $cacheGroup = $this->getCachegroup();
             $cacheKey = "manualcache" . md5(serialize(
@@ -1268,7 +1365,7 @@ abstract class model implements \codename\core\model\modelInterface {
             }
         }
 
-        $this->result = $this->db->query($query, $params);
+        $this->result = $this->internalQuery($query, $params);
 
         // save last query
         if($this->saveLastQuery) {
@@ -1284,6 +1381,67 @@ abstract class model implements \codename\core\model\modelInterface {
         $this->reset();
         return;
     }
+
+    /**
+     * @inheritDoc
+     */
+     public function getResult() : array {
+         $result = $this->result;
+
+         if (is_null($result)) {
+             $this->result = $this->internalGetResult();
+             $result = $this->result;
+         }
+
+         // execute any bare joins, if set
+         $result = $this->performBareJoin($result);
+
+         $result = $this->normalizeResult($result);
+         $this->data = new \codename\core\datacontainer($result);
+         return $this->data->getData();
+     }
+
+    /**
+     * perform a shim / bare metal join
+     * @return array
+     */
+    protected function performBareJoin(array $result) : array {
+      if(count($this->getNestedJoins()) == 0 && count($this->getSiblingJoins()) == 0) {
+        return $result;
+      }
+      foreach($this->getNestedJoins() as $join) {
+        $nest = $join->model;
+
+        // check model joining compatible
+        // we explicitly join incompatible models using a bare-data here!
+        if(!$this->compatibleJoin($nest) && ($join instanceof \codename\core\model\plugin\join\executableJoinInterface)) {
+          $subresult = $nest->search()->getResult();
+          $result = $join->join($result, $subresult);
+        }
+      }
+      foreach($this->getSiblingJoins() as $join) {
+        $nest = $join->model;
+
+        // check model joining compatible
+        // we explicitly join incompatible models using a bare-data join here!
+        if(!$this->compatibleJoin($nest) && ($join instanceof \codename\core\model\plugin\join\executableJoinInterface)) {
+          $subresult = $nest->search()->getResult();
+          $result = $join->join($result, $subresult);
+        }
+      }
+      return $result;
+    }
+
+    /**
+     * internal query
+     */
+    protected abstract function internalQuery(string $query, array $params = array());
+
+    /**
+     * internal getResult
+     * @return array
+     */
+    protected abstract function internalGetResult() : array;
 
     /**
      * determines query storing state
@@ -1541,5 +1699,11 @@ abstract class model implements \codename\core\model\modelInterface {
     protected function deleteChildren(string $primaryKey) {
         return;
     }
+
+    /**
+     * Gets the current model identifier (name)
+     * @return string
+     */
+    public abstract function getIdentifier() : string;
 
 }

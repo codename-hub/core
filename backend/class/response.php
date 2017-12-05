@@ -51,11 +51,15 @@ abstract class response extends \codename\core\datacontainer {
     public function __CONSTRUCT() {
         $this->status = $this->getDefaultStatus();
         $this->addData(array(
-            'context' => app::getInstance('request')->getData('context'),
-            'view' => app::getInstance('request')->getData('view'),
-            'action' => app::getInstance('request')->getData('action'),
-            'template' => app::getInstance('request')->getData('template')
+            'context' => app::getRequest()->getData('context'),
+            'view' => app::getRequest()->getData('view'),
+            'action' => app::getRequest()->getData('action'),
+            'template' => app::getRequest()->getData('template')
         ));
+
+        // set appserver header
+        $this->setHeader("APP-SRV: " . gethostname());
+        
         return $this;
     }
 
@@ -79,6 +83,21 @@ abstract class response extends \codename\core\datacontainer {
      */
     public function setStatus(string $status) {
       $this->status = $status;
+    }
+
+    /**
+     * sets a header
+     * mostly for http responses
+     * @param string $header
+     */
+    public abstract function setHeader(string $header);
+
+    /**
+     * [getStatuscode description]
+     * @return int [description]
+     */
+    public function getStatuscode() : int {
+      return $this->translateStatus();
     }
 
     /**

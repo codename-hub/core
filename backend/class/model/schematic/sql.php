@@ -1,6 +1,8 @@
 <?php
 namespace codename\core\model\schematic;
 use \codename\core\app;
+use \codename\core\exception;
+use \codename\core\model\plugin;
 
 /**
  * base SQL specific SQL commands
@@ -90,16 +92,33 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * {@inheritDoc}
      * @see \codename\core\model_interface::getResult()
      */
-    public function getResult() : array {
+    /*public function getResult() : array {
         $result = $this->result;
 
         if (is_null($result)) {
-            $this->result = $this->db->getResult();
+            $this->result = $this->internalGetResult();
             $result = $this->result;
         }
+
         $result = $this->normalizeResult($result);
         $this->data = new \codename\core\datacontainer($result);
         return $this->data->getData();
+    }*/
+
+    /**
+     * @inheritDoc
+     */
+    protected function internalQuery(string $query, array $params = array()) {
+      // perform internal query
+      return $this->db->query($query, $params);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function internalGetResult(): array
+    {
+      return $this->db->getResult();
     }
 
     /**
@@ -109,12 +128,115 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     public $rightJoin = false;
 
+
+    /**
+     * @inheritDoc
+     */
+    public function addModel(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT,  string $modelField = null, string $referenceField = null): \codename\core\model
+    {
+      // do sql-specific checks:
+      /*
+      if($this->compatibleJoin($model)) {
+
+        $thisKey = null;
+        $joinKey = null;
+
+        // model field provided
+        //
+        //
+        if($modelField != null) {
+          // modelField is already provided
+          $thisKey = $modelField;
+
+          // look for reference field in foreign key config
+          $fkeyConfig = $this->config->get('foreign>'.$modelField);
+          if($fkeyConfig != null) {
+            if($referenceField == null || $referenceField == $fkeyConfig['key']) {
+              $joinKey = $fkeyConfig['key'];
+            } else {
+              // reference field is not equal
+              // e.g. you're trying to join on unjoinable fields
+              // throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_INVALID_REFERENCEFIELD', exception::$ERRORLEVEL_ERROR, array($this->getIdentifer(), $referenceField));
+            }
+          } else {
+            // we're missing the foreignkey config for the field provided
+            // throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_UNKNOWN_FOREIGNKEY_CONFIG', exception::$ERRORLEVEL_ERROR, array($this->getIdentifer(), $modelField));
+          }
+        } else {
+          // search for modelfield, as it is null
+          if($this->config->exists('foreign')) {
+            foreach($this->config->get('foreign') as $fkeyName => $fkeyConfig) {
+              // if we found compatible models
+              if($fkeyConfig['model'] == $model->getIdentifier()) {
+                $thisKey = $fkeyName;
+                if($referenceField == null || $referenceField == $fkeyConfig['key']) {
+                  $joinKey = $fkeyConfig['key'];
+                }
+                break;
+              }
+            }
+          }
+        }
+
+        // Try Reverse Join
+        if(($thisKey == null) || ($joinKey == null)) {
+          if($model->config->exists('foreign')) {
+            foreach($model->config->get('foreign') as $fkeyName => $fkeyConfig) {
+              if($fkeyConfig['model'] == $this->getIdentifier()) {
+                if($thisKey == null || $thisKey == $fkeyConfig['key']) {
+                  $joinKey = $fkeyName;
+                }
+                if($joinKey == null || $joinKey == $fkeyName) {
+                  $thisKey = $fkeyConfig['key'];
+                }
+                // $thisKey = $fkeyConfig['key'];
+                // $joinKey = $fkeyName;
+                break;
+              }
+            }
+          }
+        }
+
+        if(($thisKey == null) || ($joinKey == null)) {
+          throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_INVALID_OPERATION', exception::$ERRORLEVEL_ERROR, array($this->getIdentifier(), $model->getIdentifier(), $modelField, $referenceField));
+        }
+      } else {
+        // TODO!
+        $thisKey = $modelField;
+        $joinKey = $referenceField;
+      }
+      */
+      return parent::addModel($model, $type, $modelField, $referenceField);
+
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function compatibleJoin(\codename\core\model $model): bool
+    {
+      return parent::compatibleJoin($model) && ($this->db == $model->db);
+    }
+
+    /**
+     * [deepJoin description]
+     * @param  \codename\core\model $model      [model currently worked-on]
+     * @param  array                $tableUsage [table usage as reference]
+     * @return int                              [alias counter as reference]
+     */
     public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0) {
-        if(count($model->models) == 0 && count($model->siblings) == 0) {
+        if(count($model->getNestedJoins()) == 0 && count($model->getSiblingJoins()) == 0) {
             return '';
         }
         $ret = '';
-        foreach($model->getNestedmodels() as $nest) {
+        foreach($model->getNestedJoins() as $join) {
+            $nest = $join->model;
+
+            // check model joining compatible
+            if(!$model->compatibleJoin($nest)) {
+              continue;
+            }
+
             if(array_key_exists("{$nest->schema}.{$nest->table}", $tableUsage)) {
               $aliasCounter++;
               $tableUsage["{$nest->schema}.{$nest->table}"]++;
@@ -126,13 +248,20 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $alias = "{$nest->schema}.{$nest->table}";
             }
 
-            $joinMethod = "LEFT JOIN";
-            if($this->rightJoin) {
-              $joinMethod = "RIGHT JOIN";
+            // get join method from plugin
+            $joinMethod = $join->getJoinMethod();
+
+            // if $joinMethod == null == DEFAULT -> use current config.
+            // this should be deprecated or removed...
+            if($joinMethod == null) {
+              $joinMethod = "LEFT JOIN";
+              if($this->rightJoin) {
+                $joinMethod = "RIGHT JOIN";
+              }
             }
 
             // find the correct KEY/field in the current model (do not simply join PKEY on PKEY (names))
-            $thisKey = null;
+            /* $thisKey = null;
             $joinKey = null;
             foreach($this->config->get('foreign') as $fkeyName => $fkeyConfig) {
               if($fkeyConfig['table'] == $nest->table) {
@@ -151,7 +280,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   break;
                 }
               }
-            }
+            }*/
+
+            $thisKey = $join->modelField;
+            $joinKey = $join->referenceField;
 
             if(($thisKey == null) || ($joinKey == null)) {
               throw new \codename\core\exception(self::EXCEPTION_SQL_DEEPJOIN_INVALID_FOREIGNKEY_CONFIG, \codename\core\exception::$ERRORLEVEL_FATAL, array($this->table, $nest->table));
@@ -160,7 +292,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $ret .= " {$joinMethod} {$nest->schema}.{$nest->table} {$aliasAs} ON {$alias}.{$joinKey} = {$this->table}.{$thisKey}";
             $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter);
         }
-        foreach($model->getSiblingModels() as $sibling) {
+        foreach($model->getSiblingJoins() as $join) {
+
+          // workaround
+          $sibling = $join->model;
+
+          // check model joining compatible
+          if(!$model->compatibleJoin($sibling)) {
+            continue;
+          }
+
           if(array_key_exists("{$sibling->schema}.{$sibling->table}", $tableUsage)) {
             $aliasCounter++;
             $tableUsage["{$sibling->schema}.{$sibling->table}"]++;
@@ -172,14 +313,24 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $alias = "{$sibling->schema}.{$sibling->table}";
           }
 
-          $joinMethod = "LEFT JOIN";
-          if($this->rightJoin) {
-            $joinMethod = "RIGHT JOIN";
+          // get join method from plugin
+          $joinMethod = $join->getJoinMethod();
+
+          // if $joinMethod == null == DEFAULT -> use current config.
+          // this should be deprecated or removed...
+          if($joinMethod == null) {
+            $joinMethod = "LEFT JOIN";
+            if($this->rightJoin) {
+              $joinMethod = "RIGHT JOIN";
+            }
           }
 
-          $siblingConfig = $model->siblingJoins[$sibling->schema.'.'.$sibling->table];
-          $thisField = $siblingConfig['this_field'];
-          $siblingField = $siblingConfig['sibling_field'];
+          $joinMethod = $join->getJoinMethod();
+
+          // $siblingConfig = $model->siblingJoins[$sibling->schema.'.'.$sibling->table];
+          // turned upside-down (see above)
+          $thisField = $join->modelField; // $siblingConfig['this_field'];
+          $siblingField = $join->referenceField; // $siblingConfig['sibling_field'];
 
           $ret .= " {$joinMethod} {$sibling->schema}.{$sibling->table} {$aliasAs} ON {$alias}.{$siblingField} = {$this->table}.{$thisField}";
           $ret .= $sibling->deepJoin($sibling, $tableUsage, $aliasCounter);
@@ -330,6 +481,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         return $query;
     }
 
+    /**
+     * get a parametrized value (array)
+     * for use with PDO
+     * @param  mixed $value      [description]
+     * @param  string $fieldtype [description]
+     * @return array             [description]
+     */
     protected function getParametrizedValue($value, string $fieldtype) : array {
       if(is_null($value)) {
         $param = \PDO::PARAM_NULL; // Explicit NULL
@@ -419,7 +577,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     public function delete($primaryKey = null) : \codename\core\model {
         if(!is_null($primaryKey)) {
 
-
+            // TODO: remove/re-write
             if(strpos(get_class($this), 'activitystream') == false) {
                 app::writeActivity("MODEL_DELETE", get_class($this), $primaryKey);
             }
@@ -566,11 +724,15 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           $where .= ')';
         }
 
-        foreach($this->models as $model) {
-          $where .= $model->getFilterQuery($appliedFilters);
+        foreach($this->nestedModels as $join) {
+          if($this->compatibleJoin($join->model)) {
+            $where .= $join->model->getFilterQuery($appliedFilters);
+          }
         }
-        foreach($this->siblings as $model) {
-          $where .= $model->getFilterQuery($appliedFilters);
+        foreach($this->siblingModels as $join) {
+          if($this->compatibleJoin($join->model)) {
+            $where .= $join->model->getFilterQuery($appliedFilters);
+          }
         }
 
         return $where;
@@ -713,11 +875,15 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
       }
 
-      foreach($this->models as $model) {
-        $result = array_merge($result, $model->getCurrentFieldlist());
+      foreach($this->nestedModels as $join) {
+        if($this->compatibleJoin($join->model)) {
+          $result = array_merge($result, $join->model->getCurrentFieldlist());
+        }
       }
-      foreach($this->siblings as $model) {
-        $result = array_merge($result, $model->getCurrentFieldlist());
+      foreach($this->siblingModels as $join) {
+        if($this->compatibleJoin($join->model)) {
+          $result = array_merge($result, $join->model->getCurrentFieldlist());
+        }
       }
       return $result;
     }

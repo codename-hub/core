@@ -84,23 +84,23 @@ abstract class bucket implements \codename\core\bucket\bucketInterface {
               case "jpg": $ctype="image/jpg"; break;
               default: $ctype="application/force-download";
           }
-
-          header('Content-Type: ' . $ctype);
-          header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-          header("Cache-Control: post-check=0, pre-check=0", false);
-          header("Pragma: no-cache");
-          header('Content-Disposition: inline; filename="' . $filename->get() . '"');
-          header('Content-Length: ' . filesize($tempfile));
-          header('Content-Transfer-Encoding: binary');
+          
+          app::getResponse()->setHeader('Content-Type: ' . $ctype);
+          app::getResponse()->setHeader("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+          app::getResponse()->setHeader("Cache-Control: post-check=0, pre-check=0", false);
+          app::getResponse()->setHeader("Pragma: no-cache");
+          app::getResponse()->setHeader('Content-Disposition: inline; filename="' . $filename->get() . '"');
+          app::getResponse()->setHeader('Content-Length: ' . filesize($tempfile));
+          app::getResponse()->setHeader('Content-Transfer-Encoding: binary');
 
         } else {
 
-          header('Content-Description: File Transfer');
-          header('Content-Type: application/octet-stream');
-          header('Content-Transfer-Encoding: binary');
-          header('Pragma: public');
-          header('Content-Length: ' . filesize($tempfile));
-          header('Content-Disposition: attachment; filename="' . $filename->get() . '"');
+          app::getResponse()->setHeader('Content-Description: File Transfer');
+          app::getResponse()->setHeader('Content-Type: application/octet-stream');
+          app::getResponse()->setHeader('Content-Transfer-Encoding: binary');
+          app::getResponse()->setHeader('Pragma: public');
+          app::getResponse()->setHeader('Content-Length: ' . filesize($tempfile));
+          app::getResponse()->setHeader('Content-Disposition: attachment; filename="' . $filename->get() . '"');
         }
         if (ob_get_contents()) ob_clean();
         flush();
