@@ -92,16 +92,33 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * {@inheritDoc}
      * @see \codename\core\model_interface::getResult()
      */
-    public function getResult() : array {
+    /*public function getResult() : array {
         $result = $this->result;
 
         if (is_null($result)) {
-            $this->result = $this->db->getResult();
+            $this->result = $this->internalGetResult();
             $result = $this->result;
         }
+
         $result = $this->normalizeResult($result);
         $this->data = new \codename\core\datacontainer($result);
         return $this->data->getData();
+    }*/
+
+    /**
+     * @inheritDoc
+     */
+    protected function internalQuery(string $query, array $params = array()) {
+      // perform internal query
+      return $this->db->query($query, $params);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function internalGetResult(): array
+    {
+      return $this->db->getResult();
     }
 
     /**
@@ -118,71 +135,87 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     public function addModel(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT,  string $modelField = null, string $referenceField = null): \codename\core\model
     {
       // do sql-specific checks:
+      /*
+      if($this->compatibleJoin($model)) {
 
+        $thisKey = null;
+        $joinKey = null;
 
-      $thisKey = null;
-      $joinKey = null;
+        // model field provided
+        //
+        //
+        if($modelField != null) {
+          // modelField is already provided
+          $thisKey = $modelField;
 
-      // model field provided
-      //
-      //
-      if($modelField != null) {
-        // modelField is already provided
-        $thisKey = $modelField;
-
-        // look for reference field in foreign key config
-        $fkeyConfig = $this->config->get('foreign>'.$modelField);
-        if($fkeyConfig != null) {
-          if($referenceField == null || $referenceField == $fkeyConfig['key']) {
-            $joinKey = $fkeyConfig['key'];
+          // look for reference field in foreign key config
+          $fkeyConfig = $this->config->get('foreign>'.$modelField);
+          if($fkeyConfig != null) {
+            if($referenceField == null || $referenceField == $fkeyConfig['key']) {
+              $joinKey = $fkeyConfig['key'];
+            } else {
+              // reference field is not equal
+              // e.g. you're trying to join on unjoinable fields
+              // throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_INVALID_REFERENCEFIELD', exception::$ERRORLEVEL_ERROR, array($this->getIdentifer(), $referenceField));
+            }
           } else {
-            // reference field is not equal
-            // e.g. you're trying to join on unjoinable fields
-            // throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_INVALID_REFERENCEFIELD', exception::$ERRORLEVEL_ERROR, array($this->getIdentifer(), $referenceField));
+            // we're missing the foreignkey config for the field provided
+            // throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_UNKNOWN_FOREIGNKEY_CONFIG', exception::$ERRORLEVEL_ERROR, array($this->getIdentifer(), $modelField));
           }
         } else {
-          // we're missing the foreignkey config for the field provided
-          // throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_UNKNOWN_FOREIGNKEY_CONFIG', exception::$ERRORLEVEL_ERROR, array($this->getIdentifer(), $modelField));
+          // search for modelfield, as it is null
+          if($this->config->exists('foreign')) {
+            foreach($this->config->get('foreign') as $fkeyName => $fkeyConfig) {
+              // if we found compatible models
+              if($fkeyConfig['model'] == $model->getIdentifier()) {
+                $thisKey = $fkeyName;
+                if($referenceField == null || $referenceField == $fkeyConfig['key']) {
+                  $joinKey = $fkeyConfig['key'];
+                }
+                break;
+              }
+            }
+          }
+        }
+
+        // Try Reverse Join
+        if(($thisKey == null) || ($joinKey == null)) {
+          if($model->config->exists('foreign')) {
+            foreach($model->config->get('foreign') as $fkeyName => $fkeyConfig) {
+              if($fkeyConfig['model'] == $this->getIdentifier()) {
+                if($thisKey == null || $thisKey == $fkeyConfig['key']) {
+                  $joinKey = $fkeyName;
+                }
+                if($joinKey == null || $joinKey == $fkeyName) {
+                  $thisKey = $fkeyConfig['key'];
+                }
+                // $thisKey = $fkeyConfig['key'];
+                // $joinKey = $fkeyName;
+                break;
+              }
+            }
+          }
+        }
+
+        if(($thisKey == null) || ($joinKey == null)) {
+          throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_INVALID_OPERATION', exception::$ERRORLEVEL_ERROR, array($this->getIdentifier(), $model->getIdentifier(), $modelField, $referenceField));
         }
       } else {
-        // search for modelfield, as it is null
-        if($this->config->exists('foreign')) {
-          foreach($this->config->get('foreign') as $fkeyName => $fkeyConfig) {
-            // if we found compatible models
-            if($fkeyConfig['model'] == $model->getIdentifier()) {
-              $thisKey = $fkeyName;
-              if($referenceField == null || $referenceField == $fkeyConfig['key']) {
-                $joinKey = $fkeyConfig['key'];
-              }
-              break;
-            }
-          }
-        }
+        // TODO!
+        $thisKey = $modelField;
+        $joinKey = $referenceField;
       }
+      */
+      return parent::addModel($model, $type, $modelField, $referenceField);
 
-      // Try Reverse Join
-      if(($thisKey == null) || ($joinKey == null)) {
-        foreach($model->config->get('foreign') as $fkeyName => $fkeyConfig) {
-          if($fkeyConfig['model'] == $this->getIdentifier()) {
-            if($thisKey == null || $thisKey == $fkeyConfig['key']) {
-              $joinKey = $fkeyName;
-            }
-            if($joinKey == null || $joinKey == $fkeyName) {
-              $thisKey = $fkeyConfig['key'];
-            }
-            // $thisKey = $fkeyConfig['key'];
-            // $joinKey = $fkeyName;
-            break;
-          }
-        }
-      }
+    }
 
-      if(($thisKey == null) || ($joinKey == null)) {
-        throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_INVALID_OPERATION', exception::$ERRORLEVEL_ERROR, array($this->getIdentifer(), $model->getIdentifier, $modelField, $referenceField));
-      }
-
-      return parent::addModel($model, $type, $thisKey, $joinKey);
-
+    /**
+     * @inheritDoc
+     */
+    protected function compatibleJoin(\codename\core\model $model): bool
+    {
+      return parent::compatibleJoin($model) && ($this->db == $model->db);
     }
 
     /**
@@ -198,6 +231,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         $ret = '';
         foreach($model->getNestedJoins() as $join) {
             $nest = $join->model;
+
+            // check model joining compatible
+            if(!$model->compatibleJoin($nest)) {
+              continue;
+            }
 
             if(array_key_exists("{$nest->schema}.{$nest->table}", $tableUsage)) {
               $aliasCounter++;
@@ -258,6 +296,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
           // workaround
           $sibling = $join->model;
+
+          // check model joining compatible
+          if(!$model->compatibleJoin($sibling)) {
+            continue;
+          }
 
           if(array_key_exists("{$sibling->schema}.{$sibling->table}", $tableUsage)) {
             $aliasCounter++;
@@ -682,10 +725,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
 
         foreach($this->nestedModels as $join) {
-          $where .= $join->model->getFilterQuery($appliedFilters);
+          if($this->compatibleJoin($join->model)) {
+            $where .= $join->model->getFilterQuery($appliedFilters);
+          }
         }
         foreach($this->siblingModels as $join) {
-          $where .= $join->model->getFilterQuery($appliedFilters);
+          if($this->compatibleJoin($join->model)) {
+            $where .= $join->model->getFilterQuery($appliedFilters);
+          }
         }
 
         return $where;
@@ -829,10 +876,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       }
 
       foreach($this->nestedModels as $join) {
-        $result = array_merge($result, $join->model->getCurrentFieldlist());
+        if($this->compatibleJoin($join->model)) {
+          $result = array_merge($result, $join->model->getCurrentFieldlist());
+        }
       }
       foreach($this->siblingModels as $join) {
-        $result = array_merge($result, $join->model->getCurrentFieldlist());
+        if($this->compatibleJoin($join->model)) {
+          $result = array_merge($result, $join->model->getCurrentFieldlist());
+        }
       }
       return $result;
     }
