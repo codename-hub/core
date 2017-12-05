@@ -69,12 +69,4 @@ class cli extends \codename\core\response {
     return $value;
   }
 
-  /**
-   * returns Statuscodes
-   */
-  public function getStatusCode()
-  {
-    return 0;
-  }
-
 }
