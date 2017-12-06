@@ -42,15 +42,15 @@ class json extends \codename\core\config {
      * Creates a config instance and loads the given JSON configuration file as content
      * <br />If $appstack is true, I will try loading the configuration from a parent app, if it does not exist in the curreent app
      * <br />If $inherit is true, I will load all the configurations from parents, and the lower children will always overwrite the parents
-     * @param string $file
-     * @param bool $appstack
-     * @param bool $inherit
-     * @param \codename\core\value\structure\appstack $appstack [optional: custom appstack]
+     * @param string $file    [relative path to file]
+     * @param bool $appstack  [traverse appstack, if needed]
+     * @param bool $inherit   [use inheritance]
+     * @param array $appstack [optional: custom appstack]
      * @return \codename\core\config
      */
     public function __CONSTRUCT(string $file, bool $appstack = false, bool $inherit = false, array $useAppstack = null) {
         $config = array();
-        if(!$inherit) {
+        if(!$inherit && !$appstack) {
             $config = $this->decodeFile($this->getFullpath($file, $appstack));
             $this->data = $config;
             return $this;
@@ -70,8 +70,13 @@ class json extends \codename\core\config {
                 continue;
             }
             $thisConf = $this->decodeFile($fullpath);
-            $config = array_replace_recursive($config, $thisConf);
             $this->inheritance[] = $fullpath;
+            if($inherit) {
+              $config = array_replace_recursive($config, $thisConf);
+            } else {
+              $config = $thisConf;
+              break;
+            }
         }
 
         $this->data = $config;
