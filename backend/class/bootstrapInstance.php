@@ -20,7 +20,7 @@ class bootstrapInstance {
      * @param string $vendor
      * @return model
      */
-    public function getModel(string $model = '', string $app = '', string $vendor = '') : model {
+    public function getModel(string $model, string $app = '', string $vendor = '') : model {
         return bootstrap::getModel($model, $app, $vendor);
     }
 

@@ -29,21 +29,30 @@ class bootstrap {
 
     /**
      * Returns an instance of the requested $model from the given $app or the current app
-     * @param string $model
-     * @param string $app
+     * @param string $model   [name of the model]
+     * @param string $app     [app or library; default is current app]
+     * @param string $vendor  [vendor name; default is current vendor]
      * @return model
      */
-    public static function getModel(string $model = '', string $app = '', string $vendor = '') : model {
-        $model = strlen($model) == 0 ? app::getRequest()->getData('context') : $model;
+    public static function getModel(string $model, string $app = '', string $vendor = '') : model {
+        // TODO: validate $model with a modelname validator
         $app = strlen($app) == 0 ? app::getApp() : $app;
         $vendor = strlen($vendor) == 0 ? app::getVendor() : $vendor;
 
+        // construct a FQCN to check for
         $classname = "\\{$vendor}\\{$app}\\model\\{$model}";
 
-        if(app::getInstance('filesystem_local')->fileAvailable(app::getHomedir($vendor, $app) . 'backend/class/model/' . $model . '.php')) {
-            return new $classname(array('app' => $app));
+        // check for existance using autoloading capabilities
+        if(class_exists($classname)) {
+          return new $classname(array('app' => $app));
         }
 
+        // This is a bit tricky.
+        // As we already checked for class availability
+        // (with a negative result)
+        // And we're already on the lowest level (core)
+        // We cannot traverse the appstack any further.
+        // Therefore: throw exception!
         if($app == 'core') {
             throw new \codename\core\exception(self::EXCEPTION_GETMODEL_MODELNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, array('model' => $model, 'app' => $app, 'vendor' => $vendor));
         }
