@@ -1,6 +1,7 @@
 <?php
 namespace codename\core\model\schemeless;
 use \codename\core\model;
+use \codename\core\app;
 
 /**
  * model for a json data source (json array)
@@ -38,9 +39,10 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    * @return model
    * @todo refactor the constructor for no method args
    */
-  public function __CONSTRUCT(array $modeldata) {
+  public function __CONSTRUCT(array $modeldata = array()) {
+      parent::__CONSTRUCT($modeldata);
       $this->errorstack = new \codename\core\errorstack('VALIDATION');
-      $this->appname = $modeldata['app'];
+      $this->appname = $this->modeldata->get('app') ?? app::getApp();
       return $this;
   }
 
@@ -63,7 +65,11 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    * @return \codename\core\config
    */
   protected function loadConfig() : \codename\core\config {
-    return new \codename\core\config\json('config/model/' . $this->prefix . '_' . $this->name . '.json', true);
+    if($this->modeldata->exists('appstack')) {
+      return new \codename\core\config\json('config/model/' . $this->prefix . '_' . $this->name . '.json', true, false, $this->modeldata->get('appstack'));
+    } else {
+      return new \codename\core\config\json('config/model/' . $this->prefix . '_' . $this->name . '.json', true);
+    }
   }
 
   /**
@@ -127,8 +133,12 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    */
   protected function doQuery(string $query, array $params = array())
   {
-    // do not inherit and do not traverse appstack
-    $data = (new \codename\core\config\json($this->file))->get();
+    if($this->modeldata->exists('appstack')) {
+      // traverse (custom) appstack, if we defined it
+      $data = (new \codename\core\config\json($this->file, true, false, $this->modeldata->get('appstack')))->get();
+    } else {
+      $data = (new \codename\core\config\json($this->file))->get();
+    }
 
     if(count($this->filter) > 0) {
         $data = $this->filterResults($data);

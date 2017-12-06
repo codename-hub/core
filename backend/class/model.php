@@ -266,6 +266,13 @@ abstract class model implements \codename\core\model\modelInterface {
     public $config = null;
 
     /**
+     * loads a new config file (uncached)
+     * implement me!
+     * @return \codename\core\config
+     */
+    protected abstract function loadConfig() : \codename\core\config;
+
+    /**
      * [getNestedJoins description]
      * @return \codename\core\model\plugin\join[]
      */
@@ -674,17 +681,23 @@ abstract class model implements \codename\core\model\modelInterface {
         return $flag;
     }
 
-
     /**
      * Creates an instance
      * @param array $modeldata
      * @return model
      * @todo refactor the constructor for no method args
      */
-    public function __CONSTRUCT() {
+    public function __CONSTRUCT(array $modeldata = array()) {
         $this->errorstack = new \codename\core\errorstack('VALIDATION');
+        $this->modeldata = new \codename\core\config($modeldata);
         return $this;
     }
+
+    /**
+     * model data passed during initialization
+     * @var \codename\core\config
+     */
+    protected $modeldata = null;
 
     /**
      *
