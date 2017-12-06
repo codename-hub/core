@@ -42,9 +42,33 @@ class bootstrap {
         // construct a FQCN to check for
         $classname = "\\{$vendor}\\{$app}\\model\\{$model}";
 
+        // check, if vendor / app is contained in current Appstack
+        // otherwise, we have to explicitly do some additional work
+        // to get it up and running
+        $appstack = app::getAppstack();
+
+        // determine the
+        $isForeignApp = self::array_find($appstack, function($appstack) use($app, $vendor){
+          return $appstack['app'] == $app && $appstack['vendor'] == $vendor;
+        }) == null;
+
+        $initConfig = [
+          'vendor' => $vendor,
+          'app' => $app
+        ];
+
+        // construct a virtual appstack
+        if($isForeignApp) {
+          array_splice($appstack, count($appstack)-1, 0, [[
+            'vendor' => $vendor,
+            'app' => $app
+          ]]);
+          $initConfig['appstack'] = $appstack;
+        }
+
         // check for existance using autoloading capabilities
         if(class_exists($classname)) {
-          return new $classname(array('app' => $app));
+          return new $classname($initConfig);
         }
 
         // This is a bit tricky.
@@ -68,6 +92,20 @@ class bootstrap {
         }
 
         return self::getModel($model, $app, $vendor);
+    }
+
+    /**
+     * [array_find description]
+     * @param  array    $xs [description]
+     * @param  callable $f  [description]
+     * @return mixed|null   [description]
+     */
+    protected static function array_find(array $xs, callable $f) {
+      foreach ($xs as $x) {
+        if (call_user_func($f, $x) === true)
+          return $x;
+      }
+      return null;
     }
 
     /**
