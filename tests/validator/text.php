@@ -1,12 +1,12 @@
 <?php
-namespace codename\core\unittest\validator;
+namespace codename\core\tests\validator;
 
 /**
  * I am just an extender for the unittest class
  * @package codename\core
  * @since 2016-11-02
  */
-class text extends \codename\core\unittest\validator {
+class text extends \codename\core\tests\validator {
 
   /**
    * {@inheritDoc}

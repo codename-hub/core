@@ -1,7 +1,7 @@
 {
     "name": "codename/core",
     "description": "This is THE core framework.",
-    "version": "0.0.1",
+    "version": "0.0.3",
     "type": "library",
     "keywords": ["codename", "core", "framework"],
     "time": "2017-09-25",
@@ -13,7 +13,12 @@
     ],
     "autoload": {
       "psr-4": {
-          "codename\\core\\": "backend/class/"
+        "codename\\core\\": "backend/class/"
+      }
+    },
+    "autoload-dev": {
+      "psr-4": {
+        "codename\\core\\tests\\": "tests/"
       }
     }
 }

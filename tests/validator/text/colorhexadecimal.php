@@ -1,14 +1,14 @@
 <?php
-namespace codename\core\unittest\validator\text;
+namespace codename\core\tests\validator\text;
 
 use \codename\core\app;
 
 /**
- * I will test the BIC validator
+ * I will test the hexadecimal color validator
  * @package codename\core
  * @since 2016-11-02
  */
-class bic extends \codename\core\unittest\validator\text {
+class colorhexadecimal extends \codename\core\tests\validator\text {
 
     /**
      *
@@ -45,7 +45,7 @@ class bic extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueInvalidchars() {
-        $this->assertEquals('VALIDATION.STRING_CONTAINS_INVALID_CHARACTERS', $this->getValidator()->validate('*AASDASDASD')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.STRING_CONTAINS_INVALID_CHARACTERS', $this->getValidator()->validate('*AAAAAA')[0]['__CODE'] );
     }
 
     /**
@@ -53,7 +53,7 @@ class bic extends \codename\core\unittest\validator\text {
      * @return void
      */
     public function testValueValid() {
-        $this->assertEquals(array(), $this->getValidator()->validate('GENODEF1BEB'));
+        $this->assertEquals(array(), $this->getValidator()->validate('#FF0000'));
     }
 
 }

@@ -1,14 +1,14 @@
 <?php
-namespace codename\core\unittest\validator\text;
+namespace codename\core\tests\validator\text;
 
 use \codename\core\app;
 
 /**
- * I will test the fax validator
+ * I will test the mobile validator
  * @package codename\core
  * @since 2016-11-02
  */
-class fax extends \codename\core\unittest\validator\text {
+class mobile extends \codename\core\tests\validator\text {
 
     /**
      *

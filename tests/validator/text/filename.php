@@ -1,5 +1,5 @@
 <?php
-namespace codename\core\unittest\validator\text;
+namespace codename\core\tests\validator\text;
 
 use \codename\core\app;
 
@@ -8,7 +8,7 @@ use \codename\core\app;
  * @package codename\core
  * @since 2016-11-02
  */
-class filename extends \codename\core\unittest\validator\text {
+class filename extends \codename\core\tests\validator\text {
 
     /**
      *
