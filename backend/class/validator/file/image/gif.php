@@ -1,12 +1,12 @@
 <?php
-namespace codename\core\validator\image;
+namespace codename\core\validator\file\image;
 
 /**
  * Validating gif
  * @package core
  * @since 2016-04-28
  */
-class gif extends \codename\core\validator\image implements \codename\core\validator\image {
+class gif extends \codename\core\validator\file\image {
 
     /**
      * Contains all whitelisted MIME Types
@@ -15,5 +15,5 @@ class gif extends \codename\core\validator\image implements \codename\core\valid
     protected $mime_whitelist = array(
             "image/gif"
     );
-    
+
 }

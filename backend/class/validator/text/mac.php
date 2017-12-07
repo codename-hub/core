@@ -16,14 +16,14 @@ class mac extends \codename\core\validator\text implements \codename\core\valida
      * {@inheritDoc}
      * @see \codename\core\validator_interface::validate($value)
      */
-    public function validate($value) {
+    public function validate($value) : array {
         parent::validate($value);
-        
+
         if(!filter_var($value, FILTER_VALIDATE_MAC)) {
             $this->errorstack->addError('VALUE', 'VALUE_NOT_A_MACADDRESS', $value);
         }
-        
+
         return $this->errorstack->getErrors();
     }
-    
+
 }

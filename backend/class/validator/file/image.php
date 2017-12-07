@@ -1,5 +1,5 @@
 <?php
-namespace \codename\core\validator;
+namespace codename\core\validator\file;
 
 /**
  * Validating image files
@@ -24,5 +24,5 @@ class image extends \codename\core\validator implements \codename\core\validator
             "image/vasa",
             "image/x-icon"
     );
-    
+
 }

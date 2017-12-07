@@ -7,10 +7,10 @@ namespace codename\core;
  * @package core
  * @since 2016-03-24
  */
-abstract class ipban implements ipban_interface {
+abstract class ipban implements \codename\core\ipban\ipbanInterface {
 
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \codename\core\ipban_interface::ban($ipaddress)
      */
@@ -28,7 +28,7 @@ abstract class ipban implements ipban_interface {
     }
 
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \codename\core\ipban_interface::unban($ipaddress)
      */
@@ -55,7 +55,7 @@ abstract class ipban implements ipban_interface {
     protected function doBan(string $ipaddress) {
         return;
     }
-    
+
     /**
      * Performs the unban of the given $ipaddress
      * @param string $ipaddress
