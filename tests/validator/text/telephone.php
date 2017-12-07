@@ -11,19 +11,6 @@ use \codename\core\app;
 class telephone extends \codename\core\tests\validator\text {
 
     /**
-     *
-     * {@inheritDoc}
-     * @see \codename\core\unittest::testAll()
-     */
-    public function testAll() {
-        parent::testAll();
-        $this->testValueTooLong();
-        $this->testValueInvalidchars();
-        $this->testValueValid();
-        return;
-    }
-
-    /**
      * Testing validators for Erors
      * @return void
      */

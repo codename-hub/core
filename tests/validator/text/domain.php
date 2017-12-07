@@ -11,23 +11,6 @@ use \codename\core\app;
 class domain extends \codename\core\tests\validator\text {
 
     /**
-     *
-     * {@inheritDoc}
-     * @see \codename\core\unittest::testAll()
-     */
-    public function testAll() {
-        parent::testAll();
-        $this->testValueTooLong();
-        $this->testValueTooShort();
-        $this->testValueInvalidchars();
-        $this->testValueInvalidYear();
-        $this->testValueInvalidMonth();
-        $this->testValueInvalidDate();
-        $this->testValueValid();
-        return;
-    }
-
-    /**
      * Testing validators for Errors
      * @return void
      */
@@ -36,59 +19,41 @@ class domain extends \codename\core\tests\validator\text {
     }
 
     /**
-     * Testing validators for Erors
+     * [testInvalidDomain description]
+     * @return [type] [description]
+     */
+    public function testValueIsUrl() {
+        $this->assertEquals('VALIDATION.STRING_CONTAINS_INVALID_CHARACTERS', $this->getValidator()->validate('some-domain.com/blarp')[0]['__CODE'] );
+    }
+
+    /**
+     * Testing validators for Errors
      * @return void
      */
     public function testValueTooLong() {
-        // $this->assertEquals('VALIDATION.STRING_TOO_LONG', $this->getValidator()->validate('111111111111111111111111111')[0]['__CODE'] );
+        // We're creating a 250+4 char string
+        // breaking the default ASCII 253-char limit
+        // this should be done correctly as we can only have 63 chars in a "label" e.g. <63chars>.<63chars>.com
+        $this->assertEquals('VALIDATION.STRING_TOO_LONG', $this->getValidator()->validate( str_repeat('k', 250).'.com' )[0]['__CODE'] );
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
      */
     public function testValueTooShort() {
-        // $this->assertEquals('VALIDATION.STRING_TOO_SHORT', $this->getValidator()->validate('11')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.STRING_TOO_SHORT', $this->getValidator()->validate('a.x')[0]['__CODE'] );
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
      */
-    public function testValueInvalidchars() {
-        $this->assertEquals('VALIDATION.INVALID_COUNT_AREAS', $this->getValidator()->validate('1-1-1-1-1-')[0]['__CODE'] );
+    public function testDomainResolves() {
+        // @see: https://en.wikipedia.org/wiki/.invalid
+        // @see: https://tools.ietf.org/html/rfc2606
+        $this->assertEquals('VALIDATION.DOMAIN_NOT_RESOLVED', $this->getValidator()->validate('domain.invalid')[0]['__CODE'] );
     }
 
-    /**
-     * Testing validators for Erors
-     * @return void
-     */
-    public function testValueInvalidYear() {
-        $this->assertEquals('VALIDATION.INVALID_YEAR', $this->getValidator()->validate('19922-1-11')[0]['__CODE'] );
-    }
-
-    /**
-     * Testing validators for Erors
-     * @return void
-     */
-    public function testValueInvalidMonth() {
-        $this->assertEquals('VALIDATION.INVALID_MONTH', $this->getValidator()->validate('1992-222-1')[0]['__CODE'] );
-    }
-
-    /**
-     * Testing validators for Erors
-     * @return void
-     */
-    public function testValueInvalidDate() {
-        $this->assertEquals('VALIDATION.INVALID_DATE', $this->getValidator()->validate('1991-02-31')[0]['__CODE'] );
-    }
-
-    /**
-     * Testing validators for Erors
-     * @return void
-     */
-    public function testValueValid() {
-        $this->assertEquals(array(), $this->getValidator()->validate('1991-04-13'));
-    }
 
 }
