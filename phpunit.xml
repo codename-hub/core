@@ -3,5 +3,8 @@
     <testsuite name="All Tests">
       <directory suffix=".php">tests</directory>
     </testsuite>
+    <testsuite name="All validators">
+      <directory suffix=".php">tests/validator</directory>
+    </testsuite>
   </testsuites>
 </phpunit>
