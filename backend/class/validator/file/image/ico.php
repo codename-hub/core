@@ -1,12 +1,12 @@
 <?php
-namespace codename\core\validator\image;
+namespace codename\core\validator\file\image;
 
 /**
  * Validating ICO files
  * @package core
  * @since 2016-04-28
  */
-class ico extends \codename\core\validator\image implements \codename\core\validator\validatorInterface {
+class ico extends \codename\core\validator\file\image implements \codename\core\validator\validatorInterface {
 
     /**
      * Contains all whitelisted MIME Types
@@ -15,5 +15,5 @@ class ico extends \codename\core\validator\image implements \codename\core\valid
     protected $mime_whitelist = array(
             "image/x-icon"
     );
-    
+
 }

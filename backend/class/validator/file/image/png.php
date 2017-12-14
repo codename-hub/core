@@ -1,12 +1,12 @@
 <?php
-namespace \codename\core\validator\image;
+namespace codename\core\validator\file\image;
 
 /**
  * Validating PNG images
  * @package core
  * @since 2016-04-28
  */
-class png extends \codename\core\validator\image implements \codename\core\validator\validatorInterface {
+class png extends \codename\core\validator\file\image implements \codename\core\validator\validatorInterface {
 
     /**
      * Contains all whitelisted MIME Types
@@ -15,5 +15,5 @@ class png extends \codename\core\validator\image implements \codename\core\valid
     protected $mime_whitelist = array(
             "image/png"
     );
-    
+
 }

@@ -11,21 +11,6 @@ use \codename\core\app;
 class iban extends \codename\core\tests\validator\text {
 
     /**
-     *
-     * {@inheritDoc}
-     * @see \codename\core\unittest::testAll()
-     */
-    public function testAll() {
-        parent::testAll();
-        $this->testValueInvalidchars();
-        $this->testValueCountryNotFound();
-        $this->testValueLengthMismatch();
-        $this->testValueChecksumMismatch();
-        $this->testValueValid();
-        return;
-    }
-
-    /**
      * Testing validators for Erors
      * @return void
      */

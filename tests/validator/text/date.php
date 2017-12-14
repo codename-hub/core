@@ -11,23 +11,6 @@ use \codename\core\app;
 class date extends \codename\core\tests\validator\text {
 
     /**
-     *
-     * {@inheritDoc}
-     * @see \codename\core\unittest::testAll()
-     */
-    public function testAll() {
-        parent::testAll();
-        $this->testValueTooLong();
-        $this->testValueTooShort();
-        $this->testValueInvalidchars();
-        $this->testValueInvalidYear();
-        $this->testValueInvalidMonth();
-        $this->testValueInvalidDate();
-        $this->testValueValid();
-        return;
-    }
-
-    /**
      * Testing validators for Erors
      * @return void
      */

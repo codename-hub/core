@@ -1,12 +1,12 @@
 <?php
-namespace \codename\core\validator\image;
+namespace codename\core\validator\file\image;
 
 /**
  * Validating TIFF images / documents
  * @package core
  * @since 2016-04-28
  */
-class tiff extends \codename\core\validator\image implements \codename\core\validator\validatorInterface {
+class tiff extends \codename\core\validator\file\image implements \codename\core\validator\validatorInterface {
 
     /**
      * Contains all whitelisted MIME Types
@@ -15,5 +15,5 @@ class tiff extends \codename\core\validator\image implements \codename\core\vali
     protected $mime_whitelist = array(
             "image/tiff"
     );
-    
+
 }

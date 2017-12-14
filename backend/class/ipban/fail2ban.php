@@ -1,12 +1,12 @@
 <?php
-namespace codename\core;
+namespace codename\core\ipban;
 
 /**
  * Class for adding ipbans for fail2ban
  * @package core
  * @since 2016-03-29
  */
-class ipban_fail2ban extends ipban {
+class fail2ban extends \codename\core\ipban {
 
     /**
      * Contains the file where black IPs are listed in
@@ -31,7 +31,7 @@ class ipban_fail2ban extends ipban {
     }
 
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \codename\core\ipban_interface::doBan($ipaddress)
      */
@@ -42,7 +42,7 @@ class ipban_fail2ban extends ipban {
     }
 
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \codename\core\ipban_interface::doUnban($ipaddress)
      */

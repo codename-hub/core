@@ -1,12 +1,12 @@
 <?php
-namespace \codename\core\validator\image;
+namespace codename\core\validator\file\image;
 
 /**
  * Validating JPeG files
  * @package core
  * @since 2016-04-28
  */
-class jpg extends \codename\core\validator\image implements \codename\core\validator\validatorInterface {
+class jpg extends \codename\core\validator\file\image implements \codename\core\validator\validatorInterface {
 
     /**
      * Contains all whitelisted MIME Types
@@ -18,5 +18,5 @@ class jpg extends \codename\core\validator\image implements \codename\core\valid
             "image/jpeg2000",
             "image/jpg2000"
     );
-    
+
 }

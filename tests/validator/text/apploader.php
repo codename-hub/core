@@ -11,25 +11,11 @@ use \codename\core\app;
 class apploader extends \codename\core\tests\validator\text {
 
     /**
-     *
-     * {@inheritDoc}
-     * @see \codename\core\unittest::testAll()
-     */
-    public function testAll() {
-        parent::testAll();
-        $this->testValueStringTooShort();
-        $this->testValueStringTooLong();
-        $this->testValueStringContainsInvalidCharacters();
-        $this->testValueValid();
-        return;
-    }
-
-    /**
      * apploader value must be lowercase
      * @return void
      */
     public function testTextApploaderValueStringMustBeLowercase() {
-        $this->assertEquals('VALIDATION.VALUE_NOT_A_STRING', $this->getValidator()->validate('A')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.VALUE_NOT_A_STRING', $this->getValidator()->validate(123)[0]['__CODE'] );
         return;
     }
 

@@ -1,12 +1,12 @@
 <?php
-namespace codename\core;
+namespace codename\core\ipban;
 
 /**
  * Definition for \codename\core\ipban
  * @package core
  * @since 2016-04-05
  */
-interface ipban_interface {
+interface ipbanInterface {
 
     /**
      * Performs a ban for the given ipaddress. Returns if the ip is banned.

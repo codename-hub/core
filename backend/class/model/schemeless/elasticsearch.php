@@ -1,5 +1,6 @@
 <?php
 namespace codename\core\model\schemeless;
+use \codename\core\model;
 
 /**
  * Handling noSQL data from elasticsearch
@@ -7,12 +8,12 @@ namespace codename\core\model\schemeless;
  * @since 2016-02-04
  */
 class elasticsearch extends \codename\core\model\schemeless implements \codename\core\model\modelInterface {
-    
+
     /**
      * @todo DOCUMENTATION
      */
     CONST DB_TYPE = 'elasticsearch';
-    
+
     /**
      * @todo DOCUMENTATION
      */
@@ -21,13 +22,13 @@ class elasticsearch extends \codename\core\model\schemeless implements \codename
      * @todo DOCUMENTATION
      */
     protected $type = null;
-    
+
     /**
      * Contains the elasticsearch client
      * @var \Client
      */
     protected $client = null;
-    
+
     /**
      * Creates and configures the instance of the model
      * @param string $connection Name of the connection in the app configuration file
@@ -44,21 +45,21 @@ class elasticsearch extends \codename\core\model\schemeless implements \codename
                 '192.168.178.22:9200'
         );
         $this->client = \Elasticsearch\ClientBuilder::create()->setHosts($hosts)->build();
-        
+
         $file = app::getHomedir($this->appname) . 'config/model/' . $this->index . '_' . $this->type . '.json';
         $this->loadConfigfile($file);
-        
+
         return $this;
     }
-    
+
     /**
      * @todo DOCUMENTATION
      */
     public function getResult() : array {
         return $this->result['hits']['hits'];
     }
-    
-    
+
+
     /**
      * Performs a search with the given criterua from the other functions
      * @return model
@@ -71,7 +72,7 @@ class elasticsearch extends \codename\core\model\schemeless implements \codename
         $this->result = $this->client->search($params);
         return $this;
     }
-    
+
     /**
      * Deletes the given key from the model
      * @param multitype $primaryKey
@@ -80,7 +81,7 @@ class elasticsearch extends \codename\core\model\schemeless implements \codename
     public function delete($primaryKey = null) : model {
         return $this;
     }
-    
+
     /**
      * saves the given array to the model
      * @param array $primaryKey
@@ -89,7 +90,7 @@ class elasticsearch extends \codename\core\model\schemeless implements \codename
     public function save(array $data) : model {
         return $this;
     }
-    
+
     /**
      * Copies an entry from the component to another one
      * @param multitype $primaryKey
@@ -98,5 +99,69 @@ class elasticsearch extends \codename\core\model\schemeless implements \codename
     public function copy($primaryKey) : model {
         return $this;
     }
-    
+
+    /**
+     * @inheritDoc
+     */
+    protected function loadConfig() : \codename\core\config
+    {
+      throw new \LogicException('Not implemented'); // TODO
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function internalQuery(string $query, array $params = array())
+    {
+      throw new \LogicException('Not implemented'); // TODO
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function internalGetResult() : array
+    {
+      throw new \LogicException('Not implemented'); // TODO
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getIdentifier() : string
+    {
+      throw new \LogicException('Not implemented'); // TODO
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function withFlag(int $flagval) : model
+    {
+      throw new \LogicException('Not implemented'); // TODO
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function withoutFlag(int $flagval) : model
+    {
+      throw new \LogicException('Not implemented'); // TODO
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function withDefaultFlag(int $flagval) : model
+    {
+      throw new \LogicException('Not implemented'); // TODO
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function withoutDefaultFlag(int $flagval) : model
+    {
+      throw new \LogicException('Not implemented'); // TODO
+    }
+
 }
