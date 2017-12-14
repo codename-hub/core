@@ -1113,10 +1113,9 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function validate(array $data) : model {
         foreach($this->config->get('field') as $field) {
-            if(in_array($field, array($this->getPrimarykey(), $this->table . "_modified", $this->table . "_created"))) {
+            if(in_array($field, array($this->getPrimarykey(), $this->getIdentifier() . "_modified", $this->getIdentifier() . "_created"))) {
                 continue;
             }
-
             if (!array_key_exists($field, $data) || is_null($data[$field]) || (is_string($data[$field]) && strlen($data[$field]) == 0) ) {
                 if(is_array($this->config->get('required')) && in_array($field, $this->config->get("required"))) {
                     $this->errorstack->addError($field, 'FIELD_IS_REQUIRED', null);
