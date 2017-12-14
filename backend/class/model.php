@@ -1564,7 +1564,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * resets all the parameters of the instance for another query
      * @return void
      */
-    protected function reset() {
+    public function reset() {
         $this->cache = false;
         $this->fieldlist = array();
         $this->hiddenFields = array();
@@ -1574,6 +1574,7 @@ abstract class model implements \codename\core\model\modelInterface {
         $this->limit = null;
         $this->offset = null;
         $this->order = array();
+        $this->errorstack->reset();
         return;
     }
 
