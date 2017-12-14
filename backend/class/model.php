@@ -1113,10 +1113,9 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function validate(array $data) : model {
         foreach($this->config->get('field') as $field) {
-            if(in_array($field, array($this->getPrimarykey(), $this->table . "_modified", $this->table . "_created"))) {
+            if(in_array($field, array($this->getPrimarykey(), $this->getIdentifier() . "_modified", $this->getIdentifier() . "_created"))) {
                 continue;
             }
-
             if (!array_key_exists($field, $data) || is_null($data[$field]) || (is_string($data[$field]) && strlen($data[$field]) == 0) ) {
                 if(is_array($this->config->get('required')) && in_array($field, $this->config->get("required"))) {
                     $this->errorstack->addError($field, 'FIELD_IS_REQUIRED', null);
@@ -1565,7 +1564,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * resets all the parameters of the instance for another query
      * @return void
      */
-    protected function reset() {
+    public function reset() {
         $this->cache = false;
         $this->fieldlist = array();
         $this->hiddenFields = array();
@@ -1575,6 +1574,7 @@ abstract class model implements \codename\core\model\modelInterface {
         $this->limit = null;
         $this->offset = null;
         $this->order = array();
+        $this->errorstack->reset();
         return;
     }
 
