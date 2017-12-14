@@ -110,6 +110,11 @@ class json extends \codename\core\config {
      * @todo REFACTOR simplify
      */
     protected function getFullpath(string $file, bool $appstack) : string {
+        // direct absolute file path
+        if(!$appstack && realpath($file) == $file) {
+          return $file;
+        }
+
         $fullpath = app::getHomedir() . $file;
 
         if(app::getInstance('filesystem_local')->fileAvailable($fullpath)) {
