@@ -5,7 +5,7 @@ namespace codename\core\generator;
  * url generator
  * @package core
  */
-class urlGenerator implements urlGeneratorInterface{
+class restUrlGenerator implements urlGeneratorInterface{
 
 
     /**
@@ -33,10 +33,26 @@ class urlGenerator implements urlGeneratorInterface{
      * @inheritDoc
      */
     public function generateFromParameters($parameters = array(), $referenceType = self::ABSOLUTE_PATH) {
-      // for now, we're justing doing the basic stuff
-      return '/?' . http_build_query(
-        $parameters
-      );
+
+      $components = [];
+
+      if(!empty($parameters['context'])) {
+        $components[] = $parameters['context'];
+        if(!empty($parameters['view'])) {
+          $components[] = $parameters['view'];
+          if(!empty($parameters['action'])) {
+            $components[] = $parameters['action'];
+          }
+        }
+      }
+
+      unset($parameters['context']);
+      unset($parameters['view']);
+      unset($parameters['action']);
+
+      $baseUri = implode('/', $components);
+      $params = count($parameters) > 0 ? '?'.http_build_query($parameters) : '';
+      return "/{$baseUri}{$params}";
     }
 
 }

@@ -46,10 +46,10 @@ class dynamic extends \codename\core\model\schemeless implements \codename\core\
    * @param  string               $name [model name for getting the config itself]
    * @return model                [description]
    */
-  public function setConfig(string $prefix, string $name) : model {
+  public function setConfig(string $prefix, string $name, array $config = null) : model {
     $this->prefix = $prefix;
     $this->name = $name;
-    $this->config = $this->loadConfig();
+    $this->config = $config ?? $this->loadConfig();
     return $this;
   }
 
