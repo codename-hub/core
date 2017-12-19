@@ -19,7 +19,7 @@ class urlGenerator implements urlGeneratorInterface{
       $action = $routePartials[2] ?? null;
 
       // for now, we're justing doing the basic stuff
-      return $this->generateFromParamters(array_merge(
+      return $this->generateFromParameters(array_merge(
         array(
           'context' => $context,
           'view' => $view,
