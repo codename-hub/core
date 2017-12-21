@@ -402,6 +402,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         $cacheKey = "PRIMARY_" . $data[$this->getPrimarykey()];
         $this->clearCache($cacheGroup, $cacheKey);
 
+        // raw data for usage with the timemachine
+        $raw = $data;
+
         $query = 'UPDATE ' . $this->schema . '.' . $this->table .' SET ';
         $index = 0;
         foreach ($this->config->get('field') as $field) {
@@ -427,6 +430,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 $param[$var] = $this->getParametrizedValue($this->delimit($fieldInstance, $data[$field]), $this->getFieldtype($fieldInstance));
                 $query .= $field . ' = ' . ':'.$var;
             }
+        }
+
+        // use timemachine, if capable and enabled
+        // this stores delta values in a separate model
+
+        if ( ((new \ReflectionClass($this))->implementsInterface('\\codename\\core\\model\\timemachineInterface')
+          && $this->isTimemachineEnabled() === true) )
+        {
+          $tm = new \codename\core\timemachine($this);
+          $tm->saveState($data[$this->getPrimarykey()], $raw); // we have to use raw data, as we can't use jsonified arrays.
         }
 
         $var = $this->getStatementVariable($param, $this->getPrimarykey());
