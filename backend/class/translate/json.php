@@ -50,17 +50,25 @@ class json extends \codename\core\translate implements \codename\core\translate\
         if(array_key_exists($stackname, $this->instances)) {
           $instance = $this->instances[$stackname];
         } else {
-          $instance = new \codename\core\config\json(
-            $stackname,
-            $this->config['inherit'] ?? false,
-            $this->config['inherit'] ?? false
-          );
+          try {
+            $instance = new \codename\core\config\json(
+              $stackname,
+              $this->config['inherit'] ?? false,
+              $this->config['inherit'] ?? false
+            );
+          } catch (\Exception $e) {
+            // allow nonexisting hierarchies - but otherwise, really throw the exception.
+            if($e->getCode() !== \codename\core\config\json::EXCEPTION_CONFIG_JSON_CONSTRUCT_HIERARCHY_NOT_FOUND) {
+              throw $e;
+            }
+          }
         }
 
         $keyname = $key[1];
         $value = $keyname;
 
-        $v = $instance->get($key[1]);
+        // use instance, if not null - otherwise, let it fall back.
+        $v = $instance ? $instance->get($key[1]) : null;
         if($v != null) {
           $value = $v;
         } else {
