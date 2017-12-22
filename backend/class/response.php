@@ -59,7 +59,7 @@ abstract class response extends \codename\core\datacontainer {
 
         // set appserver header
         $this->setHeader("APP-SRV: " . gethostname());
-        
+
         return $this;
     }
 
@@ -91,6 +91,24 @@ abstract class response extends \codename\core\datacontainer {
      * @param string $header
      */
     public abstract function setHeader(string $header);
+
+    /**
+     * [setRedirect description]
+     * @param string $string  [description]
+     * @param [type] $context [description]
+     * @param [type] $view    [description]
+     * @param [type] $action  [description]
+     */
+    public function setRedirect(string $string, string $context = null, string $view = null, string $action = null) {
+      return;
+    }
+
+    /**
+     * perform the configured redirect
+     */
+    public function doRedirect() {
+      return;
+    }
 
     /**
      * [getStatuscode description]
