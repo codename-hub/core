@@ -317,11 +317,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_MAIN);
 
         try {
-          
+
           if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
               self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
-              $this->getRequest()->setRedirect($this->getApp(), 'login');
-              $this->getRequest()->doRedirect();
+              $this->getResponse()->setRedirect($this->getApp(), 'login');
+              $this->getResponse()->doRedirect();
               return;
           }
 
