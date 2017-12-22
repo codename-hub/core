@@ -314,16 +314,17 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
           $this->getResponse()->displayException($e);
         }
 
-        if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
-            self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
-            $this->getRequest()->setRedirect($this->getApp(), 'login');
-            $this->getRequest()->doRedirect();
-            return;
-        }
-
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_MAIN);
 
         try {
+          
+          if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
+              self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
+              $this->getRequest()->setRedirect($this->getApp(), 'login');
+              $this->getRequest()->doRedirect();
+              return;
+          }
+
           $this->doAction()->doView()->doShow()->doOutput();
         } catch (\Exception $e) {
           // display exception using the current response class
