@@ -64,20 +64,23 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $this->db = app::getDb($connection);
 
-
         if(!in_array("{$this->table}_created", $this->config->get("field"))) {
-            echo get_class($this);
-            print_r($this->config->get("field"));
-            die('Model missing the CREATED field');
+           throw new exception('EXCEPTION_MODEL_CONFIG_MISSING_FIELD', exception::$ERRORLEVEL_FATAL, "{$this->table}_created");
         }
         if(!in_array("{$this->table}_modified", $this->config->get("field"))) {
-            echo get_class($this);
-            print_r($this->config->get("field"));
-            die('Model missing the MODIFIED field');
+           throw new exception('EXCEPTION_MODEL_CONFIG_MISSING_FIELD', exception::$ERRORLEVEL_FATAL, "{$this->table}_modified");
         }
+
         app::getCache()->set('MODELCONFIG_', get_class($this), $this->config->get());
         return $this;
     }
+
+    /**
+     * Exception thrown when a model is missing a field that is required by the framework
+     * (e.g. _created and/or _modified)
+     * @var string
+     */
+    const EXCEPTION_MODEL_CONFIG_MISSING_FIELD = 'EXCEPTION_MODEL_CONFIG_MISSING_FIELD';
 
     /**
      * loads a new config file (uncached)
