@@ -1,6 +1,21 @@
 <?php
 namespace codename\core;
 
+class WarningException              extends \ErrorException {}
+class ParseException                extends \ErrorException {}
+class NoticeException               extends \ErrorException {}
+class CoreErrorException            extends \ErrorException {}
+class CoreWarningException          extends \ErrorException {}
+class CompileErrorException         extends \ErrorException {}
+class CompileWarningException       extends \ErrorException {}
+class UserErrorException            extends \ErrorException {}
+class UserWarningException          extends \ErrorException {}
+class UserNoticeException           extends \ErrorException {}
+class StrictException               extends \ErrorException {}
+class RecoverableErrorException     extends \ErrorException {}
+class DeprecatedException           extends \ErrorException {}
+class UserDeprecatedException       extends \ErrorException {}
+
 /**
  * This is the app base class.
  * It is ABSTRACT. You have to inherit from it.
@@ -225,11 +240,41 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return app
      */
     public function __CONSTRUCT() {
+
+        // Make Exceptions out of PHP Errors
+        set_error_handler(function ($err_severity, $err_msg, $err_file, $err_line, array $err_context) {
+          switch($err_severity)
+          {
+              case E_ERROR:               throw new ErrorException            ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_WARNING:             throw new WarningException          ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_PARSE:               throw new ParseException            ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_NOTICE:              throw new NoticeException           ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_CORE_ERROR:          throw new CoreErrorException        ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_CORE_WARNING:        throw new CoreWarningException      ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_COMPILE_ERROR:       throw new CompileErrorException     ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_COMPILE_WARNING:     throw new CoreWarningException      ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_USER_ERROR:          throw new UserErrorException        ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_USER_WARNING:        throw new UserWarningException      ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_USER_NOTICE:         throw new UserNoticeException       ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_STRICT:              throw new StrictException           ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_RECOVERABLE_ERROR:   throw new RecoverableErrorException ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_DEPRECATED:          throw new DeprecatedException       ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_USER_DEPRECATED:     throw new UserDeprecatedException   ($err_msg, 0, $err_severity, $err_file, $err_line);
+          }
+        });
+
+        // Core Exception Handler
+        set_exception_handler(function(\Throwable $t) {
+          app::getResponse()->displayException(new \Exception($t->getMessage(), $t->getCode(), $t));
+        });
+
         self::getHook()->fire(\codename\core\hook::EVENT_APP_INITIALIZING);
         self::$instance = $this;
         self::getHook()->fire(\codename\core\hook::EVENT_APP_INITIALIZED);
         return;
     }
+
+
 
     /**
      * [initDebug description]
@@ -325,7 +370,9 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
               return;
           }
 
-          $this->doAction()->doView()->doShow()->doOutput();
+          // perform the main application lifecycle calls
+          $this->mainRun();
+
         } catch (\Exception $e) {
           // display exception using the current response class
           // which may be either http or even CLI !
@@ -338,6 +385,14 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         exit(self::$exitCode);
 
         return;
+    }
+
+
+    /**
+     * the main run / main lifecycle (context, action, view, show - output)
+     */
+    protected function mainRun() {
+      $this->doAction()->doView()->doShow()->doOutput();
     }
 
     /**

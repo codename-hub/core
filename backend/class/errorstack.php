@@ -7,7 +7,7 @@ namespace codename\core;
  * @since 2016-03-11
  * @todo Use the class \codename\core\datacontainer
  */
-class errorstack implements \codename\core\errorstack\errorstackInterface {
+class errorstack implements \codename\core\errorstack\errorstackInterface, \JsonSerializable {
 
     /**
      * Contains all the errors in this stack
@@ -116,6 +116,15 @@ class errorstack implements \codename\core\errorstack\errorstackInterface {
     {
       $this->errors = array();
       return $this;
+    }
+
+    /**
+     * @inheritDoc
+     * custom serialization
+     */
+    public function jsonSerialize()
+    {
+      return $this->getErrors();
     }
 
 }
