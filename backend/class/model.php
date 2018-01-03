@@ -375,6 +375,14 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [getData description]
+     * @return array [description]
+     */
+    public function getData() : array {
+      return $this->data->getData();
+    }
+
+    /**
      * @todo DOCUMENTATION
      */
     public function addModel(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT, string $modelField = null, string $referenceField = null) : \codename\core\model {
