@@ -370,7 +370,9 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
               return;
           }
 
-          $this->doAction()->doView()->doShow()->doOutput();
+          // perform the main application lifecycle calls
+          $this->mainRun();
+
         } catch (\Exception $e) {
           // display exception using the current response class
           // which may be either http or even CLI !
@@ -383,6 +385,14 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         exit(self::$exitCode);
 
         return;
+    }
+
+
+    /**
+     * the main run / main lifecycle (context, action, view, show - output)
+     */
+    protected function mainRun() {
+      $this->doAction()->doView()->doShow()->doOutput();
     }
 
     /**
