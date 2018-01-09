@@ -434,13 +434,12 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      */
     protected function makeRequest() {
         self::getRequest()->setData('context', self::getRequest()->isDefined('context') ? self::getRequest()->getData('context') : self::getConfig()->get('defaultcontext'));
+        self::getRequest()->setData('view', self::getRequest()->isDefined('view') ? self::getRequest()->getData('view') : self::getConfig()->get('context>' . self::getRequest()->getData('context') . '>defaultview'));
+        self::getRequest()->setData('action', self::getRequest()->isDefined('action') ? self::getRequest()->getData('action') : null);
 
         if(self::getConfig()->get('context>' . self::getRequest()->getData('context')) == null) {
             throw new \codename\core\exception(self::EXCEPTION_MAKEREQUEST_CONTEXT_CONFIGURATION_MISSING, \codename\core\exception::$ERRORLEVEL_ERROR, self::getRequest()->getData('context'));
         }
-        
-        self::getRequest()->setData('view', self::getRequest()->isDefined('view') ? self::getRequest()->getData('view') : self::getConfig()->get('context>' . self::getRequest()->getData('context') . '>defaultview'));
-        self::getRequest()->setData('action', self::getRequest()->isDefined('action') ? self::getRequest()->getData('action') : null);
 
         if (!$this->viewExists(new \codename\core\value\text\contextname(self::getRequest()->getData('context')), new \codename\core\value\text\viewname(self::getRequest()->getData('view')))) {
             throw new \codename\core\exception(self::EXCEPTION_MAKEREQUEST_REQUESTEDVIEWNOTINCONTEXT, \codename\core\exception::$ERRORLEVEL_ERROR, self::getRequest()->getData('view'));
