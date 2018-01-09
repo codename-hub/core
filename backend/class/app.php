@@ -435,7 +435,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     protected function makeRequest() {
         self::getRequest()->setData('context', self::getRequest()->isDefined('context') ? self::getRequest()->getData('context') : self::getConfig()->get('defaultcontext'));
 
-        if(self::getConfig()->get('context>' . self::getRequest()->getData('context') == null)) {
+        if(self::getConfig()->get('context>' . self::getRequest()->getData('context')) == null) {
             throw new \codename\core\exception(self::EXCEPTION_MAKEREQUEST_CONTEXT_CONFIGURATION_MISSING, \codename\core\exception::$ERRORLEVEL_ERROR, self::getRequest()->getData('context'));
         }
         
