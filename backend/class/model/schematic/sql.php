@@ -108,6 +108,149 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         return $this->data->getData();
     }*/
 
+
+    /**
+     * Undocumented variable
+     *
+     * @var \codename\core\model\plugin\collection[]
+     */
+    protected $collectionFields = [];
+
+    /**
+     * Undocumented function
+     *
+     * @param string $field
+     * @return \codename\core\model
+     */
+    public function addCollectionField(string $field) : \codename\core\model {
+      $modelfield = \codename\core\value\text\modelfield::getInstance($field);
+      // if($this->fieldExists($modelfield)) {
+        
+        $cfg = $this->config->get('collection>'.$modelfield->get());
+
+        if($cfg) {
+          if($cfg['manytomany'] && $cfg['aux']) {
+            // $this->collectionFields[] =
+
+            $aux = $cfg['aux'];
+            $auxModel = app::getModel($aux['model'], $aux['app'] ?? '');
+            $refModel = app::getModel($cfg['model'], $cfg['app'] ?? '');
+
+            $class = '\\codename\\core\\model\\plugin\\collection\\' . $this->getType();
+            array_push($this->collectionFields, new $class($modelfield, $this, $auxModel, $refModel));
+            return $this;
+          }
+        }
+      // }
+      // return $this;
+      die("err");
+    }
+
+    /**
+     * Undocumented function
+     *
+     * @return array
+     */
+    public function getResultWithCollections() : array {
+
+      $result = $this->getResult();
+
+      if(count($this->collectionFields) > 0) {
+        foreach($this->collectionFields as $collectionField) {
+
+          // prepare the collection model for querying
+          $collectionModel = $collectionField->getModel();
+
+          // perform the plugin on each result row
+          foreach($result as &$r) {
+
+            // check if $r[$baseField] == null !!
+            $collectionResult = $collectionModel
+              // ->addField($collectionField->getAuxRefField()) // ??
+              ->addFilter($collectionField->getAuxBaseField(), $r[$collectionField->getBaseField()])
+              ->search()->getResult();
+
+            // map collection result to singular/scalar values
+            $collectionMapped = array_map(function($cr) use ($collectionField) {
+              return $cr[$collectionField->getAuxRefField()];
+            }, $collectionResult);
+
+            // put collection result in final result array element
+            $r[$collectionField->field->get()] = $collectionMapped;
+          }
+        }
+      }
+
+      return $result;
+    }
+
+    /**
+     * Undocumented function
+     *
+     * @return \codename\core\model
+     */
+    public function saveWithChildren(array $data) : \codename\core\model {
+
+      $data2 = $data;
+      // unset all collection fields for this to work
+      if(count($this->collectionFields) > 0) {
+        foreach($this->collectionFields as $collectionField) {
+          unset($data2[$collectionField->field->get()]);
+        }
+      }
+      
+      $this->save($data2);
+
+      $update = (array_key_exists($this->getPrimarykey(), $data) && strlen($data[$this->getPrimarykey()]) > 0);
+
+      if(!$update) {
+        $data[$this->getPrimarykey()] = $this->lastInsertId();
+      }
+
+      if(count($this->collectionFields) > 0) {
+        foreach($this->collectionFields as $collectionField) {
+
+          $collectionResult = [];
+          $existing = [];
+
+          if($update) {
+            $collectionResult = $collectionField->getModel()
+              ->addFilter($collectionField->getAuxBaseField(), $data[$collectionField->getBaseField()])
+              ->search()->getResult();
+
+            $existing = array_map(function($cr) use ($collectionField) {
+              return $cr[$collectionField->getAuxRefField()];
+            }, $collectionResult);
+          }
+
+          // get all unchanged values
+          // by calculating the intersection of existing and to-be-saved values
+          $unchanged = array_intersect($existing, $data[$collectionField->field->get()]);
+
+          $create = array_diff($data[$collectionField->field->get()], $existing);
+          $delete = array_diff($existing, $data[$collectionField->field->get()]);
+
+          foreach($collectionResult as $v) {
+            if(in_array($v[$collectionField->getAuxRefField()], $delete)) {
+              $collectionField->getModel()->delete($v[$collectionField->getModel()->getPrimaryKey()]);
+              continue;
+            }
+          }
+
+          foreach($create as $v) {
+            $collectionField->auxModel->save([
+              $collectionField->getAuxBaseField() => $data[$collectionField->getBaseField()],
+              $collectionField->getAuxRefField() => $v
+            ]);
+          }
+
+
+        }
+      }
+
+      return $this;
+    }
+
     /**
      * @inheritDoc
      */
@@ -130,88 +273,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @var bool
      */
     public $rightJoin = false;
-
-
-    /**
-     * @inheritDoc
-     */
-    public function addModel(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT,  string $modelField = null, string $referenceField = null): \codename\core\model
-    {
-      // do sql-specific checks:
-      /*
-      if($this->compatibleJoin($model)) {
-
-        $thisKey = null;
-        $joinKey = null;
-
-        // model field provided
-        //
-        //
-        if($modelField != null) {
-          // modelField is already provided
-          $thisKey = $modelField;
-
-          // look for reference field in foreign key config
-          $fkeyConfig = $this->config->get('foreign>'.$modelField);
-          if($fkeyConfig != null) {
-            if($referenceField == null || $referenceField == $fkeyConfig['key']) {
-              $joinKey = $fkeyConfig['key'];
-            } else {
-              // reference field is not equal
-              // e.g. you're trying to join on unjoinable fields
-              // throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_INVALID_REFERENCEFIELD', exception::$ERRORLEVEL_ERROR, array($this->getIdentifer(), $referenceField));
-            }
-          } else {
-            // we're missing the foreignkey config for the field provided
-            // throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_UNKNOWN_FOREIGNKEY_CONFIG', exception::$ERRORLEVEL_ERROR, array($this->getIdentifer(), $modelField));
-          }
-        } else {
-          // search for modelfield, as it is null
-          if($this->config->exists('foreign')) {
-            foreach($this->config->get('foreign') as $fkeyName => $fkeyConfig) {
-              // if we found compatible models
-              if($fkeyConfig['model'] == $model->getIdentifier()) {
-                $thisKey = $fkeyName;
-                if($referenceField == null || $referenceField == $fkeyConfig['key']) {
-                  $joinKey = $fkeyConfig['key'];
-                }
-                break;
-              }
-            }
-          }
-        }
-
-        // Try Reverse Join
-        if(($thisKey == null) || ($joinKey == null)) {
-          if($model->config->exists('foreign')) {
-            foreach($model->config->get('foreign') as $fkeyName => $fkeyConfig) {
-              if($fkeyConfig['model'] == $this->getIdentifier()) {
-                if($thisKey == null || $thisKey == $fkeyConfig['key']) {
-                  $joinKey = $fkeyName;
-                }
-                if($joinKey == null || $joinKey == $fkeyName) {
-                  $thisKey = $fkeyConfig['key'];
-                }
-                // $thisKey = $fkeyConfig['key'];
-                // $joinKey = $fkeyName;
-                break;
-              }
-            }
-          }
-        }
-
-        if(($thisKey == null) || ($joinKey == null)) {
-          throw new exception('EXCEPTION_MODEL_SQL_ADDMODEL_INVALID_OPERATION', exception::$ERRORLEVEL_ERROR, array($this->getIdentifier(), $model->getIdentifier(), $modelField, $referenceField));
-        }
-      } else {
-        // TODO!
-        $thisKey = $modelField;
-        $joinKey = $referenceField;
-      }
-      */
-      return parent::addModel($model, $type, $modelField, $referenceField);
-
-    }
 
     /**
      * @inheritDoc
