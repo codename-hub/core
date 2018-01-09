@@ -423,11 +423,22 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     }
 
     /**
+     * Exception thrown if the context configuration is missing in the app.json
+     * @var string
+     */
+    const EXCEPTION_MAKEREQUEST_CONTEXT_CONFIGURATION_MISSING = 'EXCEPTION_MAKEREQUEST_CONTEXT_CONFIGURATION_MISSING';
+
+    /**
      * Sets the request arguments
      * @throws \codename\core\exception
      */
     protected function makeRequest() {
         self::getRequest()->setData('context', self::getRequest()->isDefined('context') ? self::getRequest()->getData('context') : self::getConfig()->get('defaultcontext'));
+
+        if(self::getConfig()->get('context>' . self::getRequest()->getData('context') == null)) {
+            throw new \codename\core\exception(self::EXCEPTION_MAKEREQUEST_CONTEXT_CONFIGURATION_MISSING, \codename\core\exception::$ERRORLEVEL_ERROR, self::getRequest()->getData('context'));
+        }
+        
         self::getRequest()->setData('view', self::getRequest()->isDefined('view') ? self::getRequest()->getData('view') : self::getConfig()->get('context>' . self::getRequest()->getData('context') . '>defaultview'));
         self::getRequest()->setData('action', self::getRequest()->isDefined('action') ? self::getRequest()->getData('action') : null);
 
