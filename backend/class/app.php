@@ -657,7 +657,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             $config = (new \codename\core\config\json(self::$json_config))->get();
 
             if(!array_key_exists('context', $config)) {
-                throw new \codename\core\exception(self::EXCEPTION_GETCONFIG_APPCONFIGCONTAINSNOCONTEXT, \codename\core\exception::$ERRORLEVEL_FATAL, $file);
+                throw new \codename\core\exception(self::EXCEPTION_GETCONFIG_APPCONFIGCONTAINSNOCONTEXT, \codename\core\exception::$ERRORLEVEL_FATAL, self::$json_config);
             }
 
             // Testing: Adding the default (install) context
