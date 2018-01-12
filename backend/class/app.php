@@ -1038,7 +1038,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @throws \codename\core\exception
      * @return string
      */
-    protected final static function getInheritedClass(string $classname) : string {
+    public final static function getInheritedClass(string $classname) : string {
         $classname = str_replace('_', '\\', $classname);
 
         if(is_null(self::$appstack)) {
