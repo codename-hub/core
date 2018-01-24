@@ -657,7 +657,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             $config = (new \codename\core\config\json(self::$json_config))->get();
 
             if(!array_key_exists('context', $config)) {
-                throw new \codename\core\exception(self::EXCEPTION_GETCONFIG_APPCONFIGCONTAINSNOCONTEXT, \codename\core\exception::$ERRORLEVEL_FATAL, $file);
+                throw new \codename\core\exception(self::EXCEPTION_GETCONFIG_APPCONFIGCONTAINSNOCONTEXT, \codename\core\exception::$ERRORLEVEL_FATAL, self::$json_config);
             }
 
             // Testing: Adding the default (install) context
@@ -1038,7 +1038,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @throws \codename\core\exception
      * @return string
      */
-    protected final static function getInheritedClass(string $classname) : string {
+    public final static function getInheritedClass(string $classname) : string {
         $classname = str_replace('_', '\\', $classname);
 
         if(is_null(self::$appstack)) {
@@ -1407,23 +1407,41 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         $current_vendor = '';
         $current_app = '';
 
-        do {
-            $parentapp = app::getParentapp($current_vendor, $current_app);
+        while (self::getInstance('filesystem_local')->fileAvailable($parentfile)) {
+          $parentapp = app::getParentapp($current_vendor, $current_app);
 
-            if(strlen($parentapp) == 0) {
-                break;
-            }
+          if(strlen($parentapp) == 0) {
+             break;
+          }
 
-            $parentapp_data = explode('_', $parentapp);
-            $current_vendor = $parentapp_data[0];
-            $current_app = $parentapp_data[1];
-            $stack[] = array('vendor' => $parentapp_data[0],'app' => $parentapp_data[1]);
+          $parentapp_data = explode('_', $parentapp);
+          $current_vendor = $parentapp_data[0];
+          $current_app = $parentapp_data[1];
+          $stack[] = array(
+           'vendor' => $parentapp_data[0],
+           'app' => $parentapp_data[1]
+          );
 
-            self::getHook()->fire(\codename\core\hook::EVENT_APP_MAKEAPPSTACK_ADDED_APP);
+          self::getHook()->fire(\codename\core\hook::EVENT_APP_MAKEAPPSTACK_ADDED_APP);
 
-            $parentfile = self::getHomedir($parentapp_data[0], $parentapp_data[1]) . 'config/parent.app';
+          $parentfile = self::getHomedir($parentapp_data[0], $parentapp_data[1]) . 'config/parent.app';
+        }
 
-        } while (self::getInstance('filesystem_local')->fileAvailable($parentfile));
+        // one more step to execute - core app itself
+        $parentapp = app::getParentapp($current_vendor, $current_app);
+
+        if(strlen($parentapp) > 0) {
+          $parentapp_data = explode('_', $parentapp);
+          $current_vendor = $parentapp_data[0];
+          $current_app = $parentapp_data[1];
+
+          $stack[] = array(
+           'vendor' => $parentapp_data[0],
+           'app' => $parentapp_data[1],
+          );
+
+          self::getHook()->fire(\codename\core\hook::EVENT_APP_MAKEAPPSTACK_ADDED_APP);
+        }
 
         // we don't need to add the core framework explicitly
         // as an 'app', as it is returned by app::getParentapp
