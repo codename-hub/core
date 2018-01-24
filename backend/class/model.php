@@ -1607,7 +1607,9 @@ abstract class model implements \codename\core\model\modelInterface {
                 if(is_null($value)) {
                     return $value;
                 }
-                $date = \DateTime::createFromFormat('d.m.Y', $value);
+                // automatically convert input value
+                // ctor returns FALSE on creation error, see http://php.net/manual/de/datetime.construct.php
+                $date = new \DateTime($value);
                 if($date !== false) {
                     return $date->format('Y-m-d');
                 }
