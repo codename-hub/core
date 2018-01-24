@@ -125,7 +125,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     public function addCollectionField(string $field) : \codename\core\model {
       $modelfield = \codename\core\value\text\modelfield::getInstance($field);
       // if($this->fieldExists($modelfield)) {
-        
+
         $cfg = $this->config->get('collection>'.$modelfield->get());
 
         if($cfg) {
@@ -198,7 +198,43 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           unset($data2[$collectionField->field->get()]);
         }
       }
-      
+
+      // save children
+      if($this->config->exists('children')) {
+        foreach($this->config->get('children') as $child => $childConfig) {
+
+          // get the nested models / join plugin instances
+          $foreignConfig = $this->config->get('foreign>'.$childConfig['field']);
+          $field = $childConfig['field'];
+
+          // get the join plugin valid for the child reference field
+          $res = array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($field) {
+            return $join->modelField == $field;
+          });
+
+          if(count($res) === 1) {
+            // NOTE: array_filter preserves keys. use array_values to simply use index 0
+            $model = array_values($res)[0]->model;
+            \codename\core\app::getResponse()->setData('child_save_' . $field, $data[$child]);
+            $model->saveWithChildren($data[$child]);
+            // if we just inserted a NEW entry, get its primary key and save into the root model
+            if(empty($data[$child][$model->getPrimaryKey()])) {
+              $data2[$childConfig['field']] = $model->lastInsertId();
+            }
+          } else {
+            // error?
+            /* print_r($res);
+            print_r($childConfig);
+            print_r($this->getNestedJoins());
+            */
+            // die("BAP!");
+          }
+          unset($data2[$child]);
+        }
+      }
+      // end save children
+
+
       $this->save($data2);
 
       $update = (array_key_exists($this->getPrimarykey(), $data) && strlen($data[$this->getPrimarykey()]) > 0);
