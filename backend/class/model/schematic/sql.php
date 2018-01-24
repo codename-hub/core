@@ -215,7 +215,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           if(count($res) === 1) {
             // NOTE: array_filter preserves keys. use array_values to simply use index 0
             $model = array_values($res)[0]->model;
-            \codename\core\app::getResponse()->setData('child_save_' . $field, $data[$child]);
             $model->saveWithChildren($data[$child]);
             // if we just inserted a NEW entry, get its primary key and save into the root model
             if(empty($data[$child][$model->getPrimaryKey()])) {
