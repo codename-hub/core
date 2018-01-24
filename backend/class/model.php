@@ -1284,7 +1284,7 @@ abstract class model implements \codename\core\model\modelInterface {
                 return $value ? 'true' : 'false';
                 break;
             case 'text_date':
-                return date('d.m.Y', strtotime($value));
+                return date('Y-m-d', strtotime($value));
                 break;
             case 'text' :
                 return str_replace('#__DELIMITER__#', $this->delimiter, $value);
