@@ -598,7 +598,7 @@ abstract class model implements \codename\core\model\modelInterface {
             throw new \codename\core\exception(self::EXCEPTION_ENTRYSAVE_NOOBJECTLOADED, \codename\core\exception::$ERRORLEVEL_FATAL);
         }
 
-        $this->save($this->data->getData());
+        $this->saveWithChildren($this->data->getData());
         return $this;
     }
 
@@ -1131,6 +1131,24 @@ abstract class model implements \codename\core\model\modelInterface {
                 continue;
             }
 
+            if($this->config->exists('children') && $this->config->exists('children>'.$field)) {
+              // validate child using child/nested model
+              $childConfig = $this->config->get('children>'.$field);
+              $foreignConfig = $this->config->get('foreign>'.$childConfig['field']);
+
+              // get the join plugin valid for the child reference field
+              $res = array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($field) {
+                return $join->modelField == $field;
+              });
+
+              if(count($res) === 1) {
+                $res[0]->model->validate($data[$field]);
+                $this->errorstack->addErrors($res[0]->model->getErrors());
+              } else {
+                continue;
+              }
+            }
+
             if (count($errors = app::getValidator($this->getFieldtype(\codename\core\value\text\modelfield::getInstance($field)))->reset()->validate($data[$field])) > 0) {
                 $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
             }
@@ -1266,7 +1284,7 @@ abstract class model implements \codename\core\model\modelInterface {
                 return $value ? 'true' : 'false';
                 break;
             case 'text_date':
-                return date('d.m.Y', strtotime($value));
+                return date('Y-m-d', strtotime($value));
                 break;
             case 'text' :
                 return str_replace('#__DELIMITER__#', $this->delimiter, $value);
