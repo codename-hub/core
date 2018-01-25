@@ -14,9 +14,10 @@ class json extends \codename\core\model\plugin\filter
    */
   public function matches(array $data): bool
   {
+    $fieldName = $this->field->get();
     if(($this->operator == '=') || ($this->operator == '!=')) {
       // check for (un)equality
-      if(!array_key_exists($this->field->get(), $data) || $data[$this->field->get()] !== $this->value) {
+      if(!array_key_exists($fieldName, $data) || $data[$fieldName] !== $this->value) {
         return ($this->operator == '!=');
       } else {
         return ($this->operator == '=');
@@ -27,9 +28,9 @@ class json extends \codename\core\model\plugin\filter
       || ($this->operator == '<')) {
 
       //
-      if(array_key_exists($this->field->get(), $data)) {
+      if(array_key_exists($fieldName, $data)) {
 
-        $dataValue = $data[$this->field->get()];
+        $dataValue = $data[$fieldName];
         if(is_numeric($this->value)) {
           // integer comparison
           if(is_int($this->value)) {
@@ -55,7 +56,7 @@ class json extends \codename\core\model\plugin\filter
     } else if(($this->operator == 'LIKE')
       || ($this->operator == 'ILIKE')
       ) {
-        $dataValue = $data[$this->field->get()];
+        $dataValue = $data[$fieldName];
 
         // case-(in)-sensitive string matching
         if(strlen($dataValue) === 0 || strlen($this->value) === 0) {
