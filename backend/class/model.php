@@ -1577,7 +1577,7 @@ abstract class model implements \codename\core\model\modelInterface {
             }
 
             if(strpos($this->normalizeModelFieldTypeCache[$field], 'structu') !== false && array_key_exists($field, $dataset) && !is_array($dataset[$field])) {
-              $dataset[$field] = app::object2array(json_decode($dataset[$field], false)/*, 512, JSON_UNESCAPED_UNICODE)*/);
+              $dataset[$field] = $dataset[$field] == null ? null : app::object2array(json_decode($dataset[$field], false)/*, 512, JSON_UNESCAPED_UNICODE)*/);
             }
 
         }
