@@ -1354,13 +1354,13 @@ abstract class model implements \codename\core\model\modelInterface {
         if($field->getTable() == $this->table) {
           return in_array($field->get(), $this->getFields());
         } else {
-          foreach($this->getNestedmodels() as $m) {
-            if($m->fieldExists($field)) {
+          foreach($this->getNestedJoins() as $join) {
+            if($join->model->fieldExists($field)) {
               return true;
             }
           }
-          foreach($this->getSiblingModels() as $m) {
-            if($m->fieldExists($field)) {
+          foreach($this->getSiblingJoins() as $join) {
+            if($join->model->fieldExists($field)) {
               return true;
             }
           }
