@@ -85,15 +85,8 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    */
   public function search() : model
   {
+    $this->doQuery('');
     return $this;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  protected function internalQuery(string $query, array $params = array())
-  {
-    return;
   }
 
   /**
@@ -125,20 +118,31 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    */
   protected function internalGetResult(): array
   {
-    return $this->doQuery('');
+    return $this->result;
   }
+
+  /**
+   * [protected description]
+   * @var array
+   */
+  protected static $t_data = [];
 
   /**
    * @inheritDoc
    */
-  protected function doQuery(string $query, array $params = array())
+  protected function internalQuery(string $query, array $params = array())
   {
-    if($this->modeldata->exists('appstack')) {
-      // traverse (custom) appstack, if we defined it
-      $data = (new \codename\core\config\json($this->file, true, false, $this->modeldata->get('appstack')))->get();
-    } else {
-      $data = (new \codename\core\config\json($this->file))->get();
+    $identifier = $this->file . '_' . ($this->modeldata->exists('appstack') ? '1' : '0');
+    if(!isset(self::$t_data[$identifier])) {
+      if($this->modeldata->exists('appstack')) {
+        // traverse (custom) appstack, if we defined it
+        self::$t_data[$identifier] = (new \codename\core\config\json($this->file, true, false, $this->modeldata->get('appstack')))->get();
+      } else {
+        self::$t_data[$identifier] = (new \codename\core\config\json($this->file))->get();
+      }
     }
+
+    $data = self::$t_data[$identifier];
 
     if(count($this->filter) > 0) {
         $data = $this->filterResults($data);
@@ -153,29 +157,24 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    * @return array       [description]
    */
   protected function filterResults(array $data) : array {
-      $filteredData = array();
-      foreach($data as $entry) {
-          $pass = true;
-          foreach($this->filter as $filter) {
-              if(!$pass) {
-                  continue;
+      $filteredData = array_filter($data, function($entry) {
+        $pass = true;
+        foreach($this->filter as $filter) {
+            if(!$pass) {
+                continue;
+            }
+            if($filter instanceof \codename\core\model\plugin\filter\executableFilterInterface) {
+              if(!$filter->matches($entry)) {
+                $pass = false;
+                break;
               }
-
-              if($filter instanceof \codename\core\model\plugin\filter\executableFilterInterface) {
-                if(!$filter->matches($entry)) {
-                  $pass = false;
-                  continue;
-                }
-              } else {
-                // we may warn for incompatible filters?
-              }
-          }
-          if(!$pass) {
-              continue;
-          }
-          $filteredData[] = $entry;
-      }
-      return $filteredData;
+            } else {
+              // we may warn for incompatible filters?
+            }
+        }
+        return $pass;
+      });
+      return array_values($filteredData);
   }
 
   /**
