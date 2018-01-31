@@ -50,6 +50,7 @@ class bare extends \codename\core\model\plugin\join implements \codename\core\mo
         if($leftValue[$leftField] == $rightValue[$rightField]) {
           $leftValue = array_merge($leftValue, $rightValue);
           $found = true;
+          break;
         }
       }
       if(!$found && $this->getJoinMethod() == self::TYPE_INNER) {
