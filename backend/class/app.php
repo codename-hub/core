@@ -265,7 +265,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
         // Core Exception Handler
         set_exception_handler(function(\Throwable $t) {
-          app::getResponse()->displayException(new \Exception($t->getMessage(), $t->getCode(), $t));
+          $code = is_int($t->getCode()) ? $t->getCode() : 0;
+          app::getResponse()->displayException(new \Exception($t->getMessage(), $code, $t));
         });
 
         self::getHook()->fire(\codename\core\hook::EVENT_APP_INITIALIZING);
