@@ -303,6 +303,15 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
+     * the current database connection instance
+     * @return \codename\core\database [description]
+     */
+    public function getConnection(): \codename\core\database
+    {
+      return $this->db;
+    }
+
+    /**
      * Use right joining for this model
      * which allows empty joined fields to appear
      * @var bool
