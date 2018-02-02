@@ -1423,7 +1423,7 @@ abstract class model implements \codename\core\model\modelInterface {
         if ($this->cache && count($this->getResult()) > 0) {
             $result = $this->getResult();
 
-            $cacheObj->set($cacheGroup, $cacheKey, array($this->getResult()));
+            $cacheObj->set($cacheGroup, $cacheKey, $this->getResult());
         }
         $this->reset();
         return;
