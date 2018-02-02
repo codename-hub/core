@@ -34,6 +34,18 @@ class text extends \codename\core\validator {
     protected $forbiddenchars = '';
 
     /**
+     * Contains preg_quoted allowed characters for the string
+     * @var string
+     */
+    protected $quotedAllowedchars = '';
+
+    /**
+     * Contains preg_quoted forbidden characters
+     * @var string
+     */
+    protected $quotedForbiddenchars = '';
+
+    /**
      * @param bool $nullAllowed
      * @param int $minlength
      * @param int $maxlength
@@ -77,6 +89,24 @@ class text extends \codename\core\validator {
         }
 
         // search forbidden characters
+
+        if (strlen($this->getAllowedchars()) > 0) {
+          // match characters that are NOT in allowed chars
+          if(preg_match('/[^'.$this->getQuotedAllowedchars().']/', $value, $matches) !== 0) {
+            $this->errorstack->addError('VALUE', 'STRING_CONTAINS_INVALID_CHARACTERS', array('value' => $value, 'matches' => $matches));
+            return $this->errorstack->getErrors();
+          }
+        }
+
+        if (strlen($this->getForbiddenchars()) > 0) {
+          // match characters that are explicitly in forbidden chars
+          if(preg_match('/['.$this->getQuotedForbiddenchars().']/', $value, $matches) !== 0) {
+            $this->errorstack->addError('VALUE', 'STRING_CONTAINS_INVALID_CHARACTERS', array('value' => $value, 'matches' => $matches));
+            return $this->errorstack->getErrors();
+          }
+        }
+
+        /*
         for($position = 0; $position <= strlen($value)-1; $position++) {
             if (strlen($this->getAllowedchars()) > 0) {
                 if(strpos($this->getAllowedchars(), $value[$position]) === false) {
@@ -90,7 +120,7 @@ class text extends \codename\core\validator {
                     break;
                 }
             }
-        }
+        }*/
 
         return $this->errorstack->getErrors();
     }
@@ -120,11 +150,33 @@ class text extends \codename\core\validator {
     }
 
     /**
+     * Returns the preq_quoted allowed characters
+     * @return string
+     */
+    protected function getQuotedAllowedchars() : string {
+        if($this->quotedAllowedchars == null) {
+          $this->quotedAllowedchars = preg_quote($this->getAllowedchars());
+        }
+        return $this->quotedAllowedchars;
+    }
+
+    /**
      * Returns the forbidden cahracters
      * @return string
      */
     protected function getForbiddenchars() : string {
         return $this->forbiddenchars;
+    }
+
+    /**
+     * Returns the preq_quoted forbidden characters
+     * @return string
+     */
+    protected function getQuotedForbiddenchars() : string {
+        if($this->quotedForbiddenchars == null) {
+          $this->quotedForbiddenchars = preg_quote($this->getForbiddenchars());
+        }
+        return $this->quotedForbiddenchars;
     }
 
 }

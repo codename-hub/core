@@ -531,7 +531,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 $index++;
 
                 $var = $this->getStatementVariable($param, $field);
-                $fieldInstance = new \codename\core\value\text\modelfield($field);
+
+                // performance hack: store modelfield instance!
+                if(!isset($this->modelfieldInstance[$field])) {
+                  $this->modelfieldInstance[$field] = new \codename\core\value\text\modelfield($field);
+                }
+                $fieldInstance = $this->modelfieldInstance[$field];
+
                 $param[$var] = $this->getParametrizedValue($this->delimit($fieldInstance, $data[$field]), $this->getFieldtype($fieldInstance));
                 $query .= $field . ' = ' . ':'.$var;
             }
@@ -544,6 +550,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         return $query;
 
     }
+
+    /**
+     * [protected description]
+     * @var \codename\core\value\text\modelfield[]
+     */
+    protected $modelfieldInstance = [];
 
     protected function saveCreate(array $data, array &$param = array()) {
         $this->saveLog('CREATE', $data);
@@ -579,7 +591,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 $index++;
 
                 $var = $this->getStatementVariable($param, $field);
-                $fieldInstance = new \codename\core\value\text\modelfield($field);
+
+                // performance hack: store modelfield instance!
+                if(!isset($this->modelfieldInstance[$field])) {
+                  $this->modelfieldInstance[$field] = new \codename\core\value\text\modelfield($field);
+                }
+                $fieldInstance = $this->modelfieldInstance[$field];
+
                 $param[$var] = $this->getParametrizedValue($this->delimit($fieldInstance, $data[$field]), $this->getFieldtype($fieldInstance));
 
                 $query .= ':'.$var;

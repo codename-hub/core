@@ -468,12 +468,12 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return array
      */
     public static function object2array($object) : array {
-        $array = array();
-        if(is_null($object)) {
+        if($object === null) {
             return array();
         }
+        $array = array();
         foreach ($object as $key => $value) {
-            if(is_object($value) || ( (array) $value === $value ) ) { // TESTING high-performance is_array checking
+            if(( (array) $value === $value ) || is_object($value)) {
                 $array[$key] = self::object2array($value);
             } else {
                 $array[$key] = $value;
@@ -723,11 +723,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * {@inheritDoc}
      * @see \codename\core\app_interface::getData($type, $key)
      */
-    final public static function getData(\codename\core\value\text\objecttype $type, \codename\core\value\text\objectidentifier $identifier) {
+    final public static function getData(string $type, string $identifier) {
         $env = self::getenv();
 
         // Get the value first, regardless of success.
-        $value = self::getEnvironment()->get("$env>".$type->get().">".$identifier->get());
+        $value = self::getEnvironment()->get("$env>".$type.">".$identifier);
 
         // If we detect something irregular, dig deeper:
         if($value == NULL) {
@@ -735,11 +735,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
               throw new \codename\core\exception(self::EXCEPTION_GETDATA_CURRENTENVIRONMENTNOTFOUND, \codename\core\exception::$ERRORLEVEL_ERROR, $type);
           }
 
-          if (!self::getEnvironment()->exists("$env>".$type->get())) {
+          if (!self::getEnvironment()->exists("$env>".$type)) {
               throw new \codename\core\exception(self::EXCEPTION_GETDATA_REQUESTEDTYPENOTFOUND, \codename\core\exception::$ERRORLEVEL_ERROR, $type);
           }
 
-          if (!self::getEnvironment()->exists("$env>".$type->get().">".$identifier->get())) {
+          if (!self::getEnvironment()->exists("$env>".$type.">".$identifier)) {
               throw new \codename\core\exception(self::EXCEPTION_GETDATA_REQUESTEDKEYINTYPENOTFOUND, \codename\core\exception::$ERRORLEVEL_ERROR, array('type' => $type, 'key' => $identifier));
           }
         } else {
@@ -806,13 +806,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\database
      */
     final public static function getDb(string $identifier = 'default') : \codename\core\database {
-        if(self::$dbValueObjecttype == NULL) {
-          self::$dbValueObjecttype = new \codename\core\value\text\objecttype('database');
-        }
-        if(!array_key_exists($identifier, self::$dbValueObjectidentifierArray)) {
-          self::$dbValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
-        }
-        return self::getClient(self::$dbValueObjecttype, self::$dbValueObjectidentifierArray[$identifier]);
+        return self::getClient('database', $identifier);
     }
 
     /**
@@ -831,7 +825,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\auth
      */
     final public static function getAuth(string $identifier = 'default') : \codename\core\auth {
-        return self::getClient(new \codename\core\value\text\objecttype('auth'), new \codename\core\value\text\objectidentifier($identifier));
+        return self::getClient('auth', $identifier);
     }
 
     /**
@@ -840,13 +834,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\translate
      */
     final public static function getTranslate(string $identifier = 'default') : \codename\core\translate {
-        if(self::$translateValueObjecttype == NULL) {
-          self::$translateValueObjecttype = new \codename\core\value\text\objecttype('translate');
-        }
-        if(!array_key_exists($identifier, self::$translateValueObjectidentifierArray)) {
-          self::$translateValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
-        }
-        return self::getClient(self::$translateValueObjecttype, self::$translateValueObjectidentifierArray[$identifier]);
+        return self::getClient('translate', $identifier);
     }
 
     /**
@@ -865,13 +853,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\cache
      */
     final public static function getCache(string $identifier = 'default') : \codename\core\cache {
-        if(self::$cacheValueObjecttype == NULL) {
-          self::$cacheValueObjecttype = new \codename\core\value\text\objecttype('cache');
-        }
-        if(!array_key_exists($identifier, self::$cacheValueObjectidentifierArray)) {
-          self::$cacheValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
-        }
-        return self::getClient(self::$cacheValueObjecttype, self::$cacheValueObjectidentifierArray[$identifier]);
+        return self::getClient('cache', $identifier);
     }
 
     /**
@@ -890,13 +872,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\session
      */
     final public static function getSession(string $identifier = 'default') : \codename\core\session {
-        if(self::$sessionValueObjecttype == NULL) {
-          self::$sessionValueObjecttype = new \codename\core\value\text\objecttype('session');
-        }
-        if(!array_key_exists($identifier, self::$sessionValueObjectidentifierArray)) {
-          self::$sessionValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
-        }
-        return self::getClient(self::$sessionValueObjecttype, self::$sessionValueObjectidentifierArray[$identifier]);
+        return self::getClient('session', $identifier);
     }
 
     /**
@@ -915,15 +891,14 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\log
      */
    final public static function getLog(string $identifier = 'default') : \codename\core\log {
-       if(self::$logValueObjecttype == NULL) {
-         self::$logValueObjecttype = new \codename\core\value\text\objecttype('log');
-       }
-       if(!array_key_exists($identifier, self::$logValueObjectidentifierArray)) {
-         self::$logValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
-       }
-       return self::getSingletonClient(self::$logValueObjecttype, self::$logValueObjectidentifierArray[$identifier]);
+      return self::getSingletonClient('log', $identifier);
     }
 
+    /**
+     * [protected description]
+     * @var \codename\core\log[]
+     */
+    protected static $logInstance = [];
 
     /**
      * @var \codename\core\value\text\objectidentifier[]]
@@ -942,7 +917,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\filesystem
      */
     final public static function getFilesystem(string $identifier = 'local') : \codename\core\filesystem {
-        return self::getClient(new \codename\core\value\text\objecttype('filesystem'), new \codename\core\value\text\objectidentifier($identifier));
+        return self::getClient('filesystem', $identifier);
     }
 
     /**
@@ -951,7 +926,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\mail
      */
     final public static function getMailer(string $identifier = 'default') : \codename\core\mail {
-        return self::getClient(new \codename\core\value\text\objecttype('mail'), new \codename\core\value\text\objectidentifier($identifier), false);
+        return self::getClient('mail', $identifier, false);
     }
 
     /**
@@ -971,7 +946,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\bucket
      */
     final public static function getBucket(string $identifier) : \codename\core\bucket {
-        return self::getClient(new \codename\core\value\text\objecttype('bucket'), new \codename\core\value\text\objectidentifier($identifier));
+        return self::getClient('bucket', $identifier);
     }
 
     /**
@@ -980,7 +955,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\queue
      */
     final public static function getQueue(string $identifier = 'default') : \codename\core\queue {
-        return self::getClient(new \codename\core\value\text\objecttype('queue'), new \codename\core\value\text\objectidentifier($identifier));
+        return self::getClient('queue', $identifier);
     }
 
     /**
@@ -1243,14 +1218,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\templateengine
      */
     final public static function getTemplateEngine(string $identifier = 'default') : \codename\core\templateengine {
-        if(self::$templateengineValueObjecttype == NULL) {
-          self::$templateengineValueObjecttype = new \codename\core\value\text\objecttype('templateengine');
-        }
-        if(!array_key_exists($identifier, self::$templateengineValueObjectidentifierArray)) {
-          self::$templateengineValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
-        }
-
-        return self::getClient(self::$templateengineValueObjecttype, self::$templateengineValueObjectidentifierArray[$identifier]);
+        return self::getClient('templateengine', $identifier);
     }
 
     /**
@@ -1270,16 +1238,14 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return object
      * @todo refactor
      */
-    final protected static function getClient(\codename\core\value\text\objecttype $type, \codename\core\value\text\objectidentifier $identifier, bool $store = true) {
-        $config = self::getData($type, $identifier);
-        $type = $type->get();
-        $identifier = $identifier->get();
+    final protected static function getClient(string $type, string $identifier, bool $store = true) {
         $simplename = $type . $identifier;
 
         if ($store && array_key_exists($simplename, $_REQUEST['instances'])) {
             return $_REQUEST['instances'][$simplename];
         }
 
+        $config = self::getData($type, $identifier);
 
         $app = array_key_exists('app', $config) ? $config['app'] : self::getApp();
         $vendor = self::getVendor();
@@ -1332,10 +1298,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return object
      * @todo refactor
      */
-    final protected static function getSingletonClient(\codename\core\value\text\objecttype $type, \codename\core\value\text\objectidentifier $identifier, bool $store = true) {
-        $config = self::getData($type, $identifier);
-        $type = $type->get();
-        $identifier = $identifier->get();
+    final protected static function getSingletonClient(string $type, string $identifier, bool $store = true) {
+
         // make simplename for storing instance
         $simplename = $type . $identifier;
 
@@ -1343,6 +1307,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         if ($store && array_key_exists($simplename, $_REQUEST['instances'])) {
             return $_REQUEST['instances'][$simplename];
         }
+
+        $config = self::getData($type, $identifier);
 
         // Load client information
 
@@ -1371,7 +1337,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         }
 
         // instanciate
-        return $classname::getInstance($config);
+        $_REQUEST['instances'][$simplename] = $classname::getInstance($config);
+        return $_REQUEST['instances'][$simplename];
     }
 
     /**

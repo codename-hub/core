@@ -1084,14 +1084,23 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * primarykey cache field
+     * @var string
+     */
+    protected $primarykey = null;
+
+    /**
      * Returns the primary key that was configured in the model's JSON config
      * @return string
      */
     public function getPrimarykey() : string {
-        if(!$this->config->exists("primary")) {
-            throw new \codename\core\exception(self::EXCEPTION_GETPRIMARYKEY_NOPRIMARYKEYINCONFIG, \codename\core\exception::$ERRORLEVEL_FATAL, $this->config->get());
+        if($this->primarykey == null) {
+          if(!$this->config->exists("primary")) {
+              throw new \codename\core\exception(self::EXCEPTION_GETPRIMARYKEY_NOPRIMARYKEYINCONFIG, \codename\core\exception::$ERRORLEVEL_FATAL, $this->config->get());
+          }
+          $this->primarykey = $this->config->get('primary')[0];
         }
-        return $this->config->get('primary')[0];
+        return $this->primarykey;
     }
 
     /**
@@ -1414,7 +1423,7 @@ abstract class model implements \codename\core\model\modelInterface {
         if ($this->cache && count($this->getResult()) > 0) {
             $result = $this->getResult();
 
-            $cacheObj->set($cacheGroup, $cacheKey, array($this->getResult()));
+            $cacheObj->set($cacheGroup, $cacheKey, $this->getResult());
         }
         $this->reset();
         return;
@@ -1551,32 +1560,44 @@ abstract class model implements \codename\core\model\modelInterface {
     protected $normalizeModelFieldTypeCache = array();
 
     /**
+     * [protected description]
+     * @var bool[]
+     */
+    protected $normalizeModelFieldTypeStructureCache = array();
+
+    /**
      * Normalizes a single row of a dataset
      * @param array $dataset
      */
     protected function normalizeRow(array $dataset) : array {
-        if(count($dataset) == 1 && array_key_exists(0, $dataset)) {
+        if(count($dataset) == 1 && isset($dataset[0])) {
             $dataset = $dataset[0];
         }
 
         foreach($dataset as $field=>$thisRow) {
-            $dataset[$field] = (array_key_exists($field, $dataset) ? $dataset[$field] : null);
-            if(!is_string($field)) {continue;}
+
+            // Performance optimization (and fix):
+            // Check for (key == null) first, as it is faster than is_string
+            if($dataset[$field] == null || !is_string($dataset[$field])) {continue;}
 
             ///
             /// Fixing a bad performance issue
             /// using result-specific model field caching
             /// as they're re-constructed EVERY call!
             ///
-            if(!array_key_exists($field, $this->normalizeModelFieldCache)) {
+            if(!isset($this->normalizeModelFieldCache[$field])) {
               $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield::getInstance($field);
             }
 
-            if(!array_key_exists($field, $this->normalizeModelFieldTypeCache)) {
+            if(!isset($this->normalizeModelFieldTypeCache[$field])) {
               $this->normalizeModelFieldTypeCache[$field] = $this->getFieldtype($this->normalizeModelFieldCache[$field]);
             }
 
-            if(strpos($this->normalizeModelFieldTypeCache[$field], 'structu') !== false && array_key_exists($field, $dataset) && !is_array($dataset[$field])) {
+            if(!isset($this->normalizeModelFieldTypeStructureCache[$field])) {
+              $this->normalizeModelFieldTypeStructureCache[$field] = strpos($this->normalizeModelFieldTypeCache[$field], 'structu') !== false;
+            }
+
+            if($this->normalizeModelFieldTypeStructureCache[$field] && !is_array($dataset[$field])) {
               $dataset[$field] = $dataset[$field] == null ? null : app::object2array(json_decode($dataset[$field], false)/*, 512, JSON_UNESCAPED_UNICODE)*/);
             }
 
