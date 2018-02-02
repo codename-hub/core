@@ -468,12 +468,12 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return array
      */
     public static function object2array($object) : array {
-        $array = array();
-        if(is_null($object)) {
+        if($object === null) {
             return array();
         }
+        $array = array();
         foreach ($object as $key => $value) {
-            if(is_object($value) || ( (array) $value === $value ) ) { // TESTING high-performance is_array checking
+            if(( (array) $value === $value ) || is_object($value)) {
                 $array[$key] = self::object2array($value);
             } else {
                 $array[$key] = $value;
