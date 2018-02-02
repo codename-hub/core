@@ -1084,14 +1084,23 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * primarykey cache field
+     * @var string
+     */
+    protected $primarykey = null;
+
+    /**
      * Returns the primary key that was configured in the model's JSON config
      * @return string
      */
     public function getPrimarykey() : string {
-        if(!$this->config->exists("primary")) {
-            throw new \codename\core\exception(self::EXCEPTION_GETPRIMARYKEY_NOPRIMARYKEYINCONFIG, \codename\core\exception::$ERRORLEVEL_FATAL, $this->config->get());
+        if($this->primarykey == null) {
+          if(!$this->config->exists("primary")) {
+              throw new \codename\core\exception(self::EXCEPTION_GETPRIMARYKEY_NOPRIMARYKEYINCONFIG, \codename\core\exception::$ERRORLEVEL_FATAL, $this->config->get());
+          }
+          $this->primarykey = $this->config->get('primary')[0];
         }
-        return $this->config->get('primary')[0];
+        return $this->primarykey;
     }
 
     /**
