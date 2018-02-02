@@ -915,15 +915,23 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\log
      */
    final public static function getLog(string $identifier = 'default') : \codename\core\log {
-       if(self::$logValueObjecttype == NULL) {
+      if(!isset(self::$logInstance[$identifier])) {
+        if(self::$logValueObjecttype == NULL) {
          self::$logValueObjecttype = new \codename\core\value\text\objecttype('log');
-       }
-       if(!array_key_exists($identifier, self::$logValueObjectidentifierArray)) {
+        }
+        if(!array_key_exists($identifier, self::$logValueObjectidentifierArray)) {
          self::$logValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
-       }
-       return self::getSingletonClient(self::$logValueObjecttype, self::$logValueObjectidentifierArray[$identifier]);
+        }
+        self::$logInstance[$identifier] = self::getSingletonClient(self::$logValueObjecttype, self::$logValueObjectidentifierArray[$identifier]);
+      }
+      return self::$logInstance[$identifier];
     }
 
+    /**
+     * [protected description]
+     * @var \codename\core\log[]
+     */
+    protected static $logInstance = [];
 
     /**
      * @var \codename\core\value\text\objectidentifier[]]
