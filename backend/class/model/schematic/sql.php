@@ -509,12 +509,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $query .= $this->getFilterQuery($params);
 
-        if(count($this->order) > 0) {
-            $query .= $this->getOrders($this->order);
-        }
-
         if(count($this->group) > 0) {
             $query .= $this->getGroups($this->group);
+        }
+
+        if(count($this->order) > 0) {
+            $query .= $this->getOrders($this->order);
         }
 
         if(!is_null($this->limit)) {
