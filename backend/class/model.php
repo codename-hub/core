@@ -885,7 +885,18 @@ abstract class model implements \codename\core\model\modelInterface {
     public function addOrder(string $field, string $order = 'ASC') : model {
         $field = \codename\core\value\text\modelfield::getInstance($field);
         if(!$this->fieldExists($field)) {
-            throw new \codename\core\exception(self::EXCEPTION_ADDORDER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
+            // check for existance of a calculated field!
+            $found = false;
+            foreach($this->fieldlist as $f) {
+              if($f->field == $field) {
+                $found = true;
+                break;
+              }
+            }
+
+            if(!$found) {
+              throw new \codename\core\exception(self::EXCEPTION_ADDORDER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
+            }
         }
         $class = '\\codename\\core\\model\\plugin\\order\\' . $this->getType();
         array_push($this->order, new $class($field, $order));
