@@ -752,6 +752,17 @@ abstract class model implements \codename\core\model\modelInterface {
         return $this;
     }
 
+    /**
+     *
+     * {@inheritDoc}
+     * @see \codename\core\model_interface::addFilter($field, $value, $operator)
+     */
+    public function addFieldFilter(string $field, string $otherField, string $operator = '=') : model {
+        $class = '\\codename\\core\\model\\plugin\\fieldfilter\\' . $this->getType();
+        array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), new \codename\core\value\text\modelfield($otherField), $operator));
+        return $this;
+    }
+
 
     /**
      * Provides an additional collection of filter arrays

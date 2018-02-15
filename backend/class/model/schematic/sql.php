@@ -765,26 +765,35 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         $where = '';
         foreach($filters as $filter) {
             $where .= (count($appliedFilters) > 0) ? ' ' . $this->filterOperator . ' ' : ' WHERE ';
-            if(is_array($filter->value)) {
-                $values = array();
-                $i = 0;
-                foreach($filter->value as $thisval) {
-                    $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue(), $i++);
-                    $values[] = ':' . $var; // var = PDO Param
-                    $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field)); // values separated from query
-                }
-                $string = implode(', ', $values);
-                $where .= $filter->field->getValue() . ' IN ( ' . $string . ') ';
-            } else {
-                if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
-                    $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                    $where .= $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
-                    $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
-                } else {
-                    $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                    $where .= $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
-                    $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field)); // values separated from query
-                }
+
+            if($filter instanceof \codename\core\model\plugin\filter) {
+              // handle regular filters
+              if(is_array($filter->value)) {
+                  $values = array();
+                  $i = 0;
+                  foreach($filter->value as $thisval) {
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue(), $i++);
+                      $values[] = ':' . $var; // var = PDO Param
+                      $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field)); // values separated from query
+                  }
+                  $string = implode(', ', $values);
+                  $where .= $filter->field->getValue() . ' IN ( ' . $string . ') ';
+              } else {
+                  if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
+                      $where .= $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
+                      $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
+                  } else {
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
+                      $where .= $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
+                      $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field)); // values separated from query
+                  }
+              }
+            } else if ($filter instanceof \codename\core\model\plugin\fieldfilter) {
+              // handle field-based filters
+              $where .= $filter->field->getValue() . ' = ' . $filter->value->getValue();
+              $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue().'==='.$filter->field->getValue());
+              $appliedFilters[$var] = null; // $this->getParametrizedValue($filter->value->getValue(), $this->getFieldtype($filter->field)); // values separated from query
             }
         }
 
