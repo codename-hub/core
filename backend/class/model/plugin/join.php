@@ -63,15 +63,28 @@ abstract class join extends \codename\core\model\plugin {
   public $modelField = null;
 
   /**
+   * [public description]
+   * @var array
+   */
+  public $conditions = [];
+
+  /**
+   * the current alias that is used
+   * @var string|null
+   */
+  public $currentAlias = null;
+
+  /**
    *
    * {@inheritDoc}
    * @see \codename\core\model_plugin_filter::__CONSTRUCT(string $field, string $value, string $operator)
    */
-  public function __CONSTRUCT(\codename\core\model $model, string $type, string $modelField, string $referenceField) {
+  public function __CONSTRUCT(\codename\core\model $model, string $type, $modelField, $referenceField, array $conditions = []) {
       $this->model = $model;
       $this->type = $type;
       $this->referenceField = $referenceField;
       $this->modelField = $modelField;
+      $this->conditions = $conditions;
       // TODO: perform null check?
       return $this;
   }

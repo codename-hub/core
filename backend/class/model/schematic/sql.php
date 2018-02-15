@@ -397,7 +397,30 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               throw new \codename\core\exception(self::EXCEPTION_SQL_DEEPJOIN_INVALID_FOREIGNKEY_CONFIG, \codename\core\exception::$ERRORLEVEL_FATAL, array($this->table, $nest->table));
             }
 
-            $ret .= " {$joinMethod} {$nest->schema}.{$nest->table} {$aliasAs} ON {$alias}.{$joinKey} = {$this->table}.{$thisKey}";
+            $joinComponents = [];
+
+            if(is_array($thisKey) || is_array($joinKey)) {
+              // TODO: check for equal array item counts! otherwise: exception
+              // perform a multi-component join
+              foreach($thisKey as $index => $thisKeyValue) {
+                $joinComponents[] = "{$alias}.{$joinKey[$index]} = {$this->table}.{$thisKeyValue}";
+              }
+            } else {
+              $joinComponents[] = "{$alias}.{$joinKey} = {$this->table}.{$thisKey}";
+            }
+
+            // add conditions!
+            foreach($join->conditions as $filter) {
+              $operator = $filter['value'] == null ? ($filter['operator'] == '!=' ? 'IS NOT' : 'IS') : $filter['operator'];
+              $value = $filter['value'] == null ? 'NULL' : $filter['value'];
+              $joinComponents[] = "{$this->table}.{$filter['field']} {$operator} {$value}";
+            }
+
+            $joinComponentsString = implode(' AND ', $joinComponents);
+            $ret .= " {$joinMethod} {$nest->schema}.{$nest->table} {$aliasAs} ON $joinComponentsString";
+
+            $join->currentAlias = $alias;
+
             $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter);
         }
         foreach($model->getSiblingJoins() as $join) {
@@ -454,6 +477,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     public function search() : \codename\core\model {
         $query = "SELECT ";
 
+        // first: deepJoin to get correct alias names
+        $deepjoin = $this->deepJoin($this);
+
         // retrieve a list of all model field lists, recursively
         // respecting hidden fields and duplicate field names in other models/tables
         $fieldlist = $this->getCurrentFieldlist();
@@ -473,7 +499,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $query .= ' FROM ' . $this->schema . '.' . $this->table . ' ';
 
-        $query .= $this->deepJoin($this);
+        // append the previously constructed deepjoin string
+        $query .= $deepjoin;
 
         // prepare an array for values to submit as PDO statement parameters
         // done by-ref, so the values are arriving right here after
@@ -988,12 +1015,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @author Kevin Dargel
      * @return array[]
      */
-    protected function getCurrentFieldlist() : array {
+    protected function getCurrentFieldlist(string $alias = null) : array {
       $result = array();
       if(count($this->fieldlist) == 0 && count($this->hiddenFields) > 0) {
         foreach($this->config->get('field') as $fieldName) {
           if(!in_array($fieldName, $this->hiddenFields)) {
-            $result[] = array($this->schema, $this->table, $fieldName);
+            if($alias != null) {
+              $result[] = array($alias, $fieldName);
+            } else {
+              $result[] = array($this->schema, $this->table, $fieldName);
+            }
           }
         }
       } else {
@@ -1002,22 +1033,30 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             if($field instanceof \codename\core\model\plugin\calculatedfield\calculatedfieldInterface) {
               $result[] = array($field->get());
             } else {
-              $result[] = array($field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get());
+              if($alias != null) {
+                $result[] = array($alias, $field->field->get());
+              } else {
+                $result[] = array($field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get());
+              }
             }
           }
         } else {
-          $result[] = array($this->schema, $this->table, '*');
+          if($alias != null) {
+            $result[] = array($alias, '*');
+          } else {
+            $result[] = array($this->schema, $this->table, '*');
+          }
         }
       }
 
       foreach($this->nestedModels as $join) {
         if($this->compatibleJoin($join->model)) {
-          $result = array_merge($result, $join->model->getCurrentFieldlist());
+          $result = array_merge($result, $join->model->getCurrentFieldlist($join->currentAlias));
         }
       }
       foreach($this->siblingModels as $join) {
         if($this->compatibleJoin($join->model)) {
-          $result = array_merge($result, $join->model->getCurrentFieldlist());
+          $result = array_merge($result, $join->model->getCurrentFieldlist($join->currentAlias));
         }
       }
       return $result;

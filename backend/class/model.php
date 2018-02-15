@@ -390,6 +390,8 @@ abstract class model implements \codename\core\model\modelInterface {
         $thisKey = null;
         $joinKey = null;
 
+        $conditions = [];
+
         // model field provided
         //
         //
@@ -402,6 +404,7 @@ abstract class model implements \codename\core\model\modelInterface {
           if($fkeyConfig != null) {
             if($referenceField == null || $referenceField == $fkeyConfig['key']) {
               $joinKey = $fkeyConfig['key'];
+              $conditions = $fkeyConfig['condition'] ?? [];
             } else {
               // reference field is not equal
               // e.g. you're trying to join on unjoinable fields
@@ -417,10 +420,16 @@ abstract class model implements \codename\core\model\modelInterface {
             foreach($this->config->get('foreign') as $fkeyName => $fkeyConfig) {
               // if we found compatible models
               if($fkeyConfig['model'] == $model->getIdentifier()) {
-                $thisKey = $fkeyName;
-                if($referenceField == null || $referenceField == $fkeyConfig['key']) {
-                  $joinKey = $fkeyConfig['key'];
+                if(is_array($fkeyConfig['key'])) {
+                  $thisKey = array_keys($fkeyConfig['key']);    // current keys
+                  $joinKey = array_values($fkeyConfig['key']);  // keys of foreign model
+                } else {
+                  $thisKey = $fkeyName;
+                  if($referenceField == null || $referenceField == $fkeyConfig['key']) {
+                    $joinKey = $fkeyConfig['key'];
+                  }
                 }
+                $conditions = $fkeyConfig['condition'] ?? [];
                 break;
               }
             }
@@ -438,6 +447,7 @@ abstract class model implements \codename\core\model\modelInterface {
                 if($joinKey == null || $joinKey == $fkeyName) {
                   $thisKey = $fkeyConfig['key'];
                 }
+                $conditions = $fkeyConfig['condition'] ?? [];
                 // $thisKey = $fkeyConfig['key'];
                 // $joinKey = $fkeyName;
                 break;
@@ -454,7 +464,7 @@ abstract class model implements \codename\core\model\modelInterface {
         $pluginDriver = $this->compatibleJoin($model) ? $this->getType() : 'bare';
 
         $class = '\\codename\\core\\model\\plugin\\join\\' . $pluginDriver;
-        array_push($this->nestedModels, new $class($model, $type, $thisKey, $joinKey));
+        array_push($this->nestedModels, new $class($model, $type, $thisKey, $joinKey, $conditions));
         // check for already-added ?
 
         return $this;
