@@ -2,7 +2,6 @@
 namespace codename\core\model\schematic;
 use \codename\core\app;
 use \codename\core\exception;
-use \codename\core\model\plugin;
 
 /**
  * base SQL specific SQL commands
@@ -26,10 +25,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * Creates and configures the instance of the model. Fallback connection is 'default' database
-     * @param string $connection Name of the connection in the app configuration file
-     * @param string $schema Schema to use the model for
-     * @param string $table Table to use the model on
-     * @return model_schematic_postgresql
+     * @param string|null $connection  [Name of the connection in the app configuration file]
+     * @param string $schema      [Schema to use the model for]
+     * @param string $table       [Table to use the model on]
+     * @return \codename\core\model
      */
     public function setConfig(string $connection = null, string $schema, string $table) : \codename\core\model {
 
@@ -187,6 +186,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     /**
      * Undocumented function
      *
+     * ... or not?
+     * This saves the dataset and children
+     * - present in the configuration
+     * - present in the current dataset as a sub-array (named field)
+     *
+     *
+     * @param array $data
      * @return \codename\core\model
      */
     public function saveWithChildren(array $data) : \codename\core\model {
@@ -328,15 +334,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * [deepJoin description]
-     * @param  \codename\core\model $model      [model currently worked-on]
-     * @param  array                $tableUsage [table usage as reference]
-     * @return int                              [alias counter as reference]
+     * @param  \codename\core\model   $model          [model currently worked-on]
+     * @param  array                  &$tableUsage    [table usage as reference]
+     * @param  int                    &$aliasCounter  [alias counter as reference]
+     * @return string                 [query part]
      */
     public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0) {
         if(count($model->getNestedJoins()) == 0 && count($model->getSiblingJoins()) == 0) {
             return '';
         }
         $ret = '';
+
+        // Loop through nested (children/parents)
         foreach($model->getNestedJoins() as $join) {
             $nest = $join->model;
 
@@ -423,6 +432,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
             $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter);
         }
+
+        // Loop through siblings
         foreach($model->getSiblingJoins() as $join) {
 
           // workaround
@@ -530,7 +541,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         return $this;
     }
 
-
+    /**
+     * returns a query that performs a save using UPDATE
+     * (e.g. we have an existing entry that needs to be updated)
+     * @param  array  $data   [data]
+     * @param  array  &$param [reference array that keeps track of PDO variable names]
+     * @return string         [query]
+     */
     protected function saveUpdate(array $data, array &$param = array()) {
         $this->saveLog('UPDATE', $data);
         $cacheGroup = $this->getCachegroup();
@@ -584,6 +601,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     protected $modelfieldInstance = [];
 
+    /**
+     * returns a query that performs a save using INSERT
+     * @param  array  $data   [data]
+     * @param  array  &$param [reference array that keeps track of PDO variable names]
+     * @return string         [query]
+     */
     protected function saveCreate(array $data, array &$param = array()) {
         $this->saveLog('CREATE', $data);
         $query = 'INSERT INTO ' . $this->schema . '.' . $this->table .' ';
@@ -670,17 +693,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @see http://stackoverflow.com/questions/4782319/php-json-encode-utf8-char-problem-mysql
      * and esp. @see http://stackoverflow.com/questions/4782319/php-json-encode-utf8-char-problem-mysql/37353316#37353316
      *
-     * @param array [or even an object?]
-     * @return string [json-encoded string]
+     * @param array|object   $data [or even an object?]
+     * @return string   [json-encoded string]
      */
     protected function jsonEncode($data) : string {
       return json_encode($data);
     }
 
-    protected function dataImporta(array $data) : array {
-
-    }
-
+    /**
+     * [saveLog description]
+     * @param  string $mode [description]
+     * @param  array  $data [description]
+     * @return [type]       [description]
+     */
     protected function saveLog(string $mode, array $data) {
         if(strpos(get_class($this), 'activitystream') == false) {
             app::writeActivity("MODEL_" . $mode, get_class($this), $data);
@@ -690,7 +715,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     /**
      *
      * {@inheritDoc}
-     * @see \codename\core\model_interface::save($data)
+     * @see \codename\core\modelInterface::save($data)
+     *
+     * [save description]
+     * @param  array                  $data [description]
+     * @return \codename\core\model         [description]
      */
     public function save(array $data) : \codename\core\model {
         $params = array();
@@ -705,16 +734,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
-     * @todo DOCUMENTATION
-     */
-    public function calcField(string $fieldname, string $parse) : \codename\core\model {
-        $class = "\codename\core\model_plugin_field_" . $this->getType();
-        array_push($this->fieldlist, new $class($parse . ' AS ' . $fieldname));
-        return $this;
-    }
-
-    /**
-     * @todo DOCUMENTATION
+     * [clearCache description]
+     * @param  string $cacheGroup [description]
+     * @param  string $cacheKey   [description]
+     * @return void
      */
     protected function clearCache(string $cacheGroup, string $cacheKey) {
         $cacheObj = app::getCache();
@@ -725,7 +748,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     /**
      *
      * {@inheritDoc}
-     * @see \codename\core\model_interface::delete($primaryKey)
+     * @see \codename\core\modelInterface::delete($primaryKey)
      */
     public function delete($primaryKey = null) : \codename\core\model {
         if(!is_null($primaryKey)) {
@@ -773,6 +796,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         return $this;
     }
 
+    /**
+     * returns a PDO variable name
+     * that is kept safe from duplicates
+     * using recursive calls to this function
+     *
+     * @param  array   $existingKeys [array of already existing variable names]
+     * @param  string  $field        [the field base name]
+     * @param  string  $add          [what is added to the base name]
+     * @param  int     $c            [some extra factor (counter)]
+     * @return string                [variable name]
+     */
     protected function getStatementVariable(array $existingKeys, string $field, string $add = '', int $c = 0) {
       $name = str_replace('.', '_dot_', $field . (($add != '') ? ('_' . $add) : '') . (($c > 0) ? ('_' . $c) : ''));
       if(in_array($name, $existingKeys)) {
@@ -1120,7 +1154,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * Converts the given instance of model_plugin_limit to the LIMIT... query string
-     * @param model_plugin_limit $limit
+     * @param \codename\core\model\plugin\limit  $limit
      * @return string
      */
     protected function getLimit(\codename\core\model\plugin\limit $limit) : string {
@@ -1131,7 +1165,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * Converts the given instance of model_plugin_offset to the OFFSET... query string
-     * @param model_plugin_offset $offset
+     * @param \codename\core\model\plugin\offset   $offset
      * @return string
      */
     protected function getOffset(\codename\core\model\plugin\offset $offset) : string {
@@ -1166,8 +1200,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * it contains the visible fields of all nested models (childs, siblings)
      * retrieved in a recursive call
      * this also respects hiddenFields
+     *
      * @author Kevin Dargel
-     * @return array[]
+     * @param string|null  $alias   [optional: alias as prefix for the following fields]
+     * @return array
      */
     protected function getCurrentFieldlist(string $alias = null) : array {
       $result = array();
@@ -1217,14 +1253,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
-     * @todo bring me to life!
+     * returns the last inserted ID, if available
+     * @return string [description]
      */
     public function lastInsertId () : string {
         return $this->db->lastInsertId();
     }
 
     /**
-     * @todo DOCUMENTATION
+     * gets the current identifier of this model
+     * in this case (sql), this is the table name
+     * NOTE: schema is omitted here
+     * @return string [table name]
      */
     public function getIdentifier() : string {
         return $this->table;
