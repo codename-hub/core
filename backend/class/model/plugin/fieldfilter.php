@@ -27,15 +27,23 @@ class fieldfilter extends \codename\core\model\plugin implements \codename\core\
     public $operator = "=";
 
     /**
+     * the conjunction to be used (AND, OR, XOR, ...)
+     * may be null
+     * @var string $conjunction
+     */
+    public $conjunction = null;
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\model_plugin_filter::__CONSTRUCT(string $field, string $value, string $operator)
      */
-    public function __CONSTRUCT(\codename\core\value\text\modelfield $field, $value, string $operator) {
+    public function __CONSTRUCT(\codename\core\value\text\modelfield $field, $value, string $operator, string $conjunction = null) {
         $this->field = $field;
         // TODO: Check for type of value ! must be \codename\core\value\text\modelfield
         $this->value = $value;
         $this->operator = $operator;
+        $this->conjunction = $conjunction;
         return $this;
     }
 

@@ -791,7 +791,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $where = '';
         foreach($filters as $filter) {
-            $where .= (count($appliedFilters) > 0) ? ' ' . $this->filterOperator . ' ' : ' WHERE ';
+            $where .= (count($appliedFilters) > 0) ? ' ' . ($filter->conjunction ?? $this->filterOperator) . ' ' : ' WHERE ';
 
             if($filter instanceof \codename\core\model\plugin\filter) {
               // handle regular filters
@@ -825,7 +825,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
 
         foreach($flagfilters as $flagfilter) {
-            $where .= (count($appliedFilters) > 0) ? ' ' . $this->filterOperator . ' ' : ' WHERE ';
+            $where .= (count($appliedFilters) > 0) ? ' ' . ($filter->conjunction ?? $this->filterOperator) . ' ' : ' WHERE ';
             $var = $this->getStatementVariable(array_keys($appliedFilters), $this->table.'_flag');
             if($flagfilter < 0) {
               $where .= $this->table.'_flag & ' . ':'.$var . ' <> ' . ':'.$var . ' '; // var = PDO Param
@@ -842,42 +842,54 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // Count of applied filters before going into filter collections
         $appliedFilterCountBefore = count($appliedFilters);
 
-        foreach($filterCollections as $filterCollection) {
-          $t_appliedFilters = 0; // contains key => value for pdo prepStmt
-          $t_filters = array();
-          foreach($filterCollection['filters'] as $filter) {
-            $t_filters[] = ($t_appliedFilters > 0) ? ' ' . $filterCollection['operator'] . ' ' : '';
-            if(is_array($filter->value)) {
-                $values = array();
-                $i = 0;
-                foreach($filter->value as $thisval) {
-                    $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue(), $i++);
-                    $values[] = ':' . $var; // var = PDO Param
-                    $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field));
-                }
-                $string = implode(', ', $values);
-                $t_filters[] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
-            } else {
-                if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
-                    $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                    $t_filters[] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
-                    $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
-                } else {
-                    $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                    $t_filters[] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' ';
-                    $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field));
-                }
+        foreach($filterCollections as $groupName => $groupFilterCollection) {
+
+          $t_appliedgroups = 0;
+          $t_groups = array();
+
+          foreach($groupFilterCollection as $filterCollection) {
+            $t_appliedFilters = 0; // contains key => value for pdo prepStmt
+            $t_filters = array();
+            foreach($filterCollection['filters'] as $filter) {
+              $t_filters[] = ($t_appliedFilters > 0) ? ' ' . $filterCollection['operator'] . ' ' : '';
+              if(is_array($filter->value)) {
+                  $values = array();
+                  $i = 0;
+                  foreach($filter->value as $thisval) {
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue(), $i++);
+                      $values[] = ':' . $var; // var = PDO Param
+                      $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field));
+                  }
+                  $string = implode(', ', $values);
+                  $t_filters[] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
+              } else {
+                  if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
+                      $t_filters[] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
+                      $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
+                  } else {
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
+                      $t_filters[] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' ';
+                      $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field));
+                  }
+              }
+              $t_appliedFilters++;
             }
-            $t_appliedFilters++;
+
+            if(count($t_filters) > 0) {
+              $t_groups[] = ($t_appliedgroups>0 ? ' ' . ($filterCollection['conjunction'] ?? $this->filterOperator) . ' ' : '') .  ' ( ' . implode('', $t_filters) . ' ) ';
+              $t_appliedgroups++;
+              // $t_filtergroups[] = ($t_appliedfiltergroups>0 ? ' ' . ($filterCollection['conjunction'] ?? $this->filterOperator) . ' ' : '') .  ' ( ' . implode('', $t_filters) . ' ) ';
+              // $t_appliedfiltergroups++;
+            }
           }
 
-          if(sizeof($t_filters) > 0) {
-            $t_filtergroups[] = ($t_appliedfiltergroups>0 ? ' ' . $this->filterOperator . ' ' : '') .  ' ( ' . implode('', $t_filters) . ' ) ';
-            $t_appliedfiltergroups++;
-          }
+          // handle group concat
+          $t_filtergroups[] = ($t_appliedfiltergroups>0 ? ' ' . ($this->filterOperator) . ' ' : '') . '(' . implode('', $t_groups) . ')';
+          $t_appliedfiltergroups++;
         }
 
-        if(sizeof($t_filtergroups) > 0) {
+        if(count($t_filtergroups) > 0) {
           $where .= ($appliedFilterCountBefore > 0) ? ' ' . $this->filterOperator . ' ' : ' WHERE ';
           $where .= '(';
           foreach($t_filtergroups as $filtergroup) {

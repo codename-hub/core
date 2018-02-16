@@ -749,15 +749,15 @@ abstract class model implements \codename\core\model\modelInterface {
      * {@inheritDoc}
      * @see \codename\core\model_interface::addFilter($field, $value, $operator)
      */
-    public function addFilter(string $field, $value = null, string $operator = '=') : model {
+    public function addFilter(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
         if(is_array($value)) {
             if(count($value) == 0) {
                 return $this;
             }
-            array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator));
+            array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
         } else {
-            array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator));
+            array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator, $conjunction));
         }
         return $this;
     }
@@ -767,9 +767,9 @@ abstract class model implements \codename\core\model\modelInterface {
      * {@inheritDoc}
      * @see \codename\core\model_interface::addFilter($field, $value, $operator)
      */
-    public function addFieldFilter(string $field, string $otherField, string $operator = '=') : model {
+    public function addFieldFilter(string $field, string $otherField, string $operator = '=', string $conjuction = null) : model {
         $class = '\\codename\\core\\model\\plugin\\fieldfilter\\' . $this->getType();
-        array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), new \codename\core\value\text\modelfield($otherField), $operator));
+        array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), new \codename\core\value\text\modelfield($otherField), $operator, $conjuction));
         return $this;
     }
 
@@ -801,61 +801,60 @@ abstract class model implements \codename\core\model\modelInterface {
      * @param array $filters [array of array( 'field' => ..., 'value' => ... )-elements]
      * @param string $groupOperator [e.g. 'AND' or 'OR']
      */
-    public function addFilterCollection(array $filters, string $groupOperator = null) : model {
+    public function addFilterCollection(array $filters, string $groupOperator = null, string $groupName = 'default', string $conjunction = null) : model {
       $filterCollection = array();
       foreach($filters as $filter) {
         $field = $filter['field'];
         $value = $filter['value'];
         $operator = $filter['operator'];
+        $filter_conjunction = $filter['conjunction'] ?? null;
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
         if(is_array($value)) {
             if(count($value) == 0) {
                 continue;
             }
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator));
+            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $filter_conjunction));
         } else {
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator));
+            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator, $filter_conjunction));
         }
       }
-      if(sizeof($filterCollection) > 0) {
-        array_push($this->filterCollections,
-          array(
+      if(count($filterCollection) > 0) {
+        $this->filterCollections[$groupName][] = array(
               'operator' => $groupOperator,
-              'filters' => $filterCollection
-          )
+              'filters' => $filterCollection,
+              'conjunction' => $conjunction
         );
       }
       return $this;
     }
 
-    public function addDefaultFilterCollection(array $filters, string $groupOperator = null) : model {
+    public function addDefaultFilterCollection(array $filters, string $groupOperator = null, string $groupName = 'default', string $conjunction = null) : model {
       $filterCollection = array();
       foreach($filters as $filter) {
         $field = $filter['field'];
         $value = $filter['value'];
         $operator = $filter['operator'];
+        $filter_conjunction = $filter['conjunction'] ?? null;
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
         if(is_array($value)) {
             if(count($value) == 0) {
                 continue;
             }
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator));
+            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $filter_conjunction));
         } else {
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator));
+            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator, $filter_conjunction));
         }
       }
       if(sizeof($filterCollection) > 0) {
-        array_push($this->defaultfilterCollections,
-          array(
+        $this->defaultfilterCollections[$groupName][] = array(
               'operator' => $groupOperator,
-              'filters' => $filterCollection
-          )
+              'filters' => $filterCollection,
+              'conjunction' => $conjunction
         );
-        array_push($this->filterCollections,
-          array(
+        $this->filterCollections[$groupName][] = array(
               'operator' => $groupOperator,
-              'filters' => $filterCollection
-          )
+              'filters' => $filterCollection,
+              'conjunction' => $conjunction
         );
       }
       return $this;
@@ -866,14 +865,14 @@ abstract class model implements \codename\core\model\modelInterface {
      * {@inheritDoc}
      * @see \codename\core\model_interface::addDefaultfilter($field, $value, $operator)
      */
-    public function addDefaultfilter(string $field, $value = null, string $operator = '=') : model {
+    public function addDefaultfilter(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
         $field = \codename\core\value\text\modelfield::getInstance($field);
         if(!$this->fieldExists($field)) {
             throw new \codename\core\exception(self::EXCEPTION_ADDDEFAULTFILTER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
         }
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
-        array_push($this->defaultfilter, new $class($field, $this->delimit($field, $value), $operator));
-        array_push($this->filter, new $class($field, $this->delimit($field, $value), $operator));
+        array_push($this->defaultfilter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
+        array_push($this->filter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
         return $this;
     }
 
