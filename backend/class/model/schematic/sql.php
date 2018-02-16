@@ -782,7 +782,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
-     * Converts the given array of model_plugin_filter instances to the WHERE... query string. Is capable of using $flagfilters for binary operations
+     * [EXCEPTION_SQL_GETFILTERS_INVALID_QUERY description]
+     * @var string
+     */
+    const EXCEPTION_SQL_GETFILTERS_INVALID_QUERY = 'EXCEPTION_SQL_GETFILTERS_INVALID_QUERY';
+
+    /**
+     * Converts the given array of model_plugin_filter instances to the WHERE... query string.
+     * Is capable of using $flagfilters for binary operations
+     * Handles named filtercollection groups
+     * the respective filtercollection(s) (and their filters)
+     *
+     * returns a recursive array structure that can be converted to a query string
+     *
      * @param array $filters            [array of filters]
      * @param array $flagfilters        [array of flagfilters]
      * @param array $filterCollections  [array of filter collections]
@@ -793,16 +805,20 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $where = [];
 
+        // Loop through each filter
         foreach($filters as $filter) {
+
+            // collect data for a single filter
             $filterQuery = [
               'conjunction' => $filter->conjunction ?? $this->filterOperator,
               'query' => null
             ];
-            // $where .= (count($appliedFilters) > 0) ? ' ' . ($filter->conjunction ?? $this->filterOperator) . ' ' : ' WHERE ';
 
             if($filter instanceof \codename\core\model\plugin\filter) {
               // handle regular filters
+
               if(is_array($filter->value)) {
+                  // filter value is an array (e.g. IN() match)
                   $values = array();
                   $i = 0;
                   foreach($filter->value as $thisval) {
@@ -811,85 +827,85 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                       $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field)); // values separated from query
                   }
                   $string = implode(', ', $values);
-                  // $where .= $filter->field->getValue() . ' IN ( ' . $string . ') ';
                   $filterQuery['query'] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
               } else {
+                  // filter value is a singular value
                   if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      // $where .= $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
                       $filterQuery['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                   } else {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      // $where .= $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
                       $filterQuery['query'] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field)); // values separated from query
                   }
               }
             } else if ($filter instanceof \codename\core\model\plugin\fieldfilter) {
               // handle field-based filters
-              // $where .= $filter->field->getValue() . ' = ' . $filter->value->getValue();
+              // this is not something PDO needs separately transmitted variables for
+              // value IS indeed a field name
               $filterQuery['query'] = $filter->field->getValue() . ' = ' . $filter->value->getValue();
-              $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue().'==='.$filter->field->getValue());
-              $appliedFilters[$var] = null; // $this->getParametrizedValue($filter->value->getValue(), $this->getFieldtype($filter->field)); // values separated from query
             }
 
             // only handle, if query set
             if($filterQuery['query'] != null) {
               $where[] = $filterQuery;
             } else {
-              die("invalid query");
+              throw new exception(self::EXCEPTION_SQL_GETFILTERS_INVALID_QUERY, exception::$ERRORLEVEL_ERROR, $filter);
             }
         }
 
+        // handle flag filters (bit-oriented)
         foreach($flagfilters as $flagfilter) {
-            // $where .= (count($appliedFilters) > 0) ? ' ' . ($filter->conjunction ?? $this->filterOperator) . ' ' : ' WHERE ';
-            $filterQuery = [
-              'conjunction' => $filter->conjunction ?? $this->filterOperator,
-              'query' => null
-            ];
 
-            $var = $this->getStatementVariable(array_keys($appliedFilters), $this->table.'_flag');
-            if($flagfilter < 0) {
-              // $where .= $this->table.'_flag & ' . ':'.$var . ' <> ' . ':'.$var . ' '; // var = PDO Param
-              $filterQuery['query'] = $this->table.'_flag & ' . ':'.$var . ' <> ' . ':'.$var . ' '; // var = PDO Param
-              $appliedFilters[$var] = $this->getParametrizedValue($flagfilter * -1, 'number_natural'); // values separated from query
-            } else {
-              // $where .= $this->table.'_flag & ' . ':'.$var . ' = ' . ':'.$var . ' '; // var = PDO Param
-              $filterQuery['query'] = $this->table.'_flag & ' . ':'.$var . ' = ' . ':'.$var . ' '; // var = PDO Param
-              $appliedFilters[$var] = $this->getParametrizedValue($flagfilter, 'number_natural'); // values separated from query
-            }
+          // collect data for a single filter
+          $filterQuery = [
+            'conjunction' => $filter->conjunction ?? $this->filterOperator,
+            'query' => null
+          ];
 
-            // we don't have to check for existance of 'query', as it is definitely handled
-            // by the previous if-else clause
-            $where[] = $filterQuery;
+          $var = $this->getStatementVariable(array_keys($appliedFilters), $this->table.'_flag');
+
+          if($flagfilter < 0) {
+            $filterQuery['query'] = $this->table.'_flag & ' . ':'.$var . ' <> ' . ':'.$var . ' '; // var = PDO Param
+            $appliedFilters[$var] = $this->getParametrizedValue($flagfilter * -1, 'number_natural'); // values separated from query
+          } else {
+            $filterQuery['query'] = $this->table.'_flag & ' . ':'.$var . ' = ' . ':'.$var . ' '; // var = PDO Param
+            $appliedFilters[$var] = $this->getParametrizedValue($flagfilter, 'number_natural'); // values separated from query
+          }
+
+          // we don't have to check for existance of 'query', as it is definitely handled
+          // by the previous if-else clause
+          $where[] = $filterQuery;
         }
 
-
+        // collect groups of filter(collections)
         $t_filtergroups = array();
-        $t_appliedfiltergroups = 0;
 
-        // Count of applied filters before going into filter collections
-        $appliedFilterCountBefore = count($appliedFilters);
-
+        // Loop through each named group
         foreach($filterCollections as $groupName => $groupFilterCollection) {
 
-          $t_appliedgroups = 0;
+          // handle grouping of filtercollections
+          // by default, there's only a single group ( e.g. 'default' )
           $t_groups = array();
 
+          // Loop through each group member (which is a filtercollection) in a named group
           foreach($groupFilterCollection as $filterCollection) {
-            $t_appliedFilters = 0; // contains key => value for pdo prepStmt
+
+            // collect filters in a filtercollection
             $t_filters = array();
 
+            // Loop through each filter in a filtercollection in a named group
             foreach($filterCollection['filters'] as $filter) {
-              // $t_filters[] = ($t_appliedFilters > 0) ? ' ' . $filterCollection['operator'] . ' ' : '';
-              // prepare a single filter
+
+              // collect data for a single filter
               $t_filter = [
                 'conjunction' => $filterCollection['operator'],
                 'query' => null
               ];
 
               if(is_array($filter->value)) {
+                  // value is an array
                   $values = array();
                   $i = 0;
                   foreach($filter->value as $thisval) {
@@ -898,17 +914,15 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                       $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field));
                   }
                   $string = implode(', ', $values);
-                  // $t_filters[] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
                   $t_filter['query'] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
               } else {
+                  // value is a singular value
                   if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      // $t_filters[] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
                       $t_filter['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                   } else {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      // $t_filters[] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' ';
                       $t_filter['query'] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' ';
                       $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field));
                   }
@@ -917,61 +931,59 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               if($t_filter['query'] != null) {
                 $t_filters[] = $t_filter;
               } else {
-                die('invalid filter query');
+                throw new exception(self::EXCEPTION_SQL_GETFILTERS_INVALID_QUERY, exception::$ERRORLEVEL_ERROR, $filter);
               }
-              $t_appliedFilters++;
             }
 
             if(count($t_filters) > 0) {
-              // $t_groups[] = ($t_appliedgroups>0 ? ' ' . ($filterCollection['conjunction'] ?? $this->filterOperator) . ' ' : '') .  ' ( ' . implode('', $t_filters) . ' ) ';
+              // put all collected filters
+              // into a recursive array structure
               $t_groups[] = [
                 'conjunction' => $filterCollection['conjunction'] ?? $this->filterOperator,
                 'query' => $t_filters
               ];
-              $t_appliedgroups++;
-              // $t_filtergroups[] = ($t_appliedfiltergroups>0 ? ' ' . ($filterCollection['conjunction'] ?? $this->filterOperator) . ' ' : '') .  ' ( ' . implode('', $t_filters) . ' ) ';
-              // $t_appliedfiltergroups++;
             }
           }
 
-          // handle group concat
-          // $t_filtergroups[] = ($t_appliedfiltergroups>0 ? ' ' . ($this->filterOperator) . ' ' : '') . '(' . implode('', $t_groups) . ')';
+          // put all collected filtercollections in the named group
+          // into a recursive array structure
           $t_filtergroups[] = [
             'conjunction' => $this->filterOperator,
             'query' => $t_groups
           ];
-          $t_appliedfiltergroups++;
         }
 
         if(count($t_filtergroups) > 0) {
-          /* $where .= ($appliedFilterCountBefore > 0) ? ' ' . $this->filterOperator . ' ' : ' WHERE ';
-          $where .= '(';
-          foreach($t_filtergroups as $filtergroup) {
-            $where .= '' . $filtergroup;
-          }
-          $where .= ')';*/
-
-          // $filterGroupsQuery[]
-
+          // put all collected named groups
+          // into a recursive array structure
           $where[] = [
             'conjunction' => $this->filterOperator,
             'query' => $t_filtergroups
           ];
         }
 
+        // get filters from nested models recursively
         foreach($this->nestedModels as $join) {
           if($this->compatibleJoin($join->model)) {
-            // $where .= $join->model->getFilterQuery($appliedFilters);
-            $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
-          }
-        }
-        foreach($this->siblingModels as $join) {
-          if($this->compatibleJoin($join->model)) {
-            // $where .= $join->model->getFilterQuery($appliedFilters);
             $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
           }
         }
 
+        // get filters from sibling models recursively
+        foreach($this->siblingModels as $join) {
+          if($this->compatibleJoin($join->model)) {
+            $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
+          }
+        }
+
+        // return a recursive array structure
+        // that contains all collected
+        // - filters (filters, flagfilters, fieldfilters)
+        // - named groups, containing
+        // --- filtercollections, and their
+        // ----- filters
+        // everything with their conjunction parameter (AND/OR)
+        // which is constructed on need in ::convertFilterQueryArray()
         return $where;
     }
 
