@@ -783,15 +783,22 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * Converts the given array of model_plugin_filter instances to the WHERE... query string. Is capable of using $flagfilters for binary operations
-     * @param array $filters
-     * @param array $flagfilters
-     * @return string
+     * @param array $filters            [array of filters]
+     * @param array $flagfilters        [array of flagfilters]
+     * @param array $filterCollections  [array of filter collections]
+     * @param array &$appliedFilters    [cross-model-instance array of currently applied filters, to keep track of PDO variables]
+     * @return array
      */
-    public function getFilters(array $filters = array(), array $flagfilters = array(), array $filterCollections = array(), array &$appliedFilters = array()) : string {
+    public function getFilters(array $filters = array(), array $flagfilters = array(), array $filterCollections = array(), array &$appliedFilters = array()) : array {
 
-        $where = '';
+        $where = [];
+
         foreach($filters as $filter) {
-            $where .= (count($appliedFilters) > 0) ? ' ' . ($filter->conjunction ?? $this->filterOperator) . ' ' : ' WHERE ';
+            $filterQuery = [
+              'conjunction' => $filter->conjunction ?? $this->filterOperator,
+              'query' => null
+            ];
+            // $where .= (count($appliedFilters) > 0) ? ' ' . ($filter->conjunction ?? $this->filterOperator) . ' ' : ' WHERE ';
 
             if($filter instanceof \codename\core\model\plugin\filter) {
               // handle regular filters
@@ -804,37 +811,60 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                       $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field)); // values separated from query
                   }
                   $string = implode(', ', $values);
-                  $where .= $filter->field->getValue() . ' IN ( ' . $string . ') ';
+                  // $where .= $filter->field->getValue() . ' IN ( ' . $string . ') ';
+                  $filterQuery['query'] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
               } else {
                   if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $where .= $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
+                      // $where .= $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
+                      $filterQuery['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                   } else {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $where .= $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
+                      // $where .= $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
+                      $filterQuery['query'] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field)); // values separated from query
                   }
               }
             } else if ($filter instanceof \codename\core\model\plugin\fieldfilter) {
               // handle field-based filters
-              $where .= $filter->field->getValue() . ' = ' . $filter->value->getValue();
+              // $where .= $filter->field->getValue() . ' = ' . $filter->value->getValue();
+              $filterQuery['query'] = $filter->field->getValue() . ' = ' . $filter->value->getValue();
               $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue().'==='.$filter->field->getValue());
               $appliedFilters[$var] = null; // $this->getParametrizedValue($filter->value->getValue(), $this->getFieldtype($filter->field)); // values separated from query
+            }
+
+            // only handle, if query set
+            if($filterQuery['query'] != null) {
+              $where[] = $filterQuery;
+            } else {
+              die("invalid query");
             }
         }
 
         foreach($flagfilters as $flagfilter) {
-            $where .= (count($appliedFilters) > 0) ? ' ' . ($filter->conjunction ?? $this->filterOperator) . ' ' : ' WHERE ';
+            // $where .= (count($appliedFilters) > 0) ? ' ' . ($filter->conjunction ?? $this->filterOperator) . ' ' : ' WHERE ';
+            $filterQuery = [
+              'conjunction' => $filter->conjunction ?? $this->filterOperator,
+              'query' => null
+            ];
+
             $var = $this->getStatementVariable(array_keys($appliedFilters), $this->table.'_flag');
             if($flagfilter < 0) {
-              $where .= $this->table.'_flag & ' . ':'.$var . ' <> ' . ':'.$var . ' '; // var = PDO Param
+              // $where .= $this->table.'_flag & ' . ':'.$var . ' <> ' . ':'.$var . ' '; // var = PDO Param
+              $filterQuery['query'] = $this->table.'_flag & ' . ':'.$var . ' <> ' . ':'.$var . ' '; // var = PDO Param
               $appliedFilters[$var] = $this->getParametrizedValue($flagfilter * -1, 'number_natural'); // values separated from query
             } else {
-              $where .= $this->table.'_flag & ' . ':'.$var . ' = ' . ':'.$var . ' '; // var = PDO Param
+              // $where .= $this->table.'_flag & ' . ':'.$var . ' = ' . ':'.$var . ' '; // var = PDO Param
+              $filterQuery['query'] = $this->table.'_flag & ' . ':'.$var . ' = ' . ':'.$var . ' '; // var = PDO Param
               $appliedFilters[$var] = $this->getParametrizedValue($flagfilter, 'number_natural'); // values separated from query
             }
+
+            // we don't have to check for existance of 'query', as it is definitely handled
+            // by the previous if-else clause
+            $where[] = $filterQuery;
         }
+
 
         $t_filtergroups = array();
         $t_appliedfiltergroups = 0;
@@ -850,8 +880,15 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           foreach($groupFilterCollection as $filterCollection) {
             $t_appliedFilters = 0; // contains key => value for pdo prepStmt
             $t_filters = array();
+
             foreach($filterCollection['filters'] as $filter) {
-              $t_filters[] = ($t_appliedFilters > 0) ? ' ' . $filterCollection['operator'] . ' ' : '';
+              // $t_filters[] = ($t_appliedFilters > 0) ? ' ' . $filterCollection['operator'] . ' ' : '';
+              // prepare a single filter
+              $t_filter = [
+                'conjunction' => $filterCollection['operator'],
+                'query' => null
+              ];
+
               if(is_array($filter->value)) {
                   $values = array();
                   $i = 0;
@@ -861,23 +898,36 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                       $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field));
                   }
                   $string = implode(', ', $values);
-                  $t_filters[] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
+                  // $t_filters[] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
+                  $t_filter['query'] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
               } else {
                   if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $t_filters[] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
+                      // $t_filters[] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
+                      $t_filter['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                   } else {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $t_filters[] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' ';
+                      // $t_filters[] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' ';
+                      $t_filter['query'] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' ';
                       $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field));
                   }
+              }
+
+              if($t_filter['query'] != null) {
+                $t_filters[] = $t_filter;
+              } else {
+                die('invalid filter query');
               }
               $t_appliedFilters++;
             }
 
             if(count($t_filters) > 0) {
-              $t_groups[] = ($t_appliedgroups>0 ? ' ' . ($filterCollection['conjunction'] ?? $this->filterOperator) . ' ' : '') .  ' ( ' . implode('', $t_filters) . ' ) ';
+              // $t_groups[] = ($t_appliedgroups>0 ? ' ' . ($filterCollection['conjunction'] ?? $this->filterOperator) . ' ' : '') .  ' ( ' . implode('', $t_filters) . ' ) ';
+              $t_groups[] = [
+                'conjunction' => $filterCollection['conjunction'] ?? $this->filterOperator,
+                'query' => $t_filters
+              ];
               $t_appliedgroups++;
               // $t_filtergroups[] = ($t_appliedfiltergroups>0 ? ' ' . ($filterCollection['conjunction'] ?? $this->filterOperator) . ' ' : '') .  ' ( ' . implode('', $t_filters) . ' ) ';
               // $t_appliedfiltergroups++;
@@ -885,35 +935,115 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           }
 
           // handle group concat
-          $t_filtergroups[] = ($t_appliedfiltergroups>0 ? ' ' . ($this->filterOperator) . ' ' : '') . '(' . implode('', $t_groups) . ')';
+          // $t_filtergroups[] = ($t_appliedfiltergroups>0 ? ' ' . ($this->filterOperator) . ' ' : '') . '(' . implode('', $t_groups) . ')';
+          $t_filtergroups[] = [
+            'conjunction' => $this->filterOperator,
+            'query' => $t_groups
+          ];
           $t_appliedfiltergroups++;
         }
 
         if(count($t_filtergroups) > 0) {
-          $where .= ($appliedFilterCountBefore > 0) ? ' ' . $this->filterOperator . ' ' : ' WHERE ';
+          /* $where .= ($appliedFilterCountBefore > 0) ? ' ' . $this->filterOperator . ' ' : ' WHERE ';
           $where .= '(';
           foreach($t_filtergroups as $filtergroup) {
             $where .= '' . $filtergroup;
           }
-          $where .= ')';
+          $where .= ')';*/
+
+          // $filterGroupsQuery[]
+
+          $where[] = [
+            'conjunction' => $this->filterOperator,
+            'query' => $t_filtergroups
+          ];
         }
 
         foreach($this->nestedModels as $join) {
           if($this->compatibleJoin($join->model)) {
-            $where .= $join->model->getFilterQuery($appliedFilters);
+            // $where .= $join->model->getFilterQuery($appliedFilters);
+            $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
           }
         }
         foreach($this->siblingModels as $join) {
           if($this->compatibleJoin($join->model)) {
-            $where .= $join->model->getFilterQuery($appliedFilters);
+            // $where .= $join->model->getFilterQuery($appliedFilters);
+            $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
           }
         }
 
         return $where;
     }
 
+    /**
+     * [getFilterQuery description]
+     * @param  array  &$appliedFilters [description]
+     * @return string
+     */
     public function getFilterQuery(array &$appliedFilters = array()) : string {
+      $filterQueryArray = $this->getFilterQueryComponents($appliedFilters);
+      if($this->saveLastFilterQueryComponents) {
+        $this->lastFilterQueryComponents = $filterQueryArray;
+      }
+      $queryString = 'WHERE ' . self::convertFilterQueryArray($filterQueryArray);
+      return $queryString;
+    }
+
+    /**
+     * [protected description]
+     * @var array
+     */
+    protected $lastFilterQueryComponents = null;
+
+    /**
+     * [protected description]
+     * @var bool
+     */
+    protected $saveLastFilterQueryComponents = false;
+
+    /**
+     * [setSaveLastFilterQueryComponents description]
+     * @param bool $state [description]
+     */
+    public function setSaveLastFilterQueryComponents(bool $state) {
+      $this->saveLastFilterQueryComponents = $state;
+    }
+
+    /**
+     * [getLastFilterQueryComponents description]
+     * @return array|null
+     */
+    public function getLastFilterQueryComponents() {
+      return $this->lastFilterQueryComponents;
+    }
+
+    /**
+     * [getFilterQueryComponents description]
+     * @param  array  &$appliedFilters [description]
+     * @return array
+     */
+    public function getFilterQueryComponents(array &$appliedFilters = array()) : array {
       return $this->getFilters($this->filter, $this->flagfilter, $this->filterCollections, $appliedFilters);
+    }
+
+    /**
+     * [convertFilterQueryArray description]
+     * @param  array  $filterQueryArray [description]
+     * @return string                   [description]
+     */
+    protected static function convertFilterQueryArray(array $filterQueryArray) : string {
+      $queryPart = '';
+      foreach($filterQueryArray as $index => $filterQuery) {
+        if($index > 0) {
+          $queryPart .= ' ' . $filterQuery['conjunction'] . ' ';
+        }
+        if(is_array($filterQuery['query'])) {
+          $queryPart .= self::convertFilterQueryArray($filterQuery['query']);
+        } else {
+          $queryPart .= $filterQuery['query'];
+        }
+      }
+      return '(' . $queryPart . ')';
     }
 
     /**
