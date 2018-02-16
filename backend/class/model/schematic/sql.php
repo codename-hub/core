@@ -1031,8 +1031,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       if($this->saveLastFilterQueryComponents) {
         $this->lastFilterQueryComponents = $filterQueryArray;
       }
-      $queryString = 'WHERE ' . self::convertFilterQueryArray($filterQueryArray);
-      return $queryString;
+      if(count($filterQueryArray) > 0) {
+        return 'WHERE ' . self::convertFilterQueryArray($filterQueryArray);
+      } else {
+        return '';
+      }
     }
 
     /**
