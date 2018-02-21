@@ -176,7 +176,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * Contains instances of the filters for the model request
-     * @var array $filter
+     * @var \codename\core\model\plugin\filter[] $filter
      */
     protected $filter = array();
 
