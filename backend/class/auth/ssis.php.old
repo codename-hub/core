@@ -1,0 +1,95 @@
+<?php
+namespace codename\core\auth;
+
+use \codename\core\app;
+
+/**
+ * Client for codename Single Sign In Service. Methods are from \codename\core\api_codename_ssis
+ * @package core
+ * @since 2016-04-11
+ */
+class ssis extends \codename\core\auth implements \codename\core\auth\authInterface {
+
+    /**
+     * instance of the SSIS API
+     * @var \codename\core\api\codename\ssis
+     */
+    private $apiInst = null;
+
+    /**
+     * Creates the instance using the given $data
+     * @param array $data
+     */
+    public function __CONSTRUCT(array $data) {
+        if(count($errors = app::getValidator('structure_api_codename')->validate($data)) > 0) {
+            return false;
+        }
+        $this->apiInst = new \codename\core\api\codename\ssis($data);
+        return $this;
+    }
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see \codename\core\auth_interface::authenticate($username, $password)
+     */
+    public function authenticate(string $username, string $password) : array {
+        return $this->apiInst->authenticate($username, $password);
+    }
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see \codename\core\auth_interface::passwordMake($username, $password)
+     */
+    public function passwordMake(string $username, string $password) : string {
+        return '';
+    }
+
+    /**
+     * Returns the URL to the login page
+     * @param \codename\core\request $request
+     * @return string
+     */
+    public function getLoginurl(\codename\core\request $request) : string {
+        return $this->apiInst->getLoginurl($request);
+    }
+
+    /**
+     * Returns the errorstack property of the API instance
+     * @return \codename\core\errorstack
+     */
+    public function getErrorstack() : \codename\core\errorstack {
+        return $this->apiInst->getErrorstack();
+    }
+
+    /**
+     * I will send the given $sessionobject to the remote $app. Identification will be done using the $redirect array.
+     * @param array $redirect
+     * @param array $app
+     * @param \codename\core\value\structure\api\codename\ssis\sessionobject $sessionobject
+     */
+    public function sendSessionToRemoteApplication(array $redirect, array $app, \codename\core\value\structure\api\codename\ssis\sessionobject $sessionobject) : string {
+        return $this->apiInst->sendSessionToRemoteApplication($redirect, $app, $sessionobject);
+    }
+
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see \codename\core\auth\authInterface::memberOf()
+     */
+    public function memberOf(string $usergroup_name) : bool {
+        if(!app::getSession()->identify()) {
+            return false;
+        }
+
+        foreach(app::getSession()->getData('data>usergroups>0') as $usergroup) {
+            if($usergroup['usergroup_name'] == 'Mitarbeiter') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+}
