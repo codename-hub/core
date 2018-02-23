@@ -48,4 +48,12 @@ interface credentialAuthInterface {
      */
     public function createCredential(array $parameters) : \codename\core\credential;
 
+    /**
+     * creates a hash using the given credential object
+     *
+     * @param  \codename\core\credential $credential [description]
+     * @return string                             [description]
+     */
+    public function makeHash(\codename\core\credential $credential) : string;
+
 }

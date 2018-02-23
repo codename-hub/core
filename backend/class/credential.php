@@ -42,4 +42,10 @@ abstract class credential extends \codename\core\config implements \codename\cor
    */
   public abstract function getAuthentication();
 
+  /**
+   * [public description]
+   * @return string
+   */
+  // public abstract function getAuthenticationHash() : string;
+
 }
