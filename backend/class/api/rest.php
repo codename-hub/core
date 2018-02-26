@@ -43,12 +43,31 @@ class rest extends \codename\core\api\codename {
       if($method != 'GET') {
         // custom method, either 'PUT', 'POST', 'PATCH', 'DELETE', 'OPTIONS' ... ?
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
+      } else {
+        //
+        // HTTP Method GET
+        // handle URL-based params
+        // as it is 'GET' and not POST.
+        //
+        // so, we merge-in the params into the url
+        //
+
+        if(count($params) > 0) {
+          // NOTE: \http\Url is some of the worst PECL exts and class constructs I've ever seen
+          // hardly documented, but similar behaviour to the old parse_url and comparable stuff.
+          $url = (new \http\Url($url))->mod([
+            'query' => http_build_query($params)
+          ])->toString();
+        }
+
+        // $url = $url . '/?'.http_build_query($params);
       }
     }
 
-    if(count($params) > 0) {
-      curl_setopt($curl, CURLOPT_POSTFIELDS, $params);
-    }
+    // this may be done in sendData()
+    /* if(count($params) > 0) {
+      curl_setopt($this->curlHandler, CURLOPT_POSTFIELDS, $params);
+    }*/
 
     curl_setopt($this->curlHandler, CURLOPT_SSL_VERIFYHOST, 0);
     curl_setopt($this->curlHandler, CURLOPT_SSL_VERIFYPEER, 0);
