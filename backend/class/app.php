@@ -1235,10 +1235,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * Returns the (maybe cached) client that is stored as "driver" in $identifier (app.json) for the given $type.
      * @param string $type
      * @param string $identifier
+     * @param bool   $store
      * @return object
      * @todo refactor
      */
-    final protected static function getClient(string $type, string $identifier, bool $store = true) {
+    final public static function getClient(string $type, string $identifier, bool $store = true) {
         $simplename = $type . $identifier;
 
         if ($store && array_key_exists($simplename, $_REQUEST['instances'])) {
