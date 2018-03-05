@@ -871,8 +871,17 @@ abstract class model implements \codename\core\model\modelInterface {
             throw new \codename\core\exception(self::EXCEPTION_ADDDEFAULTFILTER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
         }
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
-        array_push($this->defaultfilter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
-        array_push($this->filter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
+
+        if(is_array($value)) {
+            if(count($value) == 0) {
+                return $this;
+            }
+            array_push($this->defaultfilter, new $class($field, $value, $operator, $conjunction));
+            array_push($this->filter, new $class($field, $value, $operator, $conjunction));
+        } else {
+            array_push($this->defaultfilter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
+            array_push($this->filter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
+        }
         return $this;
     }
 
