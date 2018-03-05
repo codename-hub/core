@@ -155,7 +155,7 @@ class text extends \codename\core\validator {
      */
     protected function getQuotedAllowedchars() : string {
         if($this->quotedAllowedchars == null) {
-          $this->quotedAllowedchars = preg_quote($this->getAllowedchars());
+          $this->quotedAllowedchars = preg_quote($this->getAllowedchars(), '//');
         }
         return $this->quotedAllowedchars;
     }
@@ -174,7 +174,7 @@ class text extends \codename\core\validator {
      */
     protected function getQuotedForbiddenchars() : string {
         if($this->quotedForbiddenchars == null) {
-          $this->quotedForbiddenchars = preg_quote($this->getForbiddenchars());
+          $this->quotedForbiddenchars = preg_quote($this->getForbiddenchars(), '//');
         }
         return $this->quotedForbiddenchars;
     }

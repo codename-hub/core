@@ -34,6 +34,8 @@ class api {
 
     /**
      * Return the version string
+     * NOTE: this relies on URI-based API-Versioning!
+     * 
      * @example "v1"
      * @return string
      */

@@ -140,6 +140,14 @@ abstract class json extends \codename\core\model\schemeless implements \codename
       } else {
         self::$t_data[$identifier] = (new \codename\core\config\json($this->file))->get();
       }
+
+      // map PKEY (index) to a real field
+      $pkey = $this->getPrimaryKey();
+      array_walk(self::$t_data[$identifier], function(&$item, $key) use ($pkey) {
+        if(!isset($item[$pkey])) {
+          $item[$pkey] = $key;
+        }
+      });
     }
 
     $data = self::$t_data[$identifier];
@@ -157,6 +165,17 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    * @return array       [description]
    */
   protected function filterResults(array $data) : array {
+
+      //
+      // special hack
+      // to highly speed up filtering for json/array key filtering
+      // 
+      foreach($this->filter as $filter) {
+        if($filter->field->get() == $this->getPrimarykey() && $filter->operator == '=') {
+          $data = isset($data[$filter->value]) ? [$data[$filter->value]] : [];
+        }
+      }
+
       $filteredData = array_filter($data, function($entry) {
         $pass = true;
         foreach($this->filter as $filter) {

@@ -2,27 +2,27 @@
 namespace codename\core\model\plugin;
 
 /**
- * Apply data filters on the results
+ * Apply data filters by fields on the results
  * @package core
- * @since 2016-02-04
+ * @since 2018-02-14
  */
-class filter extends \codename\core\model\plugin implements \codename\core\model\plugin\filter\filterInterface {
+class fieldfilter extends \codename\core\model\plugin implements \codename\core\model\plugin\filter\filterInterface {
 
     /**
      * $field that is used to filter data from the model
-     * @var \codename\core\value\text\modelfield $field
+     * @var \codename\core\value\text\modelfield
      */
     public $field = null;
 
     /**
-     * Contains the value to searched in the $field
-     * @var string
+     * Contains the field to compare to
+     * @var \codename\core\value\text\modelfield
      */
     public $value = null;
 
     /**
      * Contains the $operator for the $field
-     * @var unknown $operator
+     * @var string $operator
      */
     public $operator = "=";
 
@@ -38,8 +38,9 @@ class filter extends \codename\core\model\plugin implements \codename\core\model
      * {@inheritDoc}
      * @see \codename\core\model_plugin_filter::__CONSTRUCT(string $field, string $value, string $operator)
      */
-    public function __CONSTRUCT(\codename\core\value\text\modelfield $field, $value = null, string $operator, string $conjunction = null) {
+    public function __CONSTRUCT(\codename\core\value\text\modelfield $field, $value, string $operator, string $conjunction = null) {
         $this->field = $field;
+        // TODO: Check for type of value ! must be \codename\core\value\text\modelfield
         $this->value = $value;
         $this->operator = $operator;
         $this->conjunction = $conjunction;

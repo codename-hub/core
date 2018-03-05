@@ -2,7 +2,6 @@
 namespace codename\core\model\schematic;
 use \codename\core\app;
 use \codename\core\exception;
-use \codename\core\model\plugin;
 
 /**
  * base SQL specific SQL commands
@@ -26,10 +25,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * Creates and configures the instance of the model. Fallback connection is 'default' database
-     * @param string $connection Name of the connection in the app configuration file
-     * @param string $schema Schema to use the model for
-     * @param string $table Table to use the model on
-     * @return model_schematic_postgresql
+     * @param string|null $connection  [Name of the connection in the app configuration file]
+     * @param string $schema      [Schema to use the model for]
+     * @param string $table       [Table to use the model on]
+     * @return \codename\core\model
      */
     public function setConfig(string $connection = null, string $schema, string $table) : \codename\core\model {
 
@@ -187,6 +186,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     /**
      * Undocumented function
      *
+     * ... or not?
+     * This saves the dataset and children
+     * - present in the configuration
+     * - present in the current dataset as a sub-array (named field)
+     *
+     *
+     * @param array $data
      * @return \codename\core\model
      */
     public function saveWithChildren(array $data) : \codename\core\model {
@@ -328,15 +334,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * [deepJoin description]
-     * @param  \codename\core\model $model      [model currently worked-on]
-     * @param  array                $tableUsage [table usage as reference]
-     * @return int                              [alias counter as reference]
+     * @param  \codename\core\model   $model          [model currently worked-on]
+     * @param  array                  &$tableUsage    [table usage as reference]
+     * @param  int                    &$aliasCounter  [alias counter as reference]
+     * @return string                 [query part]
      */
     public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0) {
         if(count($model->getNestedJoins()) == 0 && count($model->getSiblingJoins()) == 0) {
             return '';
         }
         $ret = '';
+
+        // Loop through nested (children/parents)
         foreach($model->getNestedJoins() as $join) {
             $nest = $join->model;
 
@@ -397,9 +406,34 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               throw new \codename\core\exception(self::EXCEPTION_SQL_DEEPJOIN_INVALID_FOREIGNKEY_CONFIG, \codename\core\exception::$ERRORLEVEL_FATAL, array($this->table, $nest->table));
             }
 
-            $ret .= " {$joinMethod} {$nest->schema}.{$nest->table} {$aliasAs} ON {$alias}.{$joinKey} = {$this->table}.{$thisKey}";
+            $joinComponents = [];
+
+            if(is_array($thisKey) || is_array($joinKey)) {
+              // TODO: check for equal array item counts! otherwise: exception
+              // perform a multi-component join
+              foreach($thisKey as $index => $thisKeyValue) {
+                $joinComponents[] = "{$alias}.{$joinKey[$index]} = {$this->table}.{$thisKeyValue}";
+              }
+            } else {
+              $joinComponents[] = "{$alias}.{$joinKey} = {$this->table}.{$thisKey}";
+            }
+
+            // add conditions!
+            foreach($join->conditions as $filter) {
+              $operator = $filter['value'] == null ? ($filter['operator'] == '!=' ? 'IS NOT' : 'IS') : $filter['operator'];
+              $value = $filter['value'] == null ? 'NULL' : $filter['value'];
+              $joinComponents[] = "{$this->table}.{$filter['field']} {$operator} {$value}";
+            }
+
+            $joinComponentsString = implode(' AND ', $joinComponents);
+            $ret .= " {$joinMethod} {$nest->schema}.{$nest->table} {$aliasAs} ON $joinComponentsString";
+
+            $join->currentAlias = $alias;
+
             $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter);
         }
+
+        // Loop through siblings
         foreach($model->getSiblingJoins() as $join) {
 
           // workaround
@@ -454,6 +488,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     public function search() : \codename\core\model {
         $query = "SELECT ";
 
+        // first: deepJoin to get correct alias names
+        $deepjoin = $this->deepJoin($this);
+
         // retrieve a list of all model field lists, recursively
         // respecting hidden fields and duplicate field names in other models/tables
         $fieldlist = $this->getCurrentFieldlist();
@@ -473,7 +510,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $query .= ' FROM ' . $this->schema . '.' . $this->table . ' ';
 
-        $query .= $this->deepJoin($this);
+        // append the previously constructed deepjoin string
+        $query .= $deepjoin;
 
         // prepare an array for values to submit as PDO statement parameters
         // done by-ref, so the values are arriving right here after
@@ -482,12 +520,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $query .= $this->getFilterQuery($params);
 
-        if(count($this->order) > 0) {
-            $query .= $this->getOrders($this->order);
-        }
-
         if(count($this->group) > 0) {
             $query .= $this->getGroups($this->group);
+        }
+
+        if(count($this->order) > 0) {
+            $query .= $this->getOrders($this->order);
         }
 
         if(!is_null($this->limit)) {
@@ -503,7 +541,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         return $this;
     }
 
-
+    /**
+     * returns a query that performs a save using UPDATE
+     * (e.g. we have an existing entry that needs to be updated)
+     * @param  array  $data   [data]
+     * @param  array  &$param [reference array that keeps track of PDO variable names]
+     * @return string         [query]
+     */
     protected function saveUpdate(array $data, array &$param = array()) {
         $this->saveLog('UPDATE', $data);
         $cacheGroup = $this->getCachegroup();
@@ -557,6 +601,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     protected $modelfieldInstance = [];
 
+    /**
+     * returns a query that performs a save using INSERT
+     * @param  array  $data   [data]
+     * @param  array  &$param [reference array that keeps track of PDO variable names]
+     * @return string         [query]
+     */
     protected function saveCreate(array $data, array &$param = array()) {
         $this->saveLog('CREATE', $data);
         $query = 'INSERT INTO ' . $this->schema . '.' . $this->table .' ';
@@ -643,17 +693,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @see http://stackoverflow.com/questions/4782319/php-json-encode-utf8-char-problem-mysql
      * and esp. @see http://stackoverflow.com/questions/4782319/php-json-encode-utf8-char-problem-mysql/37353316#37353316
      *
-     * @param array [or even an object?]
-     * @return string [json-encoded string]
+     * @param array|object   $data [or even an object?]
+     * @return string   [json-encoded string]
      */
     protected function jsonEncode($data) : string {
       return json_encode($data);
     }
 
-    protected function dataImporta(array $data) : array {
-
-    }
-
+    /**
+     * [saveLog description]
+     * @param  string $mode [description]
+     * @param  array  $data [description]
+     * @return [type]       [description]
+     */
     protected function saveLog(string $mode, array $data) {
         if(strpos(get_class($this), 'activitystream') == false) {
             app::writeActivity("MODEL_" . $mode, get_class($this), $data);
@@ -663,7 +715,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     /**
      *
      * {@inheritDoc}
-     * @see \codename\core\model_interface::save($data)
+     * @see \codename\core\modelInterface::save($data)
+     *
+     * [save description]
+     * @param  array                  $data [description]
+     * @return \codename\core\model         [description]
      */
     public function save(array $data) : \codename\core\model {
         $params = array();
@@ -678,16 +734,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
-     * @todo DOCUMENTATION
-     */
-    public function calcField(string $fieldname, string $parse) : \codename\core\model {
-        $class = "\codename\core\model_plugin_field_" . $this->getType();
-        array_push($this->fieldlist, new $class($parse . ' AS ' . $fieldname));
-        return $this;
-    }
-
-    /**
-     * @todo DOCUMENTATION
+     * [clearCache description]
+     * @param  string $cacheGroup [description]
+     * @param  string $cacheKey   [description]
+     * @return void
      */
     protected function clearCache(string $cacheGroup, string $cacheKey) {
         $cacheObj = app::getCache();
@@ -698,7 +748,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     /**
      *
      * {@inheritDoc}
-     * @see \codename\core\model_interface::delete($primaryKey)
+     * @see \codename\core\modelInterface::delete($primaryKey)
      */
     public function delete($primaryKey = null) : \codename\core\model {
         if(!is_null($primaryKey)) {
@@ -746,6 +796,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         return $this;
     }
 
+    /**
+     * returns a PDO variable name
+     * that is kept safe from duplicates
+     * using recursive calls to this function
+     *
+     * @param  array   $existingKeys [array of already existing variable names]
+     * @param  string  $field        [the field base name]
+     * @param  string  $add          [what is added to the base name]
+     * @param  int     $c            [some extra factor (counter)]
+     * @return string                [variable name]
+     */
     protected function getStatementVariable(array $existingKeys, string $field, string $add = '', int $c = 0) {
       $name = str_replace('.', '_dot_', $field . (($add != '') ? ('_' . $add) : '') . (($c > 0) ? ('_' . $c) : ''));
       if(in_array($name, $existingKeys)) {
@@ -755,117 +816,283 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
-     * Converts the given array of model_plugin_filter instances to the WHERE... query string. Is capable of using $flagfilters for binary operations
-     * @param array $filters
-     * @param array $flagfilters
-     * @return string
+     * [EXCEPTION_SQL_GETFILTERS_INVALID_QUERY description]
+     * @var string
      */
-    public function getFilters(array $filters = array(), array $flagfilters = array(), array $filterCollections = array(), array &$appliedFilters = array()) : string {
+    const EXCEPTION_SQL_GETFILTERS_INVALID_QUERY = 'EXCEPTION_SQL_GETFILTERS_INVALID_QUERY';
 
-        $where = '';
+    /**
+     * Converts the given array of model_plugin_filter instances to the WHERE... query string.
+     * Is capable of using $flagfilters for binary operations
+     * Handles named filtercollection groups
+     * the respective filtercollection(s) (and their filters)
+     *
+     * returns a recursive array structure that can be converted to a query string
+     *
+     * @param array $filters            [array of filters]
+     * @param array $flagfilters        [array of flagfilters]
+     * @param array $filterCollections  [array of filter collections]
+     * @param array &$appliedFilters    [cross-model-instance array of currently applied filters, to keep track of PDO variables]
+     * @return array
+     */
+    public function getFilters(array $filters = array(), array $flagfilters = array(), array $filterCollections = array(), array &$appliedFilters = array()) : array {
+
+        $where = [];
+
+        // Loop through each filter
         foreach($filters as $filter) {
-            $where .= (count($appliedFilters) > 0) ? ' ' . $this->filterOperator . ' ' : ' WHERE ';
-            if(is_array($filter->value)) {
-                $values = array();
-                $i = 0;
-                foreach($filter->value as $thisval) {
-                    $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue(), $i++);
-                    $values[] = ':' . $var; // var = PDO Param
-                    $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field)); // values separated from query
-                }
-                $string = implode(', ', $values);
-                $where .= $filter->field->getValue() . ' IN ( ' . $string . ') ';
+
+            // collect data for a single filter
+            $filterQuery = [
+              'conjunction' => $filter->conjunction ?? $this->filterOperator,
+              'query' => null
+            ];
+
+            if($filter instanceof \codename\core\model\plugin\filter) {
+              // handle regular filters
+
+              if(is_array($filter->value)) {
+                  // filter value is an array (e.g. IN() match)
+                  $values = array();
+                  $i = 0;
+                  foreach($filter->value as $thisval) {
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue(), $i++);
+                      $values[] = ':' . $var; // var = PDO Param
+                      $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field)); // values separated from query
+                  }
+                  $string = implode(', ', $values);
+                  $filterQuery['query'] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
+              } else {
+                  // filter value is a singular value
+                  if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
+                      $filterQuery['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
+                      $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
+                  } else {
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
+                      $filterQuery['query'] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
+                      $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field)); // values separated from query
+                  }
+              }
+            } else if ($filter instanceof \codename\core\model\plugin\fieldfilter) {
+              // handle field-based filters
+              // this is not something PDO needs separately transmitted variables for
+              // value IS indeed a field name
+              $filterQuery['query'] = $filter->field->getValue() . ' = ' . $filter->value->getValue();
+            }
+
+            // only handle, if query set
+            if($filterQuery['query'] != null) {
+              $where[] = $filterQuery;
             } else {
-                if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
-                    $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                    $where .= $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
-                    $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
-                } else {
-                    $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                    $where .= $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
-                    $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field)); // values separated from query
-                }
+              throw new exception(self::EXCEPTION_SQL_GETFILTERS_INVALID_QUERY, exception::$ERRORLEVEL_ERROR, $filter);
             }
         }
 
+        // handle flag filters (bit-oriented)
         foreach($flagfilters as $flagfilter) {
-            $where .= (count($appliedFilters) > 0) ? ' ' . $this->filterOperator . ' ' : ' WHERE ';
-            $var = $this->getStatementVariable(array_keys($appliedFilters), $this->table.'_flag');
-            if($flagfilter < 0) {
-              $where .= $this->table.'_flag & ' . ':'.$var . ' <> ' . ':'.$var . ' '; // var = PDO Param
-              $appliedFilters[$var] = $this->getParametrizedValue($flagfilter * -1, 'number_natural'); // values separated from query
-            } else {
-              $where .= $this->table.'_flag & ' . ':'.$var . ' = ' . ':'.$var . ' '; // var = PDO Param
-              $appliedFilters[$var] = $this->getParametrizedValue($flagfilter, 'number_natural'); // values separated from query
-            }
+
+          // collect data for a single filter
+          $filterQuery = [
+            'conjunction' => $filter->conjunction ?? $this->filterOperator,
+            'query' => null
+          ];
+
+          $var = $this->getStatementVariable(array_keys($appliedFilters), $this->table.'_flag');
+
+          if($flagfilter < 0) {
+            $filterQuery['query'] = $this->table.'_flag & ' . ':'.$var . ' <> ' . ':'.$var . ' '; // var = PDO Param
+            $appliedFilters[$var] = $this->getParametrizedValue($flagfilter * -1, 'number_natural'); // values separated from query
+          } else {
+            $filterQuery['query'] = $this->table.'_flag & ' . ':'.$var . ' = ' . ':'.$var . ' '; // var = PDO Param
+            $appliedFilters[$var] = $this->getParametrizedValue($flagfilter, 'number_natural'); // values separated from query
+          }
+
+          // we don't have to check for existance of 'query', as it is definitely handled
+          // by the previous if-else clause
+          $where[] = $filterQuery;
         }
 
+        // collect groups of filter(collections)
         $t_filtergroups = array();
-        $t_appliedfiltergroups = 0;
 
-        // Count of applied filters before going into filter collections
-        $appliedFilterCountBefore = count($appliedFilters);
+        // Loop through each named group
+        foreach($filterCollections as $groupName => $groupFilterCollection) {
 
-        foreach($filterCollections as $filterCollection) {
-          $t_appliedFilters = 0; // contains key => value for pdo prepStmt
-          $t_filters = array();
-          foreach($filterCollection['filters'] as $filter) {
-            $t_filters[] = ($t_appliedFilters > 0) ? ' ' . $filterCollection['operator'] . ' ' : '';
-            if(is_array($filter->value)) {
-                $values = array();
-                $i = 0;
-                foreach($filter->value as $thisval) {
-                    $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue(), $i++);
-                    $values[] = ':' . $var; // var = PDO Param
-                    $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field));
-                }
-                $string = implode(', ', $values);
-                $t_filters[] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
-            } else {
-                if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
-                    $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                    $t_filters[] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
-                    $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
-                } else {
-                    $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                    $t_filters[] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' ';
-                    $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field));
-                }
+          // handle grouping of filtercollections
+          // by default, there's only a single group ( e.g. 'default' )
+          $t_groups = array();
+
+          // Loop through each group member (which is a filtercollection) in a named group
+          foreach($groupFilterCollection as $filterCollection) {
+
+            // collect filters in a filtercollection
+            $t_filters = array();
+
+            // Loop through each filter in a filtercollection in a named group
+            foreach($filterCollection['filters'] as $filter) {
+
+              // collect data for a single filter
+              $t_filter = [
+                'conjunction' => $filterCollection['operator'],
+                'query' => null
+              ];
+
+              if(is_array($filter->value)) {
+                  // value is an array
+                  $values = array();
+                  $i = 0;
+                  foreach($filter->value as $thisval) {
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue(), $i++);
+                      $values[] = ':' . $var; // var = PDO Param
+                      $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field));
+                  }
+                  $string = implode(', ', $values);
+                  $t_filter['query'] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
+              } else {
+                  // value is a singular value
+                  if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
+                      $t_filter['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
+                      $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
+                  } else {
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
+                      $t_filter['query'] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' ';
+                      $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field));
+                  }
+              }
+
+              if($t_filter['query'] != null) {
+                $t_filters[] = $t_filter;
+              } else {
+                throw new exception(self::EXCEPTION_SQL_GETFILTERS_INVALID_QUERY, exception::$ERRORLEVEL_ERROR, $filter);
+              }
             }
-            $t_appliedFilters++;
+
+            if(count($t_filters) > 0) {
+              // put all collected filters
+              // into a recursive array structure
+              $t_groups[] = [
+                'conjunction' => $filterCollection['conjunction'] ?? $this->filterOperator,
+                'query' => $t_filters
+              ];
+            }
           }
 
-          if(sizeof($t_filters) > 0) {
-            $t_filtergroups[] = ($t_appliedfiltergroups>0 ? ' ' . $this->filterOperator . ' ' : '') .  ' ( ' . implode('', $t_filters) . ' ) ';
-            $t_appliedfiltergroups++;
-          }
+          // put all collected filtercollections in the named group
+          // into a recursive array structure
+          $t_filtergroups[] = [
+            'conjunction' => $this->filterOperator,
+            'query' => $t_groups
+          ];
         }
 
-        if(sizeof($t_filtergroups) > 0) {
-          $where .= ($appliedFilterCountBefore > 0) ? ' ' . $this->filterOperator . ' ' : ' WHERE ';
-          $where .= '(';
-          foreach($t_filtergroups as $filtergroup) {
-            $where .= '' . $filtergroup;
-          }
-          $where .= ')';
+        if(count($t_filtergroups) > 0) {
+          // put all collected named groups
+          // into a recursive array structure
+          $where[] = [
+            'conjunction' => $this->filterOperator,
+            'query' => $t_filtergroups
+          ];
         }
 
+        // get filters from nested models recursively
         foreach($this->nestedModels as $join) {
           if($this->compatibleJoin($join->model)) {
-            $where .= $join->model->getFilterQuery($appliedFilters);
-          }
-        }
-        foreach($this->siblingModels as $join) {
-          if($this->compatibleJoin($join->model)) {
-            $where .= $join->model->getFilterQuery($appliedFilters);
+            $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
           }
         }
 
+        // get filters from sibling models recursively
+        foreach($this->siblingModels as $join) {
+          if($this->compatibleJoin($join->model)) {
+            $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
+          }
+        }
+
+        // return a recursive array structure
+        // that contains all collected
+        // - filters (filters, flagfilters, fieldfilters)
+        // - named groups, containing
+        // --- filtercollections, and their
+        // ----- filters
+        // everything with their conjunction parameter (AND/OR)
+        // which is constructed on need in ::convertFilterQueryArray()
         return $where;
     }
 
+    /**
+     * [getFilterQuery description]
+     * @param  array  &$appliedFilters [description]
+     * @return string
+     */
     public function getFilterQuery(array &$appliedFilters = array()) : string {
+      $filterQueryArray = $this->getFilterQueryComponents($appliedFilters);
+      if($this->saveLastFilterQueryComponents) {
+        $this->lastFilterQueryComponents = $filterQueryArray;
+      }
+      if(count($filterQueryArray) > 0) {
+        return ' WHERE ' . self::convertFilterQueryArray($filterQueryArray);
+      } else {
+        return '';
+      }
+    }
+
+    /**
+     * [protected description]
+     * @var array
+     */
+    protected $lastFilterQueryComponents = null;
+
+    /**
+     * [protected description]
+     * @var bool
+     */
+    protected $saveLastFilterQueryComponents = false;
+
+    /**
+     * [setSaveLastFilterQueryComponents description]
+     * @param bool $state [description]
+     */
+    public function setSaveLastFilterQueryComponents(bool $state) {
+      $this->saveLastFilterQueryComponents = $state;
+    }
+
+    /**
+     * [getLastFilterQueryComponents description]
+     * @return array|null
+     */
+    public function getLastFilterQueryComponents() {
+      return $this->lastFilterQueryComponents;
+    }
+
+    /**
+     * [getFilterQueryComponents description]
+     * @param  array  &$appliedFilters [description]
+     * @return array
+     */
+    public function getFilterQueryComponents(array &$appliedFilters = array()) : array {
       return $this->getFilters($this->filter, $this->flagfilter, $this->filterCollections, $appliedFilters);
+    }
+
+    /**
+     * [convertFilterQueryArray description]
+     * @param  array  $filterQueryArray [description]
+     * @return string                   [description]
+     */
+    protected static function convertFilterQueryArray(array $filterQueryArray) : string {
+      $queryPart = '';
+      foreach($filterQueryArray as $index => $filterQuery) {
+        if($index > 0) {
+          $queryPart .= ' ' . $filterQuery['conjunction'] . ' ';
+        }
+        if(is_array($filterQuery['query'])) {
+          $queryPart .= self::convertFilterQueryArray($filterQuery['query']);
+        } else {
+          $queryPart .= $filterQuery['query'];
+        }
+      }
+      return '(' . $queryPart . ')';
     }
 
     /**
@@ -930,7 +1157,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * Converts the given instance of model_plugin_limit to the LIMIT... query string
-     * @param model_plugin_limit $limit
+     * @param \codename\core\model\plugin\limit  $limit
      * @return string
      */
     protected function getLimit(\codename\core\model\plugin\limit $limit) : string {
@@ -941,7 +1168,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * Converts the given instance of model_plugin_offset to the OFFSET... query string
-     * @param model_plugin_offset $offset
+     * @param \codename\core\model\plugin\offset   $offset
      * @return string
      */
     protected function getOffset(\codename\core\model\plugin\offset $offset) : string {
@@ -976,15 +1203,21 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * it contains the visible fields of all nested models (childs, siblings)
      * retrieved in a recursive call
      * this also respects hiddenFields
+     *
      * @author Kevin Dargel
-     * @return array[]
+     * @param string|null  $alias   [optional: alias as prefix for the following fields]
+     * @return array
      */
-    protected function getCurrentFieldlist() : array {
+    protected function getCurrentFieldlist(string $alias = null) : array {
       $result = array();
       if(count($this->fieldlist) == 0 && count($this->hiddenFields) > 0) {
         foreach($this->config->get('field') as $fieldName) {
           if(!in_array($fieldName, $this->hiddenFields)) {
-            $result[] = array($this->schema, $this->table, $fieldName);
+            if($alias != null) {
+              $result[] = array($alias, $fieldName);
+            } else {
+              $result[] = array($this->schema, $this->table, $fieldName);
+            }
           }
         }
       } else {
@@ -993,36 +1226,48 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             if($field instanceof \codename\core\model\plugin\calculatedfield\calculatedfieldInterface) {
               $result[] = array($field->get());
             } else {
-              $result[] = array($field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get());
+              if($alias != null) {
+                $result[] = array($alias, $field->field->get());
+              } else {
+                $result[] = array($field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get());
+              }
             }
           }
         } else {
-          $result[] = array($this->schema, $this->table, '*');
+          if($alias != null) {
+            $result[] = array($alias, '*');
+          } else {
+            $result[] = array($this->schema, $this->table, '*');
+          }
         }
       }
 
       foreach($this->nestedModels as $join) {
         if($this->compatibleJoin($join->model)) {
-          $result = array_merge($result, $join->model->getCurrentFieldlist());
+          $result = array_merge($result, $join->model->getCurrentFieldlist($join->currentAlias));
         }
       }
       foreach($this->siblingModels as $join) {
         if($this->compatibleJoin($join->model)) {
-          $result = array_merge($result, $join->model->getCurrentFieldlist());
+          $result = array_merge($result, $join->model->getCurrentFieldlist($join->currentAlias));
         }
       }
       return $result;
     }
 
     /**
-     * @todo bring me to life!
+     * returns the last inserted ID, if available
+     * @return string [description]
      */
     public function lastInsertId () : string {
         return $this->db->lastInsertId();
     }
 
     /**
-     * @todo DOCUMENTATION
+     * gets the current identifier of this model
+     * in this case (sql), this is the table name
+     * NOTE: schema is omitted here
+     * @return string [table name]
      */
     public function getIdentifier() : string {
         return $this->table;
