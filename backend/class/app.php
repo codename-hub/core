@@ -802,11 +802,12 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
     /**
      * Returns an the db instance that is configured as $identifier
-     * @param string $identifier
+     * @param string  $identifier
+     * @param bool    $store      [store the database connection]
      * @return \codename\core\database
      */
-    final public static function getDb(string $identifier = 'default') : \codename\core\database {
-        return self::getClient('database', $identifier);
+    final public static function getDb(string $identifier = 'default', bool $store = true) : \codename\core\database {
+        return self::getClient('database', $identifier, $store);
     }
 
     /**
@@ -1289,7 +1290,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
           $instance->setClientName($simplename);
         }
 
-        return $_REQUEST['instances'][$simplename] = $instance;
+        if($store) {
+          return $_REQUEST['instances'][$simplename] = $instance;
+        } else {
+          return $instance;
+        }
     }
 
     /**

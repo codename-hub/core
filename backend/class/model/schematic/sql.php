@@ -24,6 +24,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     protected $filterOperator = ' AND ';
 
     /**
+     * config option that configures database connection (PDO) storage factor
+     * @var bool
+     */
+    protected $storeConnection = true;
+
+    /**
      * Creates and configures the instance of the model. Fallback connection is 'default' database
      * @param string|null $connection  [Name of the connection in the app configuration file]
      * @param string $schema      [Schema to use the model for]
@@ -36,7 +42,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         $this->table = $table;
 
         if($connection != null) {
-        	$this->db = app::getDb($connection);
+        	$this->db = app::getDb($connection, $this->storeConnection);
         }
 
         $config = app::getCache()->get('MODELCONFIG_', get_class($this));
@@ -47,7 +53,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             if($this->config->exists("connection")) {
             	$connection = $this->config->get("connection");
             }
-            $this->db = app::getDb($connection);
+            $this->db = app::getDb($connection, $this->storeConnection);
 
             return $this;
         }
@@ -61,7 +67,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         	$connection = 'default';
         }
 
-        $this->db = app::getDb($connection);
+        $this->db = app::getDb($connection, $this->storeConnection);
 
         if(!in_array("{$this->table}_created", $this->config->get("field"))) {
            throw new exception('EXCEPTION_MODEL_CONFIG_MISSING_FIELD', exception::$ERRORLEVEL_FATAL, "{$this->table}_created");
