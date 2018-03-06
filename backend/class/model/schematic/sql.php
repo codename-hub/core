@@ -414,12 +414,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
             $joinComponents = [];
 
-            if(is_array($thisKey) || is_array($joinKey)) {
+            if(is_array($thisKey) && is_array($joinKey)) {
               // TODO: check for equal array item counts! otherwise: exception
               // perform a multi-component join
               foreach($thisKey as $index => $thisKeyValue) {
                 $joinComponents[] = "{$alias}.{$joinKey[$index]} = {$this->table}.{$thisKeyValue}";
               }
+            } else if(is_array($thisKey) && !is_array($joinKey)) {
+              foreach($thisKey as $index => $thisKeyValue) {
+                $joinComponents[] = "{$alias}.{$index} = {$this->table}.{$thisKeyValue}";
+              }
+            } else if(!is_array($thisKey) && is_array($joinKey)) {
+              throw new \LogicException('Not implemented multi-component foreign key join');
             } else {
               $joinComponents[] = "{$alias}.{$joinKey} = {$this->table}.{$thisKey}";
             }
