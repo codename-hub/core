@@ -93,6 +93,13 @@ interface modelInterface {
     public function setOffset(int $offset) : \codename\core\model;
 
     /**
+     * Enables or disables duplicate filtering
+     * @param  bool                 $state [description]
+     * @return \codename\core\model        [description]
+     */
+    public function setFilterDuplicates(bool $state) : \codename\core\model;
+
+    /**
      * Returns the result of the given query as an array.
      * @param multitype $primaryKey
      * @return array

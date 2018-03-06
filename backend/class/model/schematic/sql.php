@@ -492,7 +492,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @see \codename\core\model_interface::search()
      */
     public function search() : \codename\core\model {
-        $query = "SELECT ";
+
+        if($this->filterDuplicates) {
+          $query = "SELECT DISTINCT ";
+        } else {
+          $query = "SELECT ";
+        }
 
         // first: deepJoin to get correct alias names
         $deepjoin = $this->deepJoin($this);
@@ -546,6 +551,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         return $this;
     }
+
+
 
     /**
      * returns a query that performs a save using UPDATE

@@ -229,6 +229,12 @@ abstract class model implements \codename\core\model\modelInterface {
     protected $offset = null;
 
     /**
+     * Duplicate filtering state
+     * @var bool
+     */
+    protected $filterDuplicates = false;
+
+    /**
      * Contains the database connection
      * @var db
      */
@@ -1028,6 +1034,14 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public function setFilterDuplicates(bool $state) : \codename\core\model {
+        $this->filterDuplicates = $state;
+        return $this;
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\model_interface::setCache($cache)
@@ -1660,6 +1674,7 @@ abstract class model implements \codename\core\model\modelInterface {
         $this->filterCollections = $this->defaultfilterCollections;
         $this->limit = null;
         $this->offset = null;
+        $this->filterDuplicates = false;
         $this->order = array();
         $this->errorstack->reset();
         return;
