@@ -880,7 +880,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                       $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field)); // values separated from query
                   }
                   $string = implode(', ', $values);
-                  $filterQuery['query'] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
+                  $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
+                  $filterQuery['query'] = $filter->field->getValue() . ' ' . $operator . ' ( ' . $string . ') ';
               } else {
 
                   // filter value is a singular value
@@ -973,7 +974,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                       $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field));
                   }
                   $string = implode(', ', $values);
-                  $t_filter['query'] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
+                  $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
+                  $t_filter['query'] = $filter->field->getValue() . ' ' . $operator . ' ( ' . $string . ') ';
               } else {
                   // value is a singular value
                   // NOTE: see other $filter->value == null (equality or identity operator) note and others
