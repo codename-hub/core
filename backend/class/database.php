@@ -41,6 +41,13 @@ class database extends \codename\core\observable {
     protected $statement = null;
 
     /**
+     * log name for queries
+     * null to disable
+     * @var string|null
+     */
+    protected $queryLog = null;
+
+    /**
      * Creates an instance with the given data
      * @param array $config
      * @return \codename\core\database
@@ -54,6 +61,9 @@ class database extends \codename\core\observable {
             } else {
               throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONNECTIONERROR, \codename\core\exception::$ERRORLEVEL_FATAL, array('ENV_PASS_NOT_SET'));
             }
+
+            // set query log
+            $this->queryLog = $config['querylog'] ?? null;
 
             // allow connections without database name
             // just put in autoconnect_database = false
@@ -82,7 +92,9 @@ class database extends \codename\core\observable {
      * @return void
      */
     public function query (string $query, array $params = array()) {
-      app::getLog('query')->debug($query);
+      if($this->queryLog) {
+        app::getLog($this->queryLog)->debug($query);
+      }
       app::getHook()->fire(\codename\core\hook::EVENT_DATABASE_QUERY_QUERY_BEFORE, array('query' => $query, 'params' => $params));
       $this->statement = $this->connection->prepare($query);
 
