@@ -99,7 +99,7 @@ class json extends \codename\core\config {
 
         if($config == null) {
           // config was not initialized during hierarchy traversal
-          throw new \codename\core\exception(self::EXCEPTION_CONFIG_JSON_CONSTRUCT_HIERARCHY_NOT_FOUND, \codename\core\exception::$ERRORLEVEL_FATAL, array('file' => $file));
+          throw new \codename\core\exception(self::EXCEPTION_CONFIG_JSON_CONSTRUCT_HIERARCHY_NOT_FOUND, \codename\core\exception::$ERRORLEVEL_FATAL, array('file' => $file, 'appstack' => $useAppstack));
         }
 
         $this->data = $config;
