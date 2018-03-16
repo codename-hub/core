@@ -784,14 +784,32 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
 
         if(count($this->filter) == 0) {
-            return $this;
+            throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_DELETE_NO_FILTERS_DEFINED', exception::$ERRORLEVEL_FATAL);
         }
 
-        $entries = $this->addField($this->getPrimarykey())->search()->getResult();
+        //
+        // Old method: get all entries and delete them in separate queries
+        //
+        /* $entries = $this->addField($this->getPrimarykey())->search()->getResult();
 
         foreach($entries as $entry) {
             $this->delete($entry[$this->getPrimarykey()]);
-        }
+        } */
+
+        //
+        // New method: use the filterquery to construct a single query delete statement
+        //
+
+        $query = "DELETE FROM " . $this->schema . "." . $this->table . ' ';
+
+        // from search()
+        // prepare an array for values to submit as PDO statement parameters
+        // done by-ref, so the values are arriving right here after
+        // running getFilterQuery()
+        $params = array();
+
+        $query .= $this->getFilterQuery($params);
+        $this->doQuery($query, $params);
 
         return $this;
     }
