@@ -626,7 +626,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  array  &$param [reference array that keeps track of PDO variable names]
      * @return string         [query]
      */
-    protected function saveCreate(array $data, array &$param = array()) {
+    protected function saveCreate(array $data, array &$param = array(), bool $replace = false) {
         $this->saveLog('CREATE', $data);
         $query = 'INSERT INTO ' . $this->schema . '.' . $this->table .' ';
         $query .= ' (';
@@ -672,7 +672,34 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 $query .= ':'.$var;
             }
         }
-        $query .= " );";
+        $query .= " )";
+        if($replace) {
+          $query .= ' ON DUPLICATE KEY UPDATE ';
+          $parts = [];
+          foreach ($this->config->get('field') as $field) {
+              if($field == $this->getPrimarykey() || in_array($field, array($this->table . "_modified", $this->table . "_created"))) {
+                  continue;
+              }
+              if(array_key_exists($field, $data)) {
+                if (is_object($data[$field]) || is_array($data[$field])) {
+                    $data[$field] = $this->jsonEncode($data[$field]);
+                }
+
+                $var = $this->getStatementVariable($param, $field);
+
+                // performance hack: store modelfield instance!
+                if(!isset($this->modelfieldInstance[$field])) {
+                  $this->modelfieldInstance[$field] = new \codename\core\value\text\modelfield($field);
+                }
+                $fieldInstance = $this->modelfieldInstance[$field];
+
+                $param[$var] = $this->getParametrizedValue($this->delimit($fieldInstance, $data[$field]), $this->getFieldtype($fieldInstance));
+                $parts[] = $field . ' = ' . ':'.$var;
+              }
+          }
+          $query .= implode(',', $parts);
+        }
+        $query .= ";";
         return $query;
     }
 
@@ -752,6 +779,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         return $this;
     }
 
+    /**
+     * performs a create or replace (update)
+     * @param  array                  $data [description]
+     * @return \codename\core\model   [this instance]
+     */
+    public function replace(array $data) {
+      $params = [];
+      $query = $this->saveCreate($data, $params, true); // saveCreate with $replace = true
+      $this->doQuery($query, $params);
+      return $this;
+    }
     /**
      * [clearCache description]
      * @param  string $cacheGroup [description]
