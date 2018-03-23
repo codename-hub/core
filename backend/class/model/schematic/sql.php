@@ -790,6 +790,54 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       $this->doQuery($query, $params);
       return $this;
     }
+
+    /**
+     * performs an update using the current filters and a given data array
+     * @param  array                  $data  [description]
+     * @return \codename\core\model          [this instance]
+     */
+    public function update(array $data) {
+      if(count($this->filter) == 0) {
+          throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_DELETE_NO_FILTERS_DEFINED', exception::$ERRORLEVEL_FATAL);
+      }
+      $query = 'UPDATE ' . $this->schema . '.' . $this->table .' SET ';
+      $parts = [];
+
+      $param = array();
+      foreach ($this->config->get('field') as $field) {
+          if(in_array($field, array($this->getPrimarykey(), $this->table . "_modified", $this->table . "_created"))) {
+              continue;
+          }
+
+          // If it exists, set the field
+          if(array_key_exists($field, $data)) {
+
+              if (is_object($data[$field]) || is_array($data[$field])) {
+                  $data[$field] = $this->jsonEncode($data[$field]);
+              }
+
+              $var = $this->getStatementVariable($param, $field);
+
+              // performance hack: store modelfield instance!
+              if(!isset($this->modelfieldInstance[$field])) {
+                $this->modelfieldInstance[$field] = new \codename\core\value\text\modelfield($field);
+              }
+              $fieldInstance = $this->modelfieldInstance[$field];
+
+              $param[$var] = $this->getParametrizedValue($this->delimit($fieldInstance, $data[$field]), $this->getFieldtype($fieldInstance));
+              $parts[] = $field . ' = ' . ':'.$var;
+          }
+      }
+      $parts[] = $this->table . "_modified = now()";
+      $query .= implode(',', $parts);
+
+      // $params = array();
+      $query .= $this->getFilterQuery($param);
+      $this->doQuery($query, $param);
+
+      return $this;
+    }
+
     /**
      * [clearCache description]
      * @param  string $cacheGroup [description]
