@@ -1198,15 +1198,17 @@ abstract class model implements \codename\core\model\modelInterface {
               // validate child using child/nested model
               $childConfig = $this->config->get('children>'.$field);
               $foreignConfig = $this->config->get('foreign>'.$childConfig['field']);
+              $foreignKeyField = $childConfig['field'];
 
               // get the join plugin valid for the child reference field
-              $res = array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($field) {
-                return $join->modelField == $field;
+              $res = array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($foreignKeyField) {
+                return $join->modelField == $foreignKeyField;
               });
 
               if(count($res) === 1) {
-                $res[0]->model->validate($data[$field]);
-                $this->errorstack->addErrors($res[0]->model->getErrors());
+                $join = reset($res);
+                $join->model->validate($data[$field]);
+                $this->errorstack->addErrors($join->model->getErrors());
               } else {
                 continue;
               }
@@ -1216,6 +1218,17 @@ abstract class model implements \codename\core\model\modelInterface {
                 $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
             }
         }
+
+        // model validator
+        if($this->config->exists('validators')) {
+          $validators = $this->config->get('validators');
+          foreach($validators as $validator) {
+            if(count($errors = app::getValidator($validator)->validate($data)) > 0) {
+              $this->errorstack->addError('DATA', 'INVALID', $errors);
+            }
+          }
+        }
+
         $dataob = $this->data;
         if(is_array($this->config->get("unique"))) {
             foreach($this->config->get("unique") as $key => $fields) {
