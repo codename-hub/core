@@ -661,6 +661,20 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
                 throw new \codename\core\exception(self::EXCEPTION_GETCONFIG_APPCONFIGCONTAINSNOCONTEXT, \codename\core\exception::$ERRORLEVEL_FATAL, self::$json_config);
             }
 
+            if(array_key_exists('extensions', $config)) {
+              foreach($config['extensions'] as $ext) {
+                $class = '\\' . str_replace('_', '\\', $ext) . '\\extension';
+                if(class_exists($class) && (new \ReflectionClass($class))->isSubclassOf('\\codename\\core\\extension')) {
+                  $extension = new $class();
+                  self::injectApp($extension->getInjectParameters());
+                } else {
+                  throw new exception('CORE_APP_EXTENSION_COULD_NOT_BE_LOADED', exception::$ERRORLEVEL_FATAL, $ext);
+                }
+              }
+              // re-build appstack?
+              self::makeCurrentAppstack();
+            }
+
             // Testing: Adding the default (install) context
             // TODO: Filepath-beautify
             // Using appstack=true !
