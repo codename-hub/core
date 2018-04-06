@@ -91,6 +91,13 @@ abstract class taskrunner {
   protected abstract function complete() : bool;
 
   /**
+   * marks a task as started/sets the start time to now
+   *
+   * @return bool   [success]
+   */
+  protected abstract function start() : bool;
+
+  /**
    * returns a unique id for this taskrunner
    * @return string
    */
