@@ -1292,7 +1292,7 @@ abstract class model implements \codename\core\model\modelInterface {
                     $flagval = 0;
                     foreach($data[$this->table . '_flag'] as $flagname => $status) {
                         $currflag = $this->config->get("flag>$flagname");
-                        if(is_null($currflag)) {
+                        if(is_null($currflag) || !$status) {
                             continue;
                         }
                         $flagval |= $currflag;
