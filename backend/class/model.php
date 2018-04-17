@@ -1322,7 +1322,7 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function getFlag(string $flagname) {
         if(!$this->config->exists("flag>$flagname")) {
-            throw new \codename\core\exception(self::EXCEPTION_GETFLAG_FLAGNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $flag);
+            throw new \codename\core\exception(self::EXCEPTION_GETFLAG_FLAGNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $flagname);
             return null;
         }
         return $this->config->get("flag>$flagname");
