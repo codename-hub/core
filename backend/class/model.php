@@ -1243,10 +1243,10 @@ abstract class model implements \codename\core\model\modelInterface {
                 }
 
                 foreach($fields as $field) {
-                    if(!array_key_exists($field, $data) || strlen($data[$field]) == 0) {
-                        continue;
-                    }
-                    $this->addFilter($field, $data[$field], '=');
+                    // if(!array_key_exists($field, $data) || strlen($data[$field]) == 0) {
+                    //     continue;
+                    // }
+                    $this->addFilter($field, $data[$field] ?? null, '=');
                     $filtersApplied++;
                 }
                 if($filtersApplied == 0) {
