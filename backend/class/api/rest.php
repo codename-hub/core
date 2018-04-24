@@ -56,7 +56,7 @@ class rest extends \codename\core\api\codename {
           // NOTE: \http\Url is some of the worst PECL exts and class constructs I've ever seen
           // hardly documented, but similar behaviour to the old parse_url and comparable stuff.
           $url = (new \http\Url($url))->mod([
-            'query' => http_build_query($params)
+            'query' => http_build_query($params, null, '&', PHP_QUERY_RFC3986)
           ])->toString();
         }
 
