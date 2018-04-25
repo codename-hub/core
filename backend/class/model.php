@@ -1006,6 +1006,26 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [removeCalculatedField description]
+     * @param  string $field [description]
+     * @return model         [description]
+     */
+    public function removeCalculatedField(string $field) : model {
+      $field = \codename\core\value\text\modelfield::getInstance($field);
+      $this->fieldlist = array_filter($this->fieldlist, function($item) use ($field) {
+        if($item instanceof \codename\core\model\plugin\calculatedfield) {
+          if($item->field->schema == $field->schema
+          && $item->field->table == $field->table
+          && $item->field->field == $field->field) {
+            return false;
+          }
+        }
+        return true;
+      });
+      return $this;
+    }
+
+    /**
      * exception thrown if we try to add a calculated field which already exists (either as db field or another calculated one)
      * @var string
      */
