@@ -873,9 +873,9 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function addDefaultfilter(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
         $field = \codename\core\value\text\modelfield::getInstance($field);
-        if(!$this->fieldExists($field)) {
-            throw new \codename\core\exception(self::EXCEPTION_ADDDEFAULTFILTER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
-        }
+        // if(!$this->fieldExists($field)) {
+        //     throw new \codename\core\exception(self::EXCEPTION_ADDDEFAULTFILTER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
+        // }
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
 
         if(is_array($value)) {
