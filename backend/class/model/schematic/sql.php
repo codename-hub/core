@@ -327,10 +327,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
-     * [protected description]
+     * State of the virtual field handling
+     * Decides whether to construct virtual fields (e.g. children results)
+     * and put them into the result
+     *
+     * Needs PDO to fetch via FETCH_NAMED
+     * to get distinct values for joined models
+     *
      * @var bool
      */
-    protected $virtualFieldResult = true;
+    protected $virtualFieldResult = false;
 
     /**
      * [getVirtualFieldResult description]

@@ -8,16 +8,19 @@ namespace codename\core\model;
 interface virtualFieldResultInterface {
 
   /**
-   * [getVirtualFieldResult description]
-   * @param  array  $result [description]
-   * @param  array  $track  [description]
-   * @return [type]         [description]
+   * creates/fills virtual fields with their respective data, on need
+   * should only be used internally
+   *
+   * @param  array  $result [input result]
+   * @param  array  $track  [temporary/internal tracking array for nesting level calculations]
+   * @return array          [modified result]
    */
   function getVirtualFieldResult(array $result, &$track = []);
 
   /**
-   * [setVirtualFieldResult description]
-   * @param bool $state [description]
+   * changes the state of the virtual field result handling
+   *
+   * @param bool $state [state of the virtual field result handling]
    */
   function setVirtualFieldResult(bool $state);
 }
