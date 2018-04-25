@@ -9,7 +9,7 @@ use \codename\core\exception;
  * @author Kevin Dargel
  * @since 2017-03-01
  */
-abstract class sql extends \codename\core\model\schematic implements \codename\core\model\modelInterface {
+abstract class sql extends \codename\core\model\schematic implements \codename\core\model\modelInterface, \codename\core\model\virtualFieldResultInterface {
 
     /**
      * invalid foreign key config during deepJoin()
@@ -311,7 +311,72 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     protected function internalGetResult(): array
     {
-      return $this->db->getResult();
+      $result = $this->db->getResult();
+      if($this->virtualFieldResult) {
+        $result = $this->getVirtualFieldResult($result);
+      }
+      return $result;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setVirtualFieldResult(bool $state)
+    {
+      $this->virtualFieldResult = $state;
+    }
+
+    /**
+     * [protected description]
+     * @var bool
+     */
+    protected $virtualFieldResult = true;
+
+    /**
+     * [getVirtualFieldResult description]
+     * @param  array  $result [description]
+     * @param  array  $track  [description]
+     * @return [type]         [description]
+     */
+    public function getVirtualFieldResult(array $result, &$track = []) {
+      foreach($this->getNestedJoins() as $join) {
+        $track[$join->model->getIdentifier()][] = $join->model;
+        $result = $join->model->getVirtualFieldResult($result, $track);
+      }
+      foreach($this->getSiblingJoins() as $join) {
+        $track[$join->model->getIdentifier()][] = $join->model;
+        $result = $join->model->getVirtualFieldResult($result, $track);
+      }
+      if($this->config->exists('children')) {
+        foreach($this->config->get('children') as $field => $config) {
+          $foreign = $this->config->get('foreign>'.$config['field']);
+          if($this->config->get('datatype>'.$field) == 'virtual') {
+            if(!isset($track[$foreign['model']])) {
+              $track[$foreign['model']] = [];
+            }
+            $index = count($track[$foreign['model']])-1;
+            $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
+            foreach($result as &$dataset) {
+              if($vModel != null) {
+                $vData = [];
+                foreach($vModel->getFields() as $modelField) {
+                  if(isset($dataset[$modelField])) {
+                    if(is_array($dataset[$modelField]) && $vModel->config->get('datatype>'.$modelField) !== 'virtual') {
+                      $vData[$modelField] = $dataset[$modelField][$index] ?? null;
+                    } else {
+                      $vData[$modelField] = $dataset[$modelField] ?? null;
+                    }
+                  }
+                }
+                $dataset[$field] = $vData;
+              } else {
+                $dataset[$field] = null;
+              }
+            }
+          }
+        }
+      }
+      return $result;
     }
 
     /**

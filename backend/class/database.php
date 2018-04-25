@@ -124,7 +124,7 @@ class database extends \codename\core\observable {
         if(is_null($this->statement)) {
             return array();
         }
-        return $this->statement->fetchAll(\PDO::FETCH_ASSOC);
+        return $this->statement->fetchAll(\PDO::FETCH_NAMED);
     }
 
     /**
