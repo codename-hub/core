@@ -16,6 +16,12 @@ class memcached extends \codename\core\cache {
     protected $memcached = null;
 
     /**
+     * name of a log
+     * @var string|null
+     */
+    protected $log = null;
+
+    /**
      * Creates instance and adds the server
      * @param array $config
      * @return \codename\core\cache_memcached
@@ -24,6 +30,7 @@ class memcached extends \codename\core\cache {
         $this->memcached = new \Memcached();
         $this->memcached->setOption(\Memcached::OPT_BINARY_PROTOCOL,true);
         $this->memcached->addServer($config['host'], $config['port']);
+        $this->log = $config['log'] ?? null;
         $this->attach(new \codename\core\observer\cache());
         return $this;
     }
@@ -36,7 +43,9 @@ class memcached extends \codename\core\cache {
     public function get(string $group, string $key) {
         $data = $this->uncompress($this->memcached->get("{$group}_{$key}"));
         $this->notify('CACHE_GET');
-        app::getLog('debug')->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_GET::GETTING($group = ' . $group . ', $key= ' . $key . ')');
+        if($this->log) {
+          app::getLog($this->log)->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_GET::GETTING($group = ' . $group . ', $key= ' . $key . ')');
+        }
         if(is_null($data) || (is_string($data) && strlen($data)==0) || $data === false) {
             $this->notify('CACHE_MISS');
             app::getHook()->fire(\codename\core\hook::EVENT_CACHE_MISS, $key);
@@ -56,15 +65,19 @@ class memcached extends \codename\core\cache {
      */
     public function set(string $group, string $key, $value = null, int $timeout = null) {
         if(is_null($value)) {
-            app::getLog('debug')->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_SET::EMPTY VALUE ($group = ' . $group . ', $key= ' . $key . ')');
-            return;
+          if($this->log) {
+            app::getLog($this->log)->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_SET::EMPTY VALUE ($group = ' . $group . ', $key= ' . $key . ')');
+          }
+          return;
         }
 
         $this->notify('CACHE_SET');
         if ($timeout == 0 || $timeout == null) {
             $timeout = 86400;
         }
-        app::getLog('debug')->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_SET::SETTING ($group = ' . $group . ', $key= ' . $key . ')');
+        if($this->log) {
+          app::getLog($this->log)->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_SET::SETTING ($group = ' . $group . ', $key= ' . $key . ')');
+        }
         $this->memcached->set("{$group}_{$key}", $this->compress($value), $timeout);
         return;
     }
@@ -84,7 +97,9 @@ class memcached extends \codename\core\cache {
      * @see \codename\core\cache_interface::clearKey($group, $key)
      */
     public function clearKey(string $group, string $key) {
-        app::getLog('debug')->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_CLEARKEY::CLEARING ($group = ' . $group . ', $key= ' . $key . ')');
+        if($this->log) {
+          app::getLog($this->log)->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_CLEARKEY::CLEARING ($group = ' . $group . ', $key= ' . $key . ')');
+        }
         $this->clear("{$group}_{$key}");
         return;
     }
@@ -95,7 +110,9 @@ class memcached extends \codename\core\cache {
      * @see \codename\core\cache_interface::clear($key)
      */
     public function clear(string $key) {
-        app::getLog('debug')->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_CLEAR::CLEARING ($key= ' . $key . ')');
+        if($this->log) {
+          app::getLog($this->log)->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_CLEAR::CLEARING ($key= ' . $key . ')');
+        }
         $this->memcached->delete($key);
         return;
     }
@@ -106,7 +123,9 @@ class memcached extends \codename\core\cache {
      * @see \codename\core\cache_interface::clearGroup($group)
      */
     public function clearGroup(string $group) {
-        app::getLog('debug')->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_CLEARGROUP::CLEARING ($group = ' . $group . ')');
+        if($this->log) {
+          app::getLog($this->log)->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_CLEARGROUP::CLEARING ($group = ' . $group . ')');
+        }
         $keys = $this->memcached->getAllKeys();
         if(!is_array($keys)) {
             return;

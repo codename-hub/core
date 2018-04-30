@@ -33,7 +33,22 @@ class datacontainer {
         if(strlen($key) == 0) {
             return;
         }
-        $this->data[$key] = $data;
+        if(strpos($key, '>') !== false) {
+            if($this->isDefined($key)) {
+                $this->data[$key] = $data;
+            } else {
+              $myConfig = &$this->data;
+              foreach(explode('>', $key) as $myKey) {
+                  if($myConfig !== null && !array_key_exists($myKey, $myConfig)) {
+                      $myConfig[$myKey] = null;
+                  }
+                  $myConfig = &$myConfig[$myKey];
+              }
+              $myConfig = $data;
+            }
+        } else {
+            $this->data[$key] = $data;
+        }
         return;
     }
 

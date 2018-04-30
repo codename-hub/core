@@ -229,6 +229,12 @@ abstract class model implements \codename\core\model\modelInterface {
     protected $offset = null;
 
     /**
+     * Duplicate filtering state
+     * @var bool
+     */
+    protected $filterDuplicates = false;
+
+    /**
      * Contains the database connection
      * @var db
      */
@@ -867,9 +873,9 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function addDefaultfilter(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
         $field = \codename\core\value\text\modelfield::getInstance($field);
-        if(!$this->fieldExists($field)) {
-            throw new \codename\core\exception(self::EXCEPTION_ADDDEFAULTFILTER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
-        }
+        // if(!$this->fieldExists($field)) {
+        //     throw new \codename\core\exception(self::EXCEPTION_ADDDEFAULTFILTER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
+        // }
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
 
         if(is_array($value)) {
@@ -1000,6 +1006,26 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [removeCalculatedField description]
+     * @param  string $field [description]
+     * @return model         [description]
+     */
+    public function removeCalculatedField(string $field) : model {
+      $field = \codename\core\value\text\modelfield::getInstance($field);
+      $this->fieldlist = array_filter($this->fieldlist, function($item) use ($field) {
+        if($item instanceof \codename\core\model\plugin\calculatedfield) {
+          if($item->field->schema == $field->schema
+          && $item->field->table == $field->table
+          && $item->field->field == $field->field) {
+            return false;
+          }
+        }
+        return true;
+      });
+      return $this;
+    }
+
+    /**
      * exception thrown if we try to add a calculated field which already exists (either as db field or another calculated one)
      * @var string
      */
@@ -1024,6 +1050,14 @@ abstract class model implements \codename\core\model\modelInterface {
     public function setOffset(int $offset) : model {
         $class = '\\codename\\core\\model\\plugin\\offset\\' . $this->getType();
         $this->offset = new $class($offset);
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function setFilterDuplicates(bool $state) : \codename\core\model {
+        $this->filterDuplicates = $state;
         return $this;
     }
 
@@ -1184,15 +1218,17 @@ abstract class model implements \codename\core\model\modelInterface {
               // validate child using child/nested model
               $childConfig = $this->config->get('children>'.$field);
               $foreignConfig = $this->config->get('foreign>'.$childConfig['field']);
+              $foreignKeyField = $childConfig['field'];
 
               // get the join plugin valid for the child reference field
-              $res = array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($field) {
-                return $join->modelField == $field;
+              $res = array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($foreignKeyField) {
+                return $join->modelField == $foreignKeyField;
               });
 
               if(count($res) === 1) {
-                $res[0]->model->validate($data[$field]);
-                $this->errorstack->addErrors($res[0]->model->getErrors());
+                $join = reset($res);
+                $join->model->validate($data[$field]);
+                $this->errorstack->addErrors($join->model->getErrors());
               } else {
                 continue;
               }
@@ -1202,6 +1238,17 @@ abstract class model implements \codename\core\model\modelInterface {
                 $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
             }
         }
+
+        // model validator
+        if($this->config->exists('validators')) {
+          $validators = $this->config->get('validators');
+          foreach($validators as $validator) {
+            if(count($errors = app::getValidator($validator)->validate($data)) > 0) {
+              $this->errorstack->addError('DATA', 'INVALID', $errors);
+            }
+          }
+        }
+
         $dataob = $this->data;
         if(is_array($this->config->get("unique"))) {
             foreach($this->config->get("unique") as $key => $fields) {
@@ -1216,10 +1263,10 @@ abstract class model implements \codename\core\model\modelInterface {
                 }
 
                 foreach($fields as $field) {
-                    if(!array_key_exists($field, $data) || strlen($data[$field]) == 0) {
-                        continue;
-                    }
-                    $this->addFilter($field, $data[$field], '=');
+                    // if(!array_key_exists($field, $data) || strlen($data[$field]) == 0) {
+                    //     continue;
+                    // }
+                    $this->addFilter($field, $data[$field] ?? null, '=');
                     $filtersApplied++;
                 }
                 if($filtersApplied == 0) {
@@ -1265,7 +1312,7 @@ abstract class model implements \codename\core\model\modelInterface {
                     $flagval = 0;
                     foreach($data[$this->table . '_flag'] as $flagname => $status) {
                         $currflag = $this->config->get("flag>$flagname");
-                        if(is_null($currflag)) {
+                        if(is_null($currflag) || !$status) {
                             continue;
                         }
                         $flagval |= $currflag;
@@ -1295,7 +1342,7 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function getFlag(string $flagname) {
         if(!$this->config->exists("flag>$flagname")) {
-            throw new \codename\core\exception(self::EXCEPTION_GETFLAG_FLAGNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $flag);
+            throw new \codename\core\exception(self::EXCEPTION_GETFLAG_FLAGNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $flagname);
             return null;
         }
         return $this->config->get("flag>$flagname");
@@ -1660,6 +1707,7 @@ abstract class model implements \codename\core\model\modelInterface {
         $this->filterCollections = $this->defaultfilterCollections;
         $this->limit = null;
         $this->offset = null;
+        $this->filterDuplicates = false;
         $this->order = array();
         $this->errorstack->reset();
         return;

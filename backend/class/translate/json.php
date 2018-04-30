@@ -2,6 +2,7 @@
 namespace codename\core\translate;
 
 use \codename\core\app;
+use \codename\core\exception;
 
 class json extends \codename\core\translate implements \codename\core\translate\translateInterface {
 
@@ -24,7 +25,12 @@ class json extends \codename\core\translate implements \codename\core\translate\
     protected $instances = array();
 
     /**
-     * @todo DOCUMENTATION
+     * translates a key in the format DATAFILE.SOMEKEY
+     * Where the first key part (before the dot) is some kind of prefix
+     * that is used for identifying the datasource fiel
+     *
+     * @param  string $key [description]
+     * @return string      [description]
      */
     protected function getTranslation(string $key) : string {
         $keystr = $key;
@@ -33,7 +39,7 @@ class json extends \codename\core\translate implements \codename\core\translate\
         $key = explode('.', $key, 2);
 
         if(count($key) != 2) {
-            return 'KEYLENGTH NOT MATCHING (' . $keystr . ')';
+            throw new exception('EXCEPTION_TRANSLATE_JSON_MISSING_DOT', exception::$ERRORLEVEL_ERROR, $keystr);
         }
 
         $key[0] = strtolower($key[0]);

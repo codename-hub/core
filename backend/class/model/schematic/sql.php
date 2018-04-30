@@ -9,7 +9,7 @@ use \codename\core\exception;
  * @author Kevin Dargel
  * @since 2017-03-01
  */
-abstract class sql extends \codename\core\model\schematic implements \codename\core\model\modelInterface {
+abstract class sql extends \codename\core\model\schematic implements \codename\core\model\modelInterface, \codename\core\model\virtualFieldResultInterface {
 
     /**
      * invalid foreign key config during deepJoin()
@@ -24,6 +24,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     protected $filterOperator = ' AND ';
 
     /**
+     * config option that configures database connection (PDO) storage factor
+     * @var bool
+     */
+    protected $storeConnection = true;
+
+    /**
      * Creates and configures the instance of the model. Fallback connection is 'default' database
      * @param string|null $connection  [Name of the connection in the app configuration file]
      * @param string $schema      [Schema to use the model for]
@@ -36,7 +42,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         $this->table = $table;
 
         if($connection != null) {
-        	$this->db = app::getDb($connection);
+        	$this->db = app::getDb($connection, $this->storeConnection);
         }
 
         $config = app::getCache()->get('MODELCONFIG_', get_class($this));
@@ -47,7 +53,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             if($this->config->exists("connection")) {
             	$connection = $this->config->get("connection");
             }
-            $this->db = app::getDb($connection);
+            $this->db = app::getDb($connection, $this->storeConnection);
 
             return $this;
         }
@@ -61,7 +67,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         	$connection = 'default';
         }
 
-        $this->db = app::getDb($connection);
+        $this->db = app::getDb($connection, $this->storeConnection);
 
         if(!in_array("{$this->table}_created", $this->config->get("field"))) {
            throw new exception('EXCEPTION_MODEL_CONFIG_MISSING_FIELD', exception::$ERRORLEVEL_FATAL, "{$this->table}_created");
@@ -305,7 +311,78 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     protected function internalGetResult(): array
     {
-      return $this->db->getResult();
+      $result = $this->db->getResult();
+      if($this->virtualFieldResult) {
+        $result = $this->getVirtualFieldResult($result);
+      }
+      return $result;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setVirtualFieldResult(bool $state)
+    {
+      $this->virtualFieldResult = $state;
+    }
+
+    /**
+     * State of the virtual field handling
+     * Decides whether to construct virtual fields (e.g. children results)
+     * and put them into the result
+     *
+     * Needs PDO to fetch via FETCH_NAMED
+     * to get distinct values for joined models
+     *
+     * @var bool
+     */
+    protected $virtualFieldResult = false;
+
+    /**
+     * [getVirtualFieldResult description]
+     * @param  array  $result [description]
+     * @param  array  $track  [description]
+     * @return [type]         [description]
+     */
+    public function getVirtualFieldResult(array $result, &$track = []) {
+      foreach($this->getNestedJoins() as $join) {
+        $track[$join->model->getIdentifier()][] = $join->model;
+        $result = $join->model->getVirtualFieldResult($result, $track);
+      }
+      foreach($this->getSiblingJoins() as $join) {
+        $track[$join->model->getIdentifier()][] = $join->model;
+        $result = $join->model->getVirtualFieldResult($result, $track);
+      }
+      if($this->config->exists('children')) {
+        foreach($this->config->get('children') as $field => $config) {
+          $foreign = $this->config->get('foreign>'.$config['field']);
+          if($this->config->get('datatype>'.$field) == 'virtual') {
+            if(!isset($track[$foreign['model']])) {
+              $track[$foreign['model']] = [];
+            }
+            $index = count($track[$foreign['model']])-1;
+            $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
+            foreach($result as &$dataset) {
+              if($vModel != null) {
+                $vData = [];
+                foreach($vModel->getFields() as $modelField) {
+                  if(isset($dataset[$modelField])) {
+                    if(is_array($dataset[$modelField]) && $vModel->config->get('datatype>'.$modelField) !== 'virtual') {
+                      $vData[$modelField] = $dataset[$modelField][$index] ?? null;
+                    } else {
+                      $vData[$modelField] = $dataset[$modelField] ?? null;
+                    }
+                  }
+                }
+                $dataset[$field] = $vData;
+              } else {
+                $dataset[$field] = null;
+              }
+            }
+          }
+        }
+      }
+      return $result;
     }
 
     /**
@@ -408,12 +485,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
             $joinComponents = [];
 
-            if(is_array($thisKey) || is_array($joinKey)) {
+            if(is_array($thisKey) && is_array($joinKey)) {
               // TODO: check for equal array item counts! otherwise: exception
               // perform a multi-component join
               foreach($thisKey as $index => $thisKeyValue) {
                 $joinComponents[] = "{$alias}.{$joinKey[$index]} = {$this->table}.{$thisKeyValue}";
               }
+            } else if(is_array($thisKey) && !is_array($joinKey)) {
+              foreach($thisKey as $index => $thisKeyValue) {
+                $joinComponents[] = "{$alias}.{$index} = {$this->table}.{$thisKeyValue}";
+              }
+            } else if(!is_array($thisKey) && is_array($joinKey)) {
+              throw new \LogicException('Not implemented multi-component foreign key join');
             } else {
               $joinComponents[] = "{$alias}.{$joinKey} = {$this->table}.{$thisKey}";
             }
@@ -486,7 +569,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @see \codename\core\model_interface::search()
      */
     public function search() : \codename\core\model {
-        $query = "SELECT ";
+
+        if($this->filterDuplicates) {
+          $query = "SELECT DISTINCT ";
+        } else {
+          $query = "SELECT ";
+        }
 
         // first: deepJoin to get correct alias names
         $deepjoin = $this->deepJoin($this);
@@ -540,6 +628,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         return $this;
     }
+
+
 
     /**
      * returns a query that performs a save using UPDATE
@@ -607,7 +697,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  array  &$param [reference array that keeps track of PDO variable names]
      * @return string         [query]
      */
-    protected function saveCreate(array $data, array &$param = array()) {
+    protected function saveCreate(array $data, array &$param = array(), bool $replace = false) {
         $this->saveLog('CREATE', $data);
         $query = 'INSERT INTO ' . $this->schema . '.' . $this->table .' ';
         $query .= ' (';
@@ -653,7 +743,34 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 $query .= ':'.$var;
             }
         }
-        $query .= " );";
+        $query .= " )";
+        if($replace) {
+          $query .= ' ON DUPLICATE KEY UPDATE ';
+          $parts = [];
+          foreach ($this->config->get('field') as $field) {
+              if($field == $this->getPrimarykey() || in_array($field, array($this->table . "_modified", $this->table . "_created"))) {
+                  continue;
+              }
+              if(array_key_exists($field, $data)) {
+                if (is_object($data[$field]) || is_array($data[$field])) {
+                    $data[$field] = $this->jsonEncode($data[$field]);
+                }
+
+                $var = $this->getStatementVariable($param, $field);
+
+                // performance hack: store modelfield instance!
+                if(!isset($this->modelfieldInstance[$field])) {
+                  $this->modelfieldInstance[$field] = new \codename\core\value\text\modelfield($field);
+                }
+                $fieldInstance = $this->modelfieldInstance[$field];
+
+                $param[$var] = $this->getParametrizedValue($this->delimit($fieldInstance, $data[$field]), $this->getFieldtype($fieldInstance));
+                $parts[] = $field . ' = ' . ':'.$var;
+              }
+          }
+          $query .= implode(',', $parts);
+        }
+        $query .= ";";
         return $query;
     }
 
@@ -734,6 +851,65 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
+     * performs a create or replace (update)
+     * @param  array                  $data [description]
+     * @return \codename\core\model   [this instance]
+     */
+    public function replace(array $data) {
+      $params = [];
+      $query = $this->saveCreate($data, $params, true); // saveCreate with $replace = true
+      $this->doQuery($query, $params);
+      return $this;
+    }
+
+    /**
+     * performs an update using the current filters and a given data array
+     * @param  array                  $data  [description]
+     * @return \codename\core\model          [this instance]
+     */
+    public function update(array $data) {
+      if(count($this->filter) == 0) {
+          throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_DELETE_NO_FILTERS_DEFINED', exception::$ERRORLEVEL_FATAL);
+      }
+      $query = 'UPDATE ' . $this->schema . '.' . $this->table .' SET ';
+      $parts = [];
+
+      $param = array();
+      foreach ($this->config->get('field') as $field) {
+          if(in_array($field, array($this->getPrimarykey(), $this->table . "_modified", $this->table . "_created"))) {
+              continue;
+          }
+
+          // If it exists, set the field
+          if(array_key_exists($field, $data)) {
+
+              if (is_object($data[$field]) || is_array($data[$field])) {
+                  $data[$field] = $this->jsonEncode($data[$field]);
+              }
+
+              $var = $this->getStatementVariable($param, $field);
+
+              // performance hack: store modelfield instance!
+              if(!isset($this->modelfieldInstance[$field])) {
+                $this->modelfieldInstance[$field] = new \codename\core\value\text\modelfield($field);
+              }
+              $fieldInstance = $this->modelfieldInstance[$field];
+
+              $param[$var] = $this->getParametrizedValue($this->delimit($fieldInstance, $data[$field]), $this->getFieldtype($fieldInstance));
+              $parts[] = $field . ' = ' . ':'.$var;
+          }
+      }
+      $parts[] = $this->table . "_modified = now()";
+      $query .= implode(',', $parts);
+
+      // $params = array();
+      $query .= $this->getFilterQuery($param);
+      $this->doQuery($query, $param);
+
+      return $this;
+    }
+
+    /**
      * [clearCache description]
      * @param  string $cacheGroup [description]
      * @param  string $cacheKey   [description]
@@ -765,14 +941,32 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
 
         if(count($this->filter) == 0) {
-            return $this;
+            throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_DELETE_NO_FILTERS_DEFINED', exception::$ERRORLEVEL_FATAL);
         }
 
-        $entries = $this->addField($this->getPrimarykey())->search()->getResult();
+        //
+        // Old method: get all entries and delete them in separate queries
+        //
+        /* $entries = $this->addField($this->getPrimarykey())->search()->getResult();
 
         foreach($entries as $entry) {
             $this->delete($entry[$this->getPrimarykey()]);
-        }
+        } */
+
+        //
+        // New method: use the filterquery to construct a single query delete statement
+        //
+
+        $query = "DELETE FROM " . $this->schema . "." . $this->table . ' ';
+
+        // from search()
+        // prepare an array for values to submit as PDO statement parameters
+        // done by-ref, so the values are arriving right here after
+        // running getFilterQuery()
+        $params = array();
+
+        $query .= $this->getFilterQuery($params);
+        $this->doQuery($query, $params);
 
         return $this;
     }
@@ -861,10 +1055,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                       $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field)); // values separated from query
                   }
                   $string = implode(', ', $values);
-                  $filterQuery['query'] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
+                  $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
+                  $filterQuery['query'] = $filter->field->getValue() . ' ' . $operator . ' ( ' . $string . ') ';
               } else {
+
                   // filter value is a singular value
-                  if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
+                  // NOTE: $filter->value == 'null' (equality operator, compared to string) may evaluate to TRUE if you're passing in a positive boolean (!)
+                  // instead, we're now using the identity operator === to explicitly check for a string 'null'
+                  // NOTE: $filter->value == null (equality operator, compared to NULL) may evaluate to TRUE if you're passing in a negative boolean (!)
+                  // instead, we're now using the identity operator === to explicitly check for a real NULL
+                  // @see http://www.php.net/manual/en/types.comparisons.php
+                  if(($filter->value === null) || (is_string($filter->value) && (strlen($filter->value) === 0)) || ($filter->value === 'null')) {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
                       $filterQuery['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
@@ -948,10 +1149,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                       $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field));
                   }
                   $string = implode(', ', $values);
-                  $t_filter['query'] = $filter->field->getValue() . ' IN ( ' . $string . ') ';
+                  $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
+                  $t_filter['query'] = $filter->field->getValue() . ' ' . $operator . ' ( ' . $string . ') ';
               } else {
                   // value is a singular value
-                  if(is_null($filter->value) || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value == 'null') {
+                  // NOTE: see other $filter->value == null (equality or identity operator) note and others
+                  if($filter->value === null || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value === 'null') {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
                       $t_filter['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
