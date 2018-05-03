@@ -169,7 +169,7 @@ abstract class json extends \codename\core\model\schemeless implements \codename
       //
       // special hack
       // to highly speed up filtering for json/array key filtering
-      // 
+      //
       foreach($this->filter as $filter) {
         if($filter->field->get() == $this->getPrimarykey() && $filter->operator == '=') {
           $data = isset($data[$filter->value]) ? [$data[$filter->value]] : [];
@@ -195,6 +195,14 @@ abstract class json extends \codename\core\model\schemeless implements \codename
       });
       return array_values($filteredData);
   }
+
+  /**
+   * @inheritDoc
+   */
+   protected function compatibleJoin(\codename\core\model $model) : bool
+   {
+     return false;
+   }
 
   /**
    * [mapResults description]
