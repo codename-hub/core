@@ -84,4 +84,12 @@ class json extends \codename\core\translate implements \codename\core\translate\
         return $value;
     }
 
+    /**
+     * @inheritDoc
+     */
+    protected function getPrefix(): string
+    {
+      return app::getRequest()->getData('lang');
+    }
+
 }
