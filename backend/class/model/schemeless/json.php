@@ -170,29 +170,43 @@ abstract class json extends \codename\core\model\schemeless implements \codename
       // special hack
       // to highly speed up filtering for json/array key filtering
       //
-      foreach($this->filter as $filter) {
-        if($filter->field->get() == $this->getPrimarykey() && $filter->operator == '=') {
-          $data = isset($data[$filter->value]) ? [$data[$filter->value]] : [];
+      if(count($this->filter) === 1) {
+        foreach($this->filter as $filter) {
+          if($filter->field->get() == $this->getPrimarykey() && $filter->operator == '=') {
+            // $data = isset($data[$filter->value]) ? [$data[$filter->value]] : [];
+          }
         }
       }
-
-      $filteredData = array_filter($data, function($entry) {
-        $pass = true;
-        foreach($this->filter as $filter) {
-            if(!$pass) {
-                continue;
-            }
-            if($filter instanceof \codename\core\model\plugin\filter\executableFilterInterface) {
-              if(!$filter->matches($entry)) {
-                $pass = false;
-                break;
+      if(count($this->filter) >= 1) {
+        $filteredData = array_filter($data, function($entry) {
+          $pass = null;
+          foreach($this->filter as $filter) {
+              if($pass === false && $filter->conjunction === 'AND') {
+                  continue;
               }
-            } else {
-              // we may warn for incompatible filters?
-            }
-        }
-        return $pass;
-      });
+
+              if($filter instanceof \codename\core\model\plugin\filter\executableFilterInterface) {
+                // if(!$filter->matches($entry)) {
+                //   $pass = false;
+                //   break;
+                // }
+                if($pass === null) {
+                  $pass = $filter->matches($entry);
+                } else {
+                  if($filter->conjunction === 'AND') {
+                    $pass = $pass && $filter->matches($entry);
+                  }
+                  if($filter->conjunction === 'OR') {
+                    $pass = $pass || $filter->matches($entry);
+                  }
+                }
+              } else {
+                // we may warn for incompatible filters?
+              }
+          }
+          return $pass;
+        });
+      }
       return array_values($filteredData);
   }
 
