@@ -1091,6 +1091,11 @@ abstract class model implements \codename\core\model\modelInterface {
                     $cacheObj->set($cacheGroup, $cacheKey, $myData);
                 }
             }
+
+            // NOTE/TODO:
+            // We might reset() the model here, as the filter created previously
+            // may be passed to the next query...
+
             if(count($myData) > 0) {
                 return $myData[0];
             }
