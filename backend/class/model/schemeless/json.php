@@ -173,7 +173,7 @@ abstract class json extends \codename\core\model\schemeless implements \codename
       if(count($this->filter) === 1) {
         foreach($this->filter as $filter) {
           if($filter->field->get() == $this->getPrimarykey() && $filter->operator == '=') {
-            // $data = isset($data[$filter->value]) ? [$data[$filter->value]] : [];
+            $data = isset($data[$filter->value]) ? [$data[$filter->value]] : [];
           }
         }
       }
