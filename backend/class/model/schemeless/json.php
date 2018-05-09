@@ -193,17 +193,23 @@ abstract class json extends \codename\core\model\schemeless implements \codename
                 if($pass === null) {
                   $pass = $filter->matches($entry);
                 } else {
-                  if($filter->conjunction === 'AND') {
-                    $pass = $pass && $filter->matches($entry);
-                  }
+                  // if($filter->conjunction === 'AND') {
+                  //   $pass = $pass && $filter->matches($entry);
+                  // }
                   if($filter->conjunction === 'OR') {
                     $pass = $pass || $filter->matches($entry);
+                  } else {
+                    $pass = $pass && $filter->matches($entry);
                   }
                 }
               } else {
                 // we may warn for incompatible filters?
               }
           }
+
+          //
+          // NOTE/TODO: What to do, when pass === null ?
+          //
           return $pass;
         });
       }
