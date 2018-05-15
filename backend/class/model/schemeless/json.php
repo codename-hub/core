@@ -152,6 +152,14 @@ abstract class json extends \codename\core\model\schemeless implements \codename
 
     $data = self::$t_data[$identifier];
 
+    if(count($this->virtualFields) > 0) {
+      foreach($data as &$d) {
+        foreach($this->virtualFields as $field => $function) {
+          $d[$field] = $function($d);
+        }
+      }
+    }
+
     if(count($this->filter) > 0) {
         $data = $this->filterResults($data);
     }
@@ -160,12 +168,26 @@ abstract class json extends \codename\core\model\schemeless implements \codename
   }
 
   /**
+   * virtual field functions
+   * @var callable[]
+   */
+  protected $virtualFields = [];
+
+  /**
+   * [addVirtualField description]
+   * @param string   $field         [description]
+   * @param callable $fieldFunction [description]
+   */
+  public function addVirtualField(string $field, callable $fieldFunction) {
+    $this->virtualFields[$field] = $fieldFunction;
+  }
+
+  /**
    * [filterResults description]
    * @param  array $data [description]
    * @return array       [description]
    */
   protected function filterResults(array $data) : array {
-
       //
       // special hack
       // to highly speed up filtering for json/array key filtering
