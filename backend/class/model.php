@@ -236,7 +236,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * Contains the database connection
-     * @var db
+     * @var \codename\core\database
      */
     protected $db = null;
 
