@@ -203,6 +203,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     public function saveWithChildren(array $data) : \codename\core\model {
 
+      // Open a virtual transaction
+      // as we might do some multi-model saving
+      $this->db->beginVirtualTransaction();
+
       $data2 = $data;
       // unset all collection fields for this to work
       if(count($this->collectionFields) > 0) {
@@ -226,11 +230,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
           if(count($res) === 1) {
             // NOTE: array_filter preserves keys. use array_values to simply use index 0
-            $model = array_values($res)[0]->model;
-            $model->saveWithChildren($data[$child]);
-            // if we just inserted a NEW entry, get its primary key and save into the root model
-            if(empty($data[$child][$model->getPrimaryKey()])) {
-              $data2[$childConfig['field']] = $model->lastInsertId();
+            // TODO: check for required fields...
+            if(isset($data[$child])) {
+              $model = array_values($res)[0]->model;
+              $model->saveWithChildren($data[$child]);
+              // if we just inserted a NEW entry, get its primary key and save into the root model
+              if(empty($data[$child][$model->getPrimaryKey()])) {
+                $data2[$childConfig['field']] = $model->lastInsertId();
+              }
             }
           } else {
             // error?
@@ -294,6 +301,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         }
       }
+
+      // end the virtual transaction
+      // if this is the last (outer) model to call save()/saveWithChildren()
+      // this closes the pending transaction on db/connection-level
+      $this->db->endVirtualTransaction();
 
       return $this;
     }
