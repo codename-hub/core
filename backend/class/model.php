@@ -1254,36 +1254,49 @@ abstract class model implements \codename\core\model\modelInterface {
           }
         }
 
-        $dataob = $this->data;
-        if(is_array($this->config->get("unique"))) {
-            foreach($this->config->get("unique") as $key => $fields) {
-                if(!is_array($fields)) {
-                    continue;
-                }
-                $filtersApplied = 0;
-
-                // exclude my own dataset if UPDATE is in progress
-                if(array_key_exists($this->getPrimarykey(), $data) && strlen($data[$this->getPrimarykey()]) > 0) {
-                    $this->addFilter($this->getPrimarykey(), $data[$this->getPrimarykey()], '!=');
-                }
-
-                foreach($fields as $field) {
-                    // if(!array_key_exists($field, $data) || strlen($data[$field]) == 0) {
-                    //     continue;
-                    // }
-                    $this->addFilter($field, $data[$field] ?? null, '=');
-                    $filtersApplied++;
-                }
-                if($filtersApplied == 0) {
-                    continue;
-                }
-
-                if(count($this->search()->getResult()) > 0) {
-                    $this->errorstack->addError($field, 'FIELD_DUPLICATE', $data[$field]);
-                }
-            }
-        }
-        $this->data = $dataob;
+        // $dataob = $this->data;
+        // if(is_array($this->config->get("unique"))) {
+        //     foreach($this->config->get("unique") as $key => $fields) {
+        //         if(!is_array($fields)) {
+        //             continue;
+        //         }
+        //         $filtersApplied = 0;
+        //
+        //         // exclude my own dataset if UPDATE is in progress
+        //         if(array_key_exists($this->getPrimarykey(), $data) && strlen($data[$this->getPrimarykey()]) > 0) {
+        //             $this->addFilter($this->getPrimarykey(), $data[$this->getPrimarykey()], '!=');
+        //         }
+        //
+        //         foreach($fields as $field) {
+        //             // if(!array_key_exists($field, $data) || strlen($data[$field]) == 0) {
+        //             //     continue;
+        //             // }
+        //             if(is_array($field)) {
+        //               // $this->addFilter($field, $data[$field] ?? null, '=');
+        //               $uniqueFilters = [];
+        //               foreach($field as $uniqueFieldComponent) {
+        //                 $uniqueFilters[] = [ 'field' => $uniqueFieldComponent, 'value' => $data[$uniqueFieldComponent], 'operator' => '='];
+        //                 if($data[$uniqueFieldComponent] === null) {
+        //                   break;
+        //                 }
+        //               }
+        //               $this->addFilterCollection($uniqueFilters, 'AND');
+        //             } else {
+        //               $this->addFilter($field, $data[$field] ?? null, '=');
+        //             }
+        //             $filtersApplied++;
+        //         }
+        //
+        //         if($filtersApplied === 0) {
+        //             continue;
+        //         }
+        //
+        //         if(count($this->search()->getResult()) > 0) {
+        //             $this->errorstack->addError($field, 'FIELD_DUPLICATE', $data[$field]);
+        //         }
+        //     }
+        // }
+        // $this->data = $dataob;
 
         return $this;
     }
