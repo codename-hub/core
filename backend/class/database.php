@@ -150,6 +150,12 @@ class database extends \codename\core\observable {
     protected $virtualTransactions = [];
 
     /**
+     * Global virtual transaction counter
+     * @var int
+     */
+    protected $aggregatedVirtualTransactions = 0;
+
+    /**
      * Starts a virtualized transaction
      * that may handle multi-model transactions
      *
@@ -160,7 +166,7 @@ class database extends \codename\core\observable {
       if(!isset($this->virtualTransactions[$transactionName])) {
         $this->virtualTransactions[$transactionName] = 0;
       }
-      if($this->virtualTransactions[$transactionName] === 0) {
+      if($this->virtualTransactions[$transactionName] === 0 && $this->aggregatedVirtualTransactions === 0) {
         // this may cause errors when using multiple transaction names...
         if($this->connection->inTransaction()) {
           throw new exception('EXCEPTION_DATABASE_VIRTUALTRANSACTION_UNTRACKED_TRANSACTION_RUNNING', exception::$ERRORLEVEL_FATAL);
@@ -170,6 +176,7 @@ class database extends \codename\core\observable {
       }
 
       $this->virtualTransactions[$transactionName]++;
+      $this->aggregatedVirtualTransactions++;
     }
 
     /**
@@ -186,8 +193,9 @@ class database extends \codename\core\observable {
       }
 
       $this->virtualTransactions[$transactionName]--;
+      $this->aggregatedVirtualTransactions--;
 
-      if($this->virtualTransactions[$transactionName] === 0) {
+      if($this->virtualTransactions[$transactionName] === 0 && $this->aggregatedVirtualTransactions === 0) {
         $this->connection->commit();
       }
     }

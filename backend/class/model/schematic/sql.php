@@ -9,7 +9,7 @@ use \codename\core\exception;
  * @author Kevin Dargel
  * @since 2017-03-01
  */
-abstract class sql extends \codename\core\model\schematic implements \codename\core\model\modelInterface, \codename\core\model\virtualFieldResultInterface {
+abstract class sql extends \codename\core\model\schematic implements \codename\core\model\modelInterface, \codename\core\model\virtualFieldResultInterface, \codename\core\transaction\transactionableInterface {
 
     /**
      * invalid foreign key config during deepJoin()
@@ -1537,4 +1537,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       return $this;
     }
 
+    /**
+     * @inheritDoc
+     */
+    public function beginTransaction(string $transactionName)
+    {
+      $this->db->beginVirtualTransaction($transactionName);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function endTransaction(string $transactionName)
+    {
+      $this->db->endVirtualTransaction($transactionName);
+    }
 }
