@@ -272,6 +272,14 @@ abstract class model implements \codename\core\model\modelInterface {
     public $config = null;
 
     /**
+     * returns the config object
+     * @return \codename\core\config [description]
+     */
+    public function getConfig() : \codename\core\config {
+      return $this->config;
+    }
+
+    /**
      * loads a new config file (uncached)
      * implement me!
      * @return \codename\core\config
