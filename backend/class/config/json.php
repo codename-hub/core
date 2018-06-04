@@ -136,7 +136,7 @@ class json extends \codename\core\config {
      */
     protected function getFullpath(string $file, bool $appstack) : string {
         // direct absolute file path
-        if(!$appstack && realpath($file) == $file) {
+        if(!$appstack && realpath($file) !== false) {
           return $file;
         }
 
