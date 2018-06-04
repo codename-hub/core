@@ -358,12 +358,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     public function getVirtualFieldResult(array $result, &$track = []) {
       foreach($this->getNestedJoins() as $join) {
-        $track[$join->model->getIdentifier()][] = $join->model;
-        $result = $join->model->getVirtualFieldResult($result, $track);
+        if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
+          $track[$join->model->getIdentifier()][] = $join->model;
+          $result = $join->model->getVirtualFieldResult($result, $track);
+        }
       }
       foreach($this->getSiblingJoins() as $join) {
-        $track[$join->model->getIdentifier()][] = $join->model;
-        $result = $join->model->getVirtualFieldResult($result, $track);
+        if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
+          $track[$join->model->getIdentifier()][] = $join->model;
+          $result = $join->model->getVirtualFieldResult($result, $track);
+        }
       }
       if($this->config->exists('children')) {
         foreach($this->config->get('children') as $field => $config) {
