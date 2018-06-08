@@ -432,7 +432,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  int                    &$aliasCounter  [alias counter as reference]
      * @return string                 [query part]
      */
-    public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0) {
+    public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0, string $parentAlias = null) {
         if(count($model->getNestedJoins()) == 0 && count($model->getSiblingJoins()) == 0) {
             return '';
         }
@@ -501,27 +501,29 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
             $joinComponents = [];
 
+            $useAlias = $parentAlias ?? $this->table;
+
             if(is_array($thisKey) && is_array($joinKey)) {
               // TODO: check for equal array item counts! otherwise: exception
               // perform a multi-component join
               foreach($thisKey as $index => $thisKeyValue) {
-                $joinComponents[] = "{$alias}.{$joinKey[$index]} = {$this->table}.{$thisKeyValue}";
+                $joinComponents[] = "{$alias}.{$joinKey[$index]} = {$useAlias}.{$thisKeyValue}";
               }
             } else if(is_array($thisKey) && !is_array($joinKey)) {
               foreach($thisKey as $index => $thisKeyValue) {
-                $joinComponents[] = "{$alias}.{$index} = {$this->table}.{$thisKeyValue}";
+                $joinComponents[] = "{$alias}.{$index} = {$useAlias}.{$thisKeyValue}";
               }
             } else if(!is_array($thisKey) && is_array($joinKey)) {
               throw new \LogicException('Not implemented multi-component foreign key join');
             } else {
-              $joinComponents[] = "{$alias}.{$joinKey} = {$this->table}.{$thisKey}";
+              $joinComponents[] = "{$alias}.{$joinKey} = {$useAlias}.{$thisKey}";
             }
 
             // add conditions!
             foreach($join->conditions as $filter) {
               $operator = $filter['value'] == null ? ($filter['operator'] == '!=' ? 'IS NOT' : 'IS') : $filter['operator'];
               $value = $filter['value'] == null ? 'NULL' : $filter['value'];
-              $joinComponents[] = "{$this->table}.{$filter['field']} {$operator} {$value}";
+              $joinComponents[] = "{$useAlias}.{$filter['field']} {$operator} {$value}";
             }
 
             $joinComponentsString = implode(' AND ', $joinComponents);
@@ -529,7 +531,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
             $join->currentAlias = $alias;
 
-            $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter);
+            $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter, $join->currentAlias);
         }
 
         // Loop through siblings
