@@ -1786,6 +1786,12 @@ abstract class model implements \codename\core\model\modelInterface {
     protected $normalizeModelFieldTypeStructureCache = array();
 
     /**
+     * [protected description]
+     * @var bool[]
+     */
+    protected $normalizeModelFieldTypeVirtualCache = array();
+
+    /**
      * Normalizes a single row of a dataset
      * @param array $dataset
      */
@@ -1800,13 +1806,24 @@ abstract class model implements \codename\core\model\modelInterface {
             // Check for (key == null) first, as it is faster than is_string
             if($dataset[$field] == null || !is_string($dataset[$field])) {continue;}
 
+            // determine virtuality status of the field
+            if(!isset($this->normalizeModelFieldTypeVirtualCache[$field])) {
+              $tVirtualModelField = \codename\core\value\text\modelfield\virtual::getInstance($field);
+              $this->normalizeModelFieldTypeCache[$field] = $this->getFieldtype($tVirtualModelField);
+              $this->normalizeModelFieldTypeVirtualCache[$field] = $this->normalizeModelFieldTypeCache[$field] === 'virtual';
+            }
+
             ///
             /// Fixing a bad performance issue
             /// using result-specific model field caching
             /// as they're re-constructed EVERY call!
             ///
             if(!isset($this->normalizeModelFieldCache[$field])) {
-              $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield::getInstance($field);
+              if($this->normalizeModelFieldTypeVirtualCache[$field]) {
+                $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield\virtual::getInstance($field);
+              } else {
+                $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield::getInstance($field);
+              }
             }
 
             if(!isset($this->normalizeModelFieldTypeCache[$field])) {
