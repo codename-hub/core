@@ -333,9 +333,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     /**
      * @inheritDoc
      */
-    public function setVirtualFieldResult(bool $state)
+    public function setVirtualFieldResult(bool $state) : \codename\core\model
     {
       $this->virtualFieldResult = $state;
+      return $this;
     }
 
     /**

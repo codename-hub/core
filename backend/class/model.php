@@ -948,6 +948,34 @@ abstract class model implements \codename\core\model\modelInterface {
         return $this;
     }
 
+    /**
+     * virtual field functions
+     * @var callable[]
+     */
+    protected $virtualFields = [];
+
+    /**
+     * [addVirtualField description]
+     * @param string   $field         [description]
+     * @param callable $fieldFunction [description]
+     * @return model [this instance]
+     */
+    public function addVirtualField(string $field, callable $fieldFunction) : model {
+      $this->virtualFields[$field] = $fieldFunction;
+      return $this;
+    }
+
+    /**
+     * [handleVirtualFields description]
+     * @param  array $dataset [description]
+     * @return array          [description]
+     */
+    public function handleVirtualFields(array $dataset) : array {
+      foreach($this->virtualFields as $field => $function) {
+        $dataset[$field] = $function($dataset);
+      }
+      return $dataset;
+    }
 
     /**
      *
@@ -1168,6 +1196,14 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function getFields() : array {
         return $this->config->get('field');
+    }
+
+    /**
+     * returns an array of virtual fields (names) currently configured
+     * @return array [description]
+     */
+    public function getVirtualFields() : array {
+        return array_keys($this->virtualFields);
     }
 
     /**

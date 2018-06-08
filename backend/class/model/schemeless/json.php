@@ -168,21 +168,6 @@ abstract class json extends \codename\core\model\schemeless implements \codename
   }
 
   /**
-   * virtual field functions
-   * @var callable[]
-   */
-  protected $virtualFields = [];
-
-  /**
-   * [addVirtualField description]
-   * @param string   $field         [description]
-   * @param callable $fieldFunction [description]
-   */
-  public function addVirtualField(string $field, callable $fieldFunction) {
-    $this->virtualFields[$field] = $fieldFunction;
-  }
-
-  /**
    * [filterResults description]
    * @param  array $data [description]
    * @return array       [description]
