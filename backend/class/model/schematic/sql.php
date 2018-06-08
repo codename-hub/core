@@ -326,6 +326,15 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       $result = $this->db->getResult();
       if($this->virtualFieldResult) {
         $result = $this->getVirtualFieldResult($result);
+
+        //
+        // Root element virtual fields
+        //
+        if(count($this->virtualFields) > 0) {
+          foreach($result as &$d) {
+            $d = $this->handleVirtualFields($d);
+          }
+        }
       }
       return $result;
     }
