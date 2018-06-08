@@ -357,19 +357,23 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  array  $track  [description]
      * @return [type]         [description]
      */
-    public function getVirtualFieldResult(array $result, &$track = []) {
+    public function getVirtualFieldResult(array $result, &$track = [], array $structure = []) {
+
+      // app::getResponse()->setData('structure', array_merge(app::getResponse()->getData('structure') ?? [], [$structure]));
+
       foreach($this->getNestedJoins() as $join) {
+        $track[$join->model->getIdentifier()][] = $join->model;
         if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
-          $track[$join->model->getIdentifier()][] = $join->model;
-          $result = $join->model->getVirtualFieldResult($result, $track);
+          $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, [$join->modelField]) );
         }
       }
       foreach($this->getSiblingJoins() as $join) {
+        $track[$join->model->getIdentifier()][] = $join->model;
         if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
-          $track[$join->model->getIdentifier()][] = $join->model;
-          $result = $join->model->getVirtualFieldResult($result, $track);
+          $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, [$join->modelField]) );
         }
       }
+
       if($this->config->exists('children')) {
         foreach($this->config->get('children') as $field => $config) {
           $foreign = $this->config->get('foreign>'.$config['field']);
@@ -377,8 +381,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             if(!isset($track[$foreign['model']])) {
               $track[$foreign['model']] = [];
             }
-            $index = count($track[$foreign['model']])-1;
+            // $index = count($track[$foreign['model']])-1;
+            $index = null;
+            foreach($this->getNestedJoins() as $join) {
+              if($join->modelField === $config['field']) {
+                if(count($indexes = array_keys($track[$foreign['model']], $join->model, true)) === 1) {
+                  $index = $indexes[0];
+                }
+              }
+            }
             $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
+
+            // app::getResponse()->setData('fieldvModelIndex>'.$field, $index);
+
             foreach($result as &$dataset) {
               if($vModel != null) {
                 $vData = [];
@@ -389,16 +404,42 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     } else {
                       $vData[$modelField] = $dataset[$modelField] ?? null;
                     }
+                    if($vData[$modelField] === null) {
+                      // app::getResponse()->setData('vModelModelFieldIsNull>'.$this->getIdentifier(), [$foreign['model'], $index, $modelField, $dataset]);
+                    }
                   }
                 }
+
+                // handle custom virtual fields
+                if(count($vModel->getVirtualFields()) > 0) {
+                  // foreach($vData as &$d) {
+                  $vData = $vModel->handleVirtualFields($vData);
+                  // }
+                }
+
                 $dataset[$field] = $vData;
               } else {
+                // app::getResponse()->setData('vModelIsNull>'.$this->getIdentifier(), [$foreign['model'], $index]);
                 $dataset[$field] = null;
               }
             }
           }
         }
       }
+
+
+      // handle custom virtual fields
+      // if(count($this->virtualFields) > 0) {
+      //   foreach($result as &$d) {
+      //     $d = $this->handleVirtualFields($d);
+      //   }
+      // }
+      // if(count($this->virtualFields) > 0) {
+      //   app::getResponse()->setData('protocol_schematic_sql_internalGetResult>'.$this->getIdentifier(), $this->virtualFields);
+      //   foreach($result as &$d) {
+      //     $d = $this->handleVirtualFields($d);
+      //   }
+      // }
       return $result;
     }
 
