@@ -1599,30 +1599,101 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * perform a shim / bare metal join
+     * @param array $result [the resultset]
      * @return array
      */
     protected function performBareJoin(array $result) : array {
       if(count($this->getNestedJoins()) == 0 && count($this->getSiblingJoins()) == 0) {
         return $result;
       }
-      foreach($this->getNestedJoins() as $join) {
+
+      //
+      // Loop through Joins
+      // nested first
+      // siblings second
+      //
+      foreach(array_merge($this->getNestedJoins(), $this->getSiblingJoins()) as $join) {
         $nest = $join->model;
 
-        // check model joining compatible
-        // we explicitly join incompatible models using a bare-data here!
-        if(!$this->compatibleJoin($nest) && ($join instanceof \codename\core\model\plugin\join\executableJoinInterface)) {
-          $subresult = $nest->search()->getResult();
-          $result = $join->join($result, $subresult);
+        $vKey = null;
+        if($this instanceof \codename\core\model\virtualFieldResultInterface && $this->virtualFieldResult) {
+          // pick only parts of the arrays
+          foreach($this->config->get('children') as $vField => $config) {
+            if($config['type'] === 'foreign' && $config['field'] === $join->modelField) {
+              $vKey = $vField;
+            }
+          }
         }
-      }
-      foreach($this->getSiblingJoins() as $join) {
-        $nest = $join->model;
 
-        // check model joining compatible
-        // we explicitly join incompatible models using a bare-data join here!
+        // virtual field?
+        if($vKey) {
+
+          //
+          // Skip recursive performBareJoin
+          // if we have none coming up next
+          //
+          if(count($nest->getNestedJoins()) == 0 && count($nest->getSiblingJoins()) == 0) {
+            return $result;
+          }
+
+          //
+          // Unwind resultset
+          // [ item, item, item ] -> [ item[key], item[key], item[key] ]
+          //
+          $tResult = array_map(function($r) use ($vKey) {
+            return $r[$vKey];
+          }, $result);
+
+          //
+          // Recursively check for bareJoinable models
+          // with a subset of the current result
+          //
+          $tResult = $nest->performBareJoin($tResult);
+
+          //
+          // Re-wind resultset
+          // [ item[key], item[key], item[key] ] -> merge into [ item, item, item ]
+          //
+          foreach($result as $index => &$r) {
+            $r[$vKey] = array_merge( $r[$vKey], $tResult[$index]);
+          }
+        } else {
+          $result = $nest->performBareJoin($result);
+        }
+
+        //
+        // check if model is joining compatible
+        // we explicitly join incompatible models using a bare-data here!
+        //
         if(!$this->compatibleJoin($nest) && ($join instanceof \codename\core\model\plugin\join\executableJoinInterface)) {
+
           $subresult = $nest->search()->getResult();
-          $result = $join->join($result, $subresult);
+
+          if($vKey) {
+            //
+            // Unwind resultset
+            // [ item, item, item ] -> [ item[key], item[key], item[key] ]
+            //
+            $tResult = array_map(function($r) use ($vKey) {
+              return $r[$vKey];
+            }, $result);
+
+            //
+            // Recursively perform the
+            // with a subset of the current result
+            //
+            $tResult = $join->join($tResult, $subresult);
+
+            //
+            // Re-wind resultset
+            // [ item[key], item[key], item[key] ] -> merge into [ item, item, item ]
+            //
+            foreach($result as $index => &$r) {
+              $r[$vKey] = array_merge( $tResult[$index] );
+            }
+          } else {
+            $result = $join->join($result, $subresult);
+          }
         }
       }
       return $result;
