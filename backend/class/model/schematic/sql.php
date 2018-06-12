@@ -386,54 +386,58 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
       if($this->config->exists('children')) {
         foreach($this->config->get('children') as $field => $config) {
-          $foreign = $this->config->get('foreign>'.$config['field']);
-          if($this->config->get('datatype>'.$field) == 'virtual') {
-            if(!isset($track[$foreign['model']])) {
-              $track[$foreign['model']] = [];
-            }
-            // $index = count($track[$foreign['model']])-1;
-            $index = null;
-            foreach($this->getNestedJoins() as $join) {
-              if($join->modelField === $config['field']) {
-                if(count($indexes = array_keys($track[$foreign['model']], $join->model, true)) === 1) {
-                  $index = $indexes[0];
-                }
+          if($config['type'] === 'foreign') {
+            $foreign = $this->config->get('foreign>'.$config['field']);
+            if($this->config->get('datatype>'.$field) == 'virtual') {
+              if(!isset($track[$foreign['model']])) {
+                $track[$foreign['model']] = [];
               }
-            }
-            $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
-
-            // app::getResponse()->setData('fieldvModelIndex>'.$field, $index);
-
-            foreach($result as &$dataset) {
-              if($vModel != null) {
-                $vData = [];
-                foreach($vModel->getFields() as $modelField) {
-                  if(isset($dataset[$modelField])) {
-                    if(is_array($dataset[$modelField]) && $vModel->config->get('datatype>'.$modelField) !== 'virtual') {
-                      $vData[$modelField] = $dataset[$modelField][$index] ?? null;
-                    } else {
-                      $vData[$modelField] = $dataset[$modelField] ?? null;
-                    }
-                    // if($vData[$modelField] === null) {
-                    //   app::getResponse()->setData('vModelModelFieldIsNull>'.$this->getIdentifier(), [$foreign['model'], $index, $modelField, $dataset]);
-                    // }
+              // $index = count($track[$foreign['model']])-1;
+              $index = null;
+              foreach($this->getNestedJoins() as $join) {
+                if($join->modelField === $config['field']) {
+                  if(count($indexes = array_keys($track[$foreign['model']], $join->model, true)) === 1) {
+                    $index = $indexes[0];
                   }
                 }
+              }
+              $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
 
-                // handle custom virtual fields
-                if(count($vModel->getVirtualFields()) > 0) {
-                  // foreach($vData as &$d) {
-                  $vData = $vModel->handleVirtualFields($vData);
-                  // }
+              // app::getResponse()->setData('fieldvModelIndex>'.$field, $index);
+
+              foreach($result as &$dataset) {
+                if($vModel != null) {
+                  $vData = [];
+                  foreach($vModel->getFields() as $modelField) {
+                    if(isset($dataset[$modelField])) {
+                      if(is_array($dataset[$modelField]) && $vModel->config->get('datatype>'.$modelField) !== 'virtual') {
+                        $vData[$modelField] = $dataset[$modelField][$index] ?? null;
+                      } else {
+                        $vData[$modelField] = $dataset[$modelField] ?? null;
+                      }
+                      // if($vData[$modelField] === null) {
+                      //   app::getResponse()->setData('vModelModelFieldIsNull>'.$this->getIdentifier(), [$foreign['model'], $index, $modelField, $dataset]);
+                      // }
+                    }
+                  }
+
+                  // handle custom virtual fields
+                  if(count($vModel->getVirtualFields()) > 0) {
+                    // foreach($vData as &$d) {
+                    $vData = $vModel->handleVirtualFields($vData);
+                    // }
+                  }
+
+                  $dataset[$field] = $vData;
+                } else {
+                  // app::getResponse()->setData('vModelIsNull>'.$this->getIdentifier(), [$foreign['model'], $index]);
+                  $dataset[$field] = null;
                 }
-
-                $dataset[$field] = $vData;
-              } else {
-                // app::getResponse()->setData('vModelIsNull>'.$this->getIdentifier(), [$foreign['model'], $index]);
-                $dataset[$field] = null;
               }
             }
           }
+
+          // TODO: Handle collections?
         }
       }
 
