@@ -362,9 +362,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * [getVirtualFieldResult description]
-     * @param  array  $result [description]
-     * @param  array  $track  [description]
-     * @return [type]         [description]
+     * @param  array  $result     [description]
+     * @param  array  $track      [description]
+     * @param  array  $structure
+     * @return [type]             [description]
      */
     public function getVirtualFieldResult(array $result, &$track = [], array $structure = []) {
 
@@ -413,9 +414,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     } else {
                       $vData[$modelField] = $dataset[$modelField] ?? null;
                     }
-                    if($vData[$modelField] === null) {
-                      // app::getResponse()->setData('vModelModelFieldIsNull>'.$this->getIdentifier(), [$foreign['model'], $index, $modelField, $dataset]);
-                    }
+                    // if($vData[$modelField] === null) {
+                    //   app::getResponse()->setData('vModelModelFieldIsNull>'.$this->getIdentifier(), [$foreign['model'], $index, $modelField, $dataset]);
+                    // }
                   }
                 }
 
