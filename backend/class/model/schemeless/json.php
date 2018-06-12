@@ -31,7 +31,7 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    * I contain the prefix of the model to use
    * @var string $prefix
    */
-  protected $prefix = '';
+  public $prefix = '';
 
   /**
    * Creates an instance
