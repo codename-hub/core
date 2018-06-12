@@ -1633,7 +1633,7 @@ abstract class model implements \codename\core\model\modelInterface {
           // if we have none coming up next
           //
           if(count($nest->getNestedJoins()) == 0 && count($nest->getSiblingJoins()) == 0) {
-            return $result;
+            continue;
           }
 
           //
