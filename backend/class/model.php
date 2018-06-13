@@ -288,10 +288,18 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * [getNestedJoins description]
-     * @return \codename\core\model\plugin\join[]
+     * @param  string|null  $model                  name of a model to look for
+     * @param  string|null  $modelField             name of a field the model is joined upon
+     * @return \codename\core\model\plugin\join[]   [array of joins, may be empty]
      */
-    public function getNestedJoins() : array {
+    public function getNestedJoins(string $model = null, string $modelField = null) : array {
+      if($model || $modelField) {
+        return array_values(array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($model, $modelField){
+          return ($model === null || $join->model->getIdentifier() === $model) && ($modelField === null || $join->modelField === $modelField);
+        }));
+      } else {
         return $this->nestedModels;
+      }
     }
 
     /**
