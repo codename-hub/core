@@ -288,10 +288,18 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * [getNestedJoins description]
-     * @return \codename\core\model\plugin\join[]
+     * @param  string|null  $model                  name of a model to look for
+     * @param  string|null  $modelField             name of a field the model is joined upon
+     * @return \codename\core\model\plugin\join[]   [array of joins, may be empty]
      */
-    public function getNestedJoins() : array {
+    public function getNestedJoins(string $model = null, string $modelField = null) : array {
+      if($model || $modelField) {
+        return array_values(array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($model, $modelField){
+          return ($model === null || $join->model->getIdentifier() === $model) && ($modelField === null || $join->modelField === $modelField);
+        }));
+      } else {
         return $this->nestedModels;
+      }
     }
 
     /**
@@ -948,6 +956,34 @@ abstract class model implements \codename\core\model\modelInterface {
         return $this;
     }
 
+    /**
+     * virtual field functions
+     * @var callable[]
+     */
+    protected $virtualFields = [];
+
+    /**
+     * [addVirtualField description]
+     * @param string   $field         [description]
+     * @param callable $fieldFunction [description]
+     * @return model [this instance]
+     */
+    public function addVirtualField(string $field, callable $fieldFunction) : model {
+      $this->virtualFields[$field] = $fieldFunction;
+      return $this;
+    }
+
+    /**
+     * [handleVirtualFields description]
+     * @param  array $dataset [description]
+     * @return array          [description]
+     */
+    public function handleVirtualFields(array $dataset) : array {
+      foreach($this->virtualFields as $field => $function) {
+        $dataset[$field] = $function($dataset);
+      }
+      return $dataset;
+    }
 
     /**
      *
@@ -1168,6 +1204,14 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function getFields() : array {
         return $this->config->get('field');
+    }
+
+    /**
+     * returns an array of virtual fields (names) currently configured
+     * @return array [description]
+     */
+    public function getVirtualFields() : array {
+        return array_keys($this->virtualFields);
     }
 
     /**
@@ -1563,30 +1607,103 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * perform a shim / bare metal join
+     * @param array $result [the resultset]
      * @return array
      */
     protected function performBareJoin(array $result) : array {
       if(count($this->getNestedJoins()) == 0 && count($this->getSiblingJoins()) == 0) {
         return $result;
       }
-      foreach($this->getNestedJoins() as $join) {
+
+      //
+      // Loop through Joins
+      // nested first
+      // siblings second
+      //
+      foreach(array_merge($this->getNestedJoins(), $this->getSiblingJoins()) as $join) {
         $nest = $join->model;
 
-        // check model joining compatible
-        // we explicitly join incompatible models using a bare-data here!
-        if(!$this->compatibleJoin($nest) && ($join instanceof \codename\core\model\plugin\join\executableJoinInterface)) {
-          $subresult = $nest->search()->getResult();
-          $result = $join->join($result, $subresult);
+        $vKey = null;
+        if($this instanceof \codename\core\model\virtualFieldResultInterface && $this->virtualFieldResult) {
+          // pick only parts of the arrays
+          if($this->config->exists('children')) {
+            foreach($this->config->get('children') as $vField => $config) {
+              if($config['type'] === 'foreign' && $config['field'] === $join->modelField) {
+                $vKey = $vField;
+              }
+            }
+          }
         }
-      }
-      foreach($this->getSiblingJoins() as $join) {
-        $nest = $join->model;
 
-        // check model joining compatible
-        // we explicitly join incompatible models using a bare-data join here!
+        // virtual field?
+        if($vKey) {
+
+          //
+          // Skip recursive performBareJoin
+          // if we have none coming up next
+          //
+          if(count($nest->getNestedJoins()) == 0 && count($nest->getSiblingJoins()) == 0) {
+            continue;
+          }
+
+          //
+          // Unwind resultset
+          // [ item, item, item ] -> [ item[key], item[key], item[key] ]
+          //
+          $tResult = array_map(function($r) use ($vKey) {
+            return $r[$vKey];
+          }, $result);
+
+          //
+          // Recursively check for bareJoinable models
+          // with a subset of the current result
+          //
+          $tResult = $nest->performBareJoin($tResult);
+
+          //
+          // Re-wind resultset
+          // [ item[key], item[key], item[key] ] -> merge into [ item, item, item ]
+          //
+          foreach($result as $index => &$r) {
+            $r[$vKey] = array_merge( $r[$vKey], $tResult[$index]);
+          }
+        } else {
+          $result = $nest->performBareJoin($result);
+        }
+
+        //
+        // check if model is joining compatible
+        // we explicitly join incompatible models using a bare-data here!
+        //
         if(!$this->compatibleJoin($nest) && ($join instanceof \codename\core\model\plugin\join\executableJoinInterface)) {
+
           $subresult = $nest->search()->getResult();
-          $result = $join->join($result, $subresult);
+
+          if($vKey) {
+            //
+            // Unwind resultset
+            // [ item, item, item ] -> [ item[key], item[key], item[key] ]
+            //
+            $tResult = array_map(function($r) use ($vKey) {
+              return $r[$vKey];
+            }, $result);
+
+            //
+            // Recursively perform the
+            // with a subset of the current result
+            //
+            $tResult = $join->join($tResult, $subresult);
+
+            //
+            // Re-wind resultset
+            // [ item[key], item[key], item[key] ] -> merge into [ item, item, item ]
+            //
+            foreach($result as $index => &$r) {
+              $r[$vKey] = array_merge( $tResult[$index] );
+            }
+          } else {
+            $result = $join->join($result, $subresult);
+          }
         }
       }
       return $result;
@@ -1679,6 +1796,12 @@ abstract class model implements \codename\core\model\modelInterface {
     protected $normalizeModelFieldTypeStructureCache = array();
 
     /**
+     * [protected description]
+     * @var bool[]
+     */
+    protected $normalizeModelFieldTypeVirtualCache = array();
+
+    /**
      * Normalizes a single row of a dataset
      * @param array $dataset
      */
@@ -1693,13 +1816,24 @@ abstract class model implements \codename\core\model\modelInterface {
             // Check for (key == null) first, as it is faster than is_string
             if($dataset[$field] == null || !is_string($dataset[$field])) {continue;}
 
+            // determine virtuality status of the field
+            if(!isset($this->normalizeModelFieldTypeVirtualCache[$field])) {
+              $tVirtualModelField = \codename\core\value\text\modelfield\virtual::getInstance($field);
+              $this->normalizeModelFieldTypeCache[$field] = $this->getFieldtype($tVirtualModelField);
+              $this->normalizeModelFieldTypeVirtualCache[$field] = $this->normalizeModelFieldTypeCache[$field] === 'virtual';
+            }
+
             ///
             /// Fixing a bad performance issue
             /// using result-specific model field caching
             /// as they're re-constructed EVERY call!
             ///
             if(!isset($this->normalizeModelFieldCache[$field])) {
-              $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield::getInstance($field);
+              if($this->normalizeModelFieldTypeVirtualCache[$field]) {
+                $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield\virtual::getInstance($field);
+              } else {
+                $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield::getInstance($field);
+              }
             }
 
             if(!isset($this->normalizeModelFieldTypeCache[$field])) {

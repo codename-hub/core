@@ -326,6 +326,15 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       $result = $this->db->getResult();
       if($this->virtualFieldResult) {
         $result = $this->getVirtualFieldResult($result);
+
+        //
+        // Root element virtual fields
+        //
+        if(count($this->virtualFields) > 0) {
+          foreach($result as &$d) {
+            $d = $this->handleVirtualFields($d);
+          }
+        }
       }
       return $result;
     }
@@ -333,9 +342,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     /**
      * @inheritDoc
      */
-    public function setVirtualFieldResult(bool $state)
+    public function setVirtualFieldResult(bool $state) : \codename\core\model
     {
       $this->virtualFieldResult = $state;
+      return $this;
     }
 
     /**
@@ -352,52 +362,98 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * [getVirtualFieldResult description]
-     * @param  array  $result [description]
-     * @param  array  $track  [description]
-     * @return [type]         [description]
+     * @param  array  $result     [description]
+     * @param  array  $track      [description]
+     * @param  array  $structure
+     * @return [type]             [description]
      */
-    public function getVirtualFieldResult(array $result, &$track = []) {
+    public function getVirtualFieldResult(array $result, &$track = [], array $structure = []) {
+
+      // app::getResponse()->setData('structure', array_merge(app::getResponse()->getData('structure') ?? [], [$structure]));
+
       foreach($this->getNestedJoins() as $join) {
+        $track[$join->model->getIdentifier()][] = $join->model;
         if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
-          $track[$join->model->getIdentifier()][] = $join->model;
-          $result = $join->model->getVirtualFieldResult($result, $track);
+          $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, [$join->modelField]) );
         }
       }
       foreach($this->getSiblingJoins() as $join) {
+        $track[$join->model->getIdentifier()][] = $join->model;
         if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
-          $track[$join->model->getIdentifier()][] = $join->model;
-          $result = $join->model->getVirtualFieldResult($result, $track);
+          $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, [$join->modelField]) );
         }
       }
+
       if($this->config->exists('children')) {
         foreach($this->config->get('children') as $field => $config) {
-          $foreign = $this->config->get('foreign>'.$config['field']);
-          if($this->config->get('datatype>'.$field) == 'virtual') {
-            if(!isset($track[$foreign['model']])) {
-              $track[$foreign['model']] = [];
-            }
-            $index = count($track[$foreign['model']])-1;
-            $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
-            foreach($result as &$dataset) {
-              if($vModel != null) {
-                $vData = [];
-                foreach($vModel->getFields() as $modelField) {
-                  if(isset($dataset[$modelField])) {
-                    if(is_array($dataset[$modelField]) && $vModel->config->get('datatype>'.$modelField) !== 'virtual') {
-                      $vData[$modelField] = $dataset[$modelField][$index] ?? null;
-                    } else {
-                      $vData[$modelField] = $dataset[$modelField] ?? null;
-                    }
+          if($config['type'] === 'foreign') {
+            $foreign = $this->config->get('foreign>'.$config['field']);
+            if($this->config->get('datatype>'.$field) == 'virtual') {
+              if(!isset($track[$foreign['model']])) {
+                $track[$foreign['model']] = [];
+              }
+              // $index = count($track[$foreign['model']])-1;
+              $index = null;
+              foreach($this->getNestedJoins() as $join) {
+                if($join->modelField === $config['field']) {
+                  if(count($indexes = array_keys($track[$foreign['model']], $join->model, true)) === 1) {
+                    $index = $indexes[0];
                   }
                 }
-                $dataset[$field] = $vData;
-              } else {
-                $dataset[$field] = null;
+              }
+              $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
+
+              // app::getResponse()->setData('fieldvModelIndex>'.$field, $index);
+
+              foreach($result as &$dataset) {
+                if($vModel != null) {
+                  $vData = [];
+                  foreach($vModel->getFields() as $modelField) {
+                    if(isset($dataset[$modelField])) {
+                      if(is_array($dataset[$modelField]) && $vModel->config->get('datatype>'.$modelField) !== 'virtual') {
+                        $vData[$modelField] = $dataset[$modelField][$index] ?? null;
+                      } else {
+                        $vData[$modelField] = $dataset[$modelField] ?? null;
+                      }
+                      // if($vData[$modelField] === null) {
+                      //   app::getResponse()->setData('vModelModelFieldIsNull>'.$this->getIdentifier(), [$foreign['model'], $index, $modelField, $dataset]);
+                      // }
+                    }
+                  }
+
+                  // handle custom virtual fields
+                  if(count($vModel->getVirtualFields()) > 0) {
+                    // foreach($vData as &$d) {
+                    $vData = $vModel->handleVirtualFields($vData);
+                    // }
+                  }
+
+                  $dataset[$field] = $vData;
+                } else {
+                  // app::getResponse()->setData('vModelIsNull>'.$this->getIdentifier(), [$foreign['model'], $index]);
+                  $dataset[$field] = null;
+                }
               }
             }
           }
+
+          // TODO: Handle collections?
         }
       }
+
+
+      // handle custom virtual fields
+      // if(count($this->virtualFields) > 0) {
+      //   foreach($result as &$d) {
+      //     $d = $this->handleVirtualFields($d);
+      //   }
+      // }
+      // if(count($this->virtualFields) > 0) {
+      //   app::getResponse()->setData('protocol_schematic_sql_internalGetResult>'.$this->getIdentifier(), $this->virtualFields);
+      //   foreach($result as &$d) {
+      //     $d = $this->handleVirtualFields($d);
+      //   }
+      // }
       return $result;
     }
 
@@ -432,7 +488,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  int                    &$aliasCounter  [alias counter as reference]
      * @return string                 [query part]
      */
-    public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0) {
+    public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0, string $parentAlias = null) {
         if(count($model->getNestedJoins()) == 0 && count($model->getSiblingJoins()) == 0) {
             return '';
         }
@@ -501,27 +557,29 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
             $joinComponents = [];
 
+            $useAlias = $parentAlias ?? $this->table;
+
             if(is_array($thisKey) && is_array($joinKey)) {
               // TODO: check for equal array item counts! otherwise: exception
               // perform a multi-component join
               foreach($thisKey as $index => $thisKeyValue) {
-                $joinComponents[] = "{$alias}.{$joinKey[$index]} = {$this->table}.{$thisKeyValue}";
+                $joinComponents[] = "{$alias}.{$joinKey[$index]} = {$useAlias}.{$thisKeyValue}";
               }
             } else if(is_array($thisKey) && !is_array($joinKey)) {
               foreach($thisKey as $index => $thisKeyValue) {
-                $joinComponents[] = "{$alias}.{$index} = {$this->table}.{$thisKeyValue}";
+                $joinComponents[] = "{$alias}.{$index} = {$useAlias}.{$thisKeyValue}";
               }
             } else if(!is_array($thisKey) && is_array($joinKey)) {
               throw new \LogicException('Not implemented multi-component foreign key join');
             } else {
-              $joinComponents[] = "{$alias}.{$joinKey} = {$this->table}.{$thisKey}";
+              $joinComponents[] = "{$alias}.{$joinKey} = {$useAlias}.{$thisKey}";
             }
 
             // add conditions!
             foreach($join->conditions as $filter) {
               $operator = $filter['value'] == null ? ($filter['operator'] == '!=' ? 'IS NOT' : 'IS') : $filter['operator'];
               $value = $filter['value'] == null ? 'NULL' : $filter['value'];
-              $joinComponents[] = "{$this->table}.{$filter['field']} {$operator} {$value}";
+              $joinComponents[] = "{$useAlias}.{$filter['field']} {$operator} {$value}";
             }
 
             $joinComponentsString = implode(' AND ', $joinComponents);
@@ -529,7 +587,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
             $join->currentAlias = $alias;
 
-            $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter);
+            $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter, $join->currentAlias);
         }
 
         // Loop through siblings
@@ -861,7 +919,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $this->doQuery($query, $params);
         } else {
             $query = $this->saveCreate($data, $params);
+            $this->cachedLastInsertId = null;
             $this->doQuery($query, $params);
+            $this->cachedLastInsertId = $this->db->lastInsertId();
         }
         return $this;
     }
@@ -1475,11 +1535,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
+     * [protected description]
+     * @var int|string|null|bool
+     */
+    protected $cachedLastInsertId = null;
+
+    /**
      * returns the last inserted ID, if available
      * @return string [description]
      */
-    public function lastInsertId () : string {
-        return $this->db->lastInsertId();
+    public function lastInsertId () {
+        return $this->cachedLastInsertId; // $this->db->lastInsertId();
     }
 
     /**

@@ -66,7 +66,7 @@ class cli extends \codename\core\response {
       }
       die();
     }
-    return $value;
+    return;
   }
 
 }

@@ -31,7 +31,7 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    * I contain the prefix of the model to use
    * @var string $prefix
    */
-  protected $prefix = '';
+  public $prefix = '';
 
   /**
    * Creates an instance
@@ -165,21 +165,6 @@ abstract class json extends \codename\core\model\schemeless implements \codename
     }
 
     return $this->mapResults($data);
-  }
-
-  /**
-   * virtual field functions
-   * @var callable[]
-   */
-  protected $virtualFields = [];
-
-  /**
-   * [addVirtualField description]
-   * @param string   $field         [description]
-   * @param callable $fieldFunction [description]
-   */
-  public function addVirtualField(string $field, callable $fieldFunction) {
-    $this->virtualFields[$field] = $fieldFunction;
   }
 
   /**
