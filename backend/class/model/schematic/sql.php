@@ -919,7 +919,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $this->doQuery($query, $params);
         } else {
             $query = $this->saveCreate($data, $params);
+            $this->cachedLastInsertId = null;
             $this->doQuery($query, $params);
+            $this->cachedLastInsertId = $this->db->lastInsertId();
         }
         return $this;
     }
@@ -1533,11 +1535,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
+     * [protected description]
+     * @var int|string|null|bool
+     */
+    protected $cachedLastInsertId = null;
+
+    /**
      * returns the last inserted ID, if available
      * @return string [description]
      */
-    public function lastInsertId () : string {
-        return $this->db->lastInsertId();
+    public function lastInsertId () {
+        return $this->cachedLastInsertId; // $this->db->lastInsertId();
     }
 
     /**
