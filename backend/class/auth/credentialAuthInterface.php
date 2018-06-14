@@ -56,4 +56,10 @@ interface credentialAuthInterface {
      */
     public function makeHash(\codename\core\credential $credential) : string;
 
+    /**
+     * Returns true if we have a valid authentication
+     * returns false otherwise
+     * @return bool [authentication success]
+     */
+    public function isAuthenticated() : bool;
 }
