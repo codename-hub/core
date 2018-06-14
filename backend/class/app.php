@@ -337,6 +337,21 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     }
 
     /**
+     * [handleAccess description]
+     * @return bool [description]
+     */
+    protected function handleAccess() : bool {
+      if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
+          self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
+          $this->getResponse()->setRedirect($this->getApp(), 'login');
+          $this->getResponse()->doRedirect();
+          return false;
+      } else {
+        return true;
+      }
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\app_interface::run()
@@ -364,11 +379,15 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
         try {
 
-          if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
-              self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
-              $this->getResponse()->setRedirect($this->getApp(), 'login');
-              $this->getResponse()->doRedirect();
-              return;
+          // if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
+          //     self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
+          //     $this->getResponse()->setRedirect($this->getApp(), 'login');
+          //     $this->getResponse()->doRedirect();
+          //     return;
+          // }
+
+          if(!$this->handleAccess()) {
+            return;
           }
 
           // perform the main application lifecycle calls
