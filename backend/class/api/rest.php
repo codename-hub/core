@@ -119,7 +119,8 @@ class rest extends \codename\core\api\codename {
     $res = $this->decodeResponse(curl_exec($this->curlHandler));
 
     if(!$res) {
-      curl_error($this->curlHandler);
+      $err = curl_error($this->curlHandler);
+      $this->errorstack->addError('curl', 0, $err);
     }
 
     curl_close($this->curlHandler);
