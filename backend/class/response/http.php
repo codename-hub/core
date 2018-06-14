@@ -27,12 +27,30 @@ class http extends \codename\core\response {
      */
     protected function translateStatus()
     {
+      return $this->translateStatusToHttpStatus();
+      // $translate = array(
+      //   self::STATUS_SUCCESS => 200,
+      //   self::STATUS_INTERNAL_ERROR => 500,
+      //   self::STATUS_NOTFOUND => 404,
+      //   self::STATUS_FORBIDDEN => 403,
+      //   self::STATUS_UNAUTHENTICATED => 401
+      // );
+      // return $translate[$this->status];
+    }
+
+    /**
+     * [translateStatusToHttpStatus description]
+     * @return int [description]
+     */
+    protected function translateStatusToHttpStatus() : int {
       $translate = array(
         self::STATUS_SUCCESS => 200,
         self::STATUS_INTERNAL_ERROR => 500,
-        self::STATUS_NOTFOUND => 404
+        self::STATUS_NOTFOUND => 404,
+        self::STATUS_FORBIDDEN => 403,
+        self::STATUS_UNAUTHENTICATED => 401
       );
-      return $translate[$this->status];
+      return $translate[$this->status] ?? 418; // fallback: teapot
     }
 
     /**
@@ -41,6 +59,7 @@ class http extends \codename\core\response {
      */
     public function pushOutput()
     {
+      http_response_code($this->translateStatusToHttpStatus());
       echo $this->getOutput();
     }
 
