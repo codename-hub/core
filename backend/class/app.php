@@ -265,8 +265,12 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
         // Core Exception Handler
         set_exception_handler(function(\Throwable $t) {
-          $code = is_int($t->getCode()) ? $t->getCode() : 0;
-          app::getResponse()->displayException(new \Exception($t->getMessage(), $code, $t));
+          if(self::shouldThrowException()) {
+            throw $t;
+          } else {
+            $code = is_int($t->getCode()) ? $t->getCode() : 0;
+            app::getResponse()->displayException(new \Exception($t->getMessage(), $code, $t));
+          }
         });
 
         self::getHook()->fire(\codename\core\hook::EVENT_APP_INITIALIZING);
@@ -275,7 +279,13 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         return;
     }
 
-
+    /**
+     * [shouldThrowException description]
+     * @return bool
+     */
+    protected static function shouldThrowException() : bool {
+      return self::getEnv() == 'dev' && extension_loaded('xdebug') && xdebug_is_enabled();
+    }
 
     /**
      * [initDebug description]
@@ -372,7 +382,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         try {
           $this->makeRequest();
         } catch (\Exception $e) {
-          $this->getResponse()->displayException($e);
+          if(self::shouldThrowException()) {
+            throw $e;
+          } else {
+            $this->getResponse()->displayException($e);
+          }
         }
 
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_MAIN);
@@ -396,7 +410,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         } catch (\Exception $e) {
           // display exception using the current response class
           // which may be either http or even CLI !
-          $this->getResponse()->displayException($e);
+          if(self::shouldThrowException()) {
+            throw $e;
+          } else {
+            $this->getResponse()->displayException($e);
+          }
         }
 
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_END);
