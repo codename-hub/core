@@ -284,7 +284,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return bool
      */
     protected static function shouldThrowException() : bool {
-      return self::getEnv() == 'dev' && extension_loaded('xdebug') && xdebug_is_enabled();
+      return self::getEnv() == 'dev' && extension_loaded('xdebug') && xdebug_is_enabled() && isset($_COOKIE['XDEBUG_SESSION_START']);
     }
 
     /**
