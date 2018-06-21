@@ -823,7 +823,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @param array $filters [array of array( 'field' => ..., 'value' => ... )-elements]
      * @param string $groupOperator [e.g. 'AND' or 'OR']
      */
-    public function addFilterCollection(array $filters, string $groupOperator = null, string $groupName = 'default', string $conjunction = null) : model {
+    public function addFilterCollection(array $filters, string $groupOperator = 'AND', string $groupName = 'default', string $conjunction = null) : model {
       $filterCollection = array();
       foreach($filters as $filter) {
         $field = $filter['field'];
