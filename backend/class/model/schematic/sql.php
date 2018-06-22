@@ -241,11 +241,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             }
           } else {
             // error?
-            /* print_r($res);
-            print_r($childConfig);
-            print_r($this->getNestedJoins());
-            */
-            // die("BAP!");
+            // Throw an exception if there is no single, but multiple joins that match our condition
+            if(count($res) > 1) {
+              throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_CHILDREN_AMBIGUOUS_JOINS', exception::$ERRORLEVEL_ERROR, [
+                'child' => $child,
+                'childConfig' => $childConfig,
+                'foreign' => $field,
+                'foreignConfig' => $foreignConfig
+              ]);
+            }
+
+            // TODO: make sure we should do it like that.
+            //
           }
           unset($data2[$child]);
         }
