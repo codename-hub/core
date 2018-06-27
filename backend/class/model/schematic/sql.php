@@ -438,6 +438,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     }
                   }
 
+                  $vData = $vModel->normalizeRow($vData);
+
                   // handle custom virtual fields
                   if(count($vModel->getVirtualFields()) > 0) {
                     // foreach($vData as &$d) {
