@@ -408,6 +408,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   }
                 }
               }
+
+              if($index === null) {
+                // index is still null -> model not found in currently nested models
+                continue;
+                // throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_VIRTUALFIELDRESULT_INDEX_UNDETERMINABLE_JOIN_NOT_FOUND', exception::$ERRORLEVEL_ERROR, [
+                //   'child' => $field,
+                //   'model' => $foreign['model'],
+                //   'field' => $config['field']
+                // ]);
+              }
               $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
 
               // app::getResponse()->setData('fieldvModelIndex>'.$field, $index);
