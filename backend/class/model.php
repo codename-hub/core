@@ -779,7 +779,8 @@ abstract class model implements \codename\core\model\modelInterface {
             }
             array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
         } else {
-            array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator, $conjunction));
+            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            array_push($this->filter, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $conjunction));
         }
         return $this;
     }
@@ -791,7 +792,7 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function addFieldFilter(string $field, string $otherField, string $operator = '=', string $conjuction = null) : model {
         $class = '\\codename\\core\\model\\plugin\\fieldfilter\\' . $this->getType();
-        array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), new \codename\core\value\text\modelfield($otherField), $operator, $conjuction));
+        array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), \codename\core\value\text\modelfield::getInstance($otherField), $operator, $conjuction));
         return $this;
     }
 
@@ -837,7 +838,8 @@ abstract class model implements \codename\core\model\modelInterface {
             }
             array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $filter_conjunction));
         } else {
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator, $filter_conjunction));
+            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            array_push($filterCollection, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $filter_conjunction));
         }
       }
       if(count($filterCollection) > 0) {
@@ -864,7 +866,8 @@ abstract class model implements \codename\core\model\modelInterface {
             }
             array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $filter_conjunction));
         } else {
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator, $filter_conjunction));
+            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            array_push($filterCollection, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $filter_conjunction));
         }
       }
       if(sizeof($filterCollection) > 0) {

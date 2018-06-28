@@ -427,7 +427,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   $vData = [];
                   foreach($vModel->getFields() as $modelField) {
                     if(isset($dataset[$modelField])) {
-                      if(is_array($dataset[$modelField]) && $vModel->config->get('datatype>'.$modelField) !== 'virtual') {
+                      if(is_array($dataset[$modelField]) && $vModel->getFieldtype(\codename\core\value\text\modelfield::getInstance($modelField)) !== 'virtual') {
                         $vData[$modelField] = $dataset[$modelField][$index] ?? null;
                       } else {
                         $vData[$modelField] = $dataset[$modelField] ?? null;
@@ -761,7 +761,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
                 // performance hack: store modelfield instance!
                 if(!isset($this->modelfieldInstance[$field])) {
-                  $this->modelfieldInstance[$field] = new \codename\core\value\text\modelfield($field);
+                  $this->modelfieldInstance[$field] = \codename\core\value\text\modelfield::getInstance($field);
                 }
                 $fieldInstance = $this->modelfieldInstance[$field];
 
@@ -827,7 +827,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
                 // performance hack: store modelfield instance!
                 if(!isset($this->modelfieldInstance[$field])) {
-                  $this->modelfieldInstance[$field] = new \codename\core\value\text\modelfield($field);
+                  $this->modelfieldInstance[$field] = \codename\core\value\text\modelfield::getInstance($field);
                 }
                 $fieldInstance = $this->modelfieldInstance[$field];
 
@@ -853,7 +853,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
                 // performance hack: store modelfield instance!
                 if(!isset($this->modelfieldInstance[$field])) {
-                  $this->modelfieldInstance[$field] = new \codename\core\value\text\modelfield($field);
+                  $this->modelfieldInstance[$field] = \codename\core\value\text\modelfield::getInstance($field);
                 }
                 $fieldInstance = $this->modelfieldInstance[$field];
 
@@ -986,7 +986,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
               // performance hack: store modelfield instance!
               if(!isset($this->modelfieldInstance[$field])) {
-                $this->modelfieldInstance[$field] = new \codename\core\value\text\modelfield($field);
+                $this->modelfieldInstance[$field] = \codename\core\value\text\modelfield::getInstance($field);
               }
               $fieldInstance = $this->modelfieldInstance[$field];
 
