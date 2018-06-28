@@ -113,7 +113,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         return $this->data->getData();
     }*/
 
-
+    /**
+     * @inheritDoc
+     */
+    protected function getCurrentCacheIdentifierParameters(): array
+    {
+      $params = parent::getCurrentCacheIdentifierParameters();
+      //
+      // extend cache params by the virtual field result setting
+      //
+      $params['virtualfieldresult'] = $this->virtualFieldResult;
+      return $params;
+    }
     /**
      * Undocumented variable
      *

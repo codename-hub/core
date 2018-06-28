@@ -1126,22 +1126,24 @@ abstract class model implements \codename\core\model\modelInterface {
     public function loadByUnique(string $field, string $value) : array {
         $data = $this->addFilter($field, $value, '=')->setLimit(1);
 
-        if($field == $this->getPrimarykey()) {
+        if($field == $this->getPrimarykey() && count($this->filter) === 1 && count($this->filterCollections) === 0) {
             $cacheObj = app::getCache();
             $cacheGroup = $this->getCachegroup();
             $cacheKey = "PRIMARY_" . $value;
 
             $myData = $cacheObj->get($cacheGroup, $cacheKey);
-            if(!is_array($myData) || count($myData) == 0) {
+
+            if(!is_array($myData) || count($myData) === 0) {
                 $myData = $data->search()->getResult();
                 if(count($myData) == 1) {
                     $cacheObj->set($cacheGroup, $cacheKey, $myData);
                 }
+            } else {
+              // NOTE/TODO:
+              // We might reset() the model here, as the filter created previously
+              // may be passed to the next query...
+              $data->reset();
             }
-
-            // NOTE/TODO:
-            // We might reset() the model here, as the filter created previously
-            // may be passed to the next query...
 
             if(count($myData) > 0) {
                 return $myData[0];
@@ -1162,18 +1164,29 @@ abstract class model implements \codename\core\model\modelInterface {
      * @param \codename\core\value\text\modelfield $field
      * @return string
      */
-    public function getFieldtype(\codename\core\value\text\modelfield $field) : string {
+    public function getFieldtype(\codename\core\value\text\modelfield $field) {
       $specifier = $field->get();
       if(array_key_exists($specifier, $this->cachedFieldtype)) {
         return $this->cachedFieldtype[$specifier];
       } else {
 
+        // // DEBUG
+        // \codename\core\app::getResponse()->setData('getFieldtypeCounter', \codename\core\app::getResponse()->getData('getFieldtypeCounter') +1 );
+
         // fieldtype not in current model config
-        if(!$this->config->exists("datatype>" . $specifier)) {
+        if(($fieldtype = $this->config->get("datatype>" . $specifier))) {
+
+          // field in this model
+          $this->cachedFieldtype[$specifier] = $fieldtype;
+          return $this->cachedFieldtype[$specifier];
+
+        } else {
+
           // check nested model configs
           foreach($this->nestedModels as $joinPlugin) {
             $fieldtype = $joinPlugin->model->getFieldtype($field);
-            if($fieldtype != 'text') {
+            if($fieldtype !== null) {
+              $this->cachedFieldtype[$specifier] = $fieldtype;
               return $fieldtype;
             }
           }
@@ -1181,16 +1194,22 @@ abstract class model implements \codename\core\model\modelInterface {
           // check sibling model configs
           foreach($this->siblingModels as $joinPlugin) {
             $fieldtype = $joinPlugin->model->getFieldtype($field);
-            if($fieldtype != 'text') {
+            if($fieldtype !== null) {
+              $this->cachedFieldtype[$specifier] = $fieldtype;
               return $fieldtype;
             }
           }
-          return 'text';
+
+          // cache error value, too
+          $fieldtype = null;
+
+          // // DEBUG
+          // \codename\core\app::getResponse()->setData('fieldtype_errors', array_merge(\codename\core\app::getResponse()->getData('fieldtype_errors') ?? [], [ $this->getIdentifier().':'.$specifier ]) );
+
+          $this->cachedFieldtype[$specifier] = $fieldtype;
+          return $this->cachedFieldtype[$specifier];
         }
 
-        // use cached value
-        $this->cachedFieldtype[$specifier] = $this->config->get("datatype>".$specifier);
-        return $this->cachedFieldtype[$specifier];
       }
     }
 
@@ -1199,7 +1218,6 @@ abstract class model implements \codename\core\model\modelInterface {
      * @var array
      */
     protected $cachedFieldtype = array();
-
 
     /**
      * Returns array of fields that exist in the model
@@ -1546,6 +1564,23 @@ abstract class model implements \codename\core\model\modelInterface {
         return app::getCache();
     }
 
+    /**
+     * [getCurrentCacheIdentifierParameters description]
+     * @return array [description]
+     */
+    protected function getCurrentCacheIdentifierParameters() : array {
+      $params = [];
+      // $params[$this->getIdentifier()] = array_merge($this->filter, $this->filterCollections);
+      $params['filter'] = $this->filter;
+      $params['filtercollections'] = $this->filterCollections;
+      foreach($this->getNestedJoins() as $join) {
+        $params['nest'][$join->model->getIdentifier()] = $join->model->getCurrentCacheIdentifierParameters();
+      }
+      foreach($this->getSiblingJoins() as $join) {
+        $params['sibling'][$join->model->getIdentifier()] = $join->model->getCurrentCacheIdentifierParameters();
+      }
+      return $params;
+    }
 
     /**
      * Perform the given query and save the result in the instance
@@ -1561,7 +1596,7 @@ abstract class model implements \codename\core\model\modelInterface {
               array(
                 get_class($this),
                 $query,
-                array_merge($this->filter, $this->filterCollections),
+                $this->getCurrentCacheIdentifierParameters(), // array_merge($this->filter, $this->filterCollections),
                 $params
               )
             ));
