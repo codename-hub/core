@@ -391,8 +391,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
       }
 
-      if($this->config->exists('children')) {
-        foreach($this->config->get('children') as $field => $config) {
+      if(($children = $this->config->get('children')) != null) {
+        foreach($children as $field => $config) {
           if($config['type'] === 'foreign') {
             $foreign = $this->config->get('foreign>'.$config['field']);
             if($this->config->get('datatype>'.$field) == 'virtual') {

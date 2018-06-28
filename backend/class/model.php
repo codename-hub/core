@@ -1629,8 +1629,8 @@ abstract class model implements \codename\core\model\modelInterface {
         $vKey = null;
         if($this instanceof \codename\core\model\virtualFieldResultInterface && $this->virtualFieldResult) {
           // pick only parts of the arrays
-          if($this->config->exists('children')) {
-            foreach($this->config->get('children') as $vField => $config) {
+          if(($children = $this->config->get('children')) !== null) {
+            foreach($children as $vField => $config) {
               if($config['type'] === 'foreign' && $config['field'] === $join->modelField) {
                 $vKey = $vField;
               }
