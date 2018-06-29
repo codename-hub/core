@@ -75,14 +75,15 @@ class json extends \codename\core\model\plugin\join implements \codename\core\mo
         if(isset($rightValue[$leftValue[$leftField]])) {
           $leftValue = array_merge($leftValue, $rightValue[$leftValue[$leftField]]);
           $found = true;
-          break;
         }
+
       } else {
         foreach($right as $rightValue) {
           if($leftValue[$leftField] == $rightValue[$rightField]) {
             $leftValue = array_merge($leftValue, $rightValue);
             $found = true;
             break;
+
           }
         }
       }

@@ -98,7 +98,18 @@ class datacontainer {
      * @param string $key
      */
     public function isDefined(string $key) : bool {
-        return array_key_exists($key, $this->data);
+        if(strpos($key, '>') === false) {
+          return array_key_exists($key, $this->data);
+        } else {
+          $myConfig = $this->data;
+          foreach(explode('>', $key) as $myKey) {
+              if(!array_key_exists($myKey, $myConfig)) {
+                  return false;
+              }
+              $myConfig = $myConfig[$myKey];
+          }
+          return true;
+        }
     }
 
     /**

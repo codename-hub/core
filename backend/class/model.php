@@ -236,7 +236,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * Contains the database connection
-     * @var db
+     * @var \codename\core\database
      */
     protected $db = null;
 
@@ -272,6 +272,14 @@ abstract class model implements \codename\core\model\modelInterface {
     public $config = null;
 
     /**
+     * returns the config object
+     * @return \codename\core\config [description]
+     */
+    public function getConfig() : \codename\core\config {
+      return $this->config;
+    }
+
+    /**
      * loads a new config file (uncached)
      * implement me!
      * @return \codename\core\config
@@ -280,10 +288,18 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * [getNestedJoins description]
-     * @return \codename\core\model\plugin\join[]
+     * @param  string|null  $model                  name of a model to look for
+     * @param  string|null  $modelField             name of a field the model is joined upon
+     * @return \codename\core\model\plugin\join[]   [array of joins, may be empty]
      */
-    public function getNestedJoins() : array {
+    public function getNestedJoins(string $model = null, string $modelField = null) : array {
+      if($model || $modelField) {
+        return array_values(array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($model, $modelField){
+          return ($model === null || $join->model->getIdentifier() === $model) && ($modelField === null || $join->modelField === $modelField);
+        }));
+      } else {
         return $this->nestedModels;
+      }
     }
 
     /**
@@ -763,7 +779,8 @@ abstract class model implements \codename\core\model\modelInterface {
             }
             array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
         } else {
-            array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator, $conjunction));
+            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            array_push($this->filter, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $conjunction));
         }
         return $this;
     }
@@ -775,7 +792,7 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function addFieldFilter(string $field, string $otherField, string $operator = '=', string $conjuction = null) : model {
         $class = '\\codename\\core\\model\\plugin\\fieldfilter\\' . $this->getType();
-        array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), new \codename\core\value\text\modelfield($otherField), $operator, $conjuction));
+        array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), \codename\core\value\text\modelfield::getInstance($otherField), $operator, $conjuction));
         return $this;
     }
 
@@ -807,7 +824,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @param array $filters [array of array( 'field' => ..., 'value' => ... )-elements]
      * @param string $groupOperator [e.g. 'AND' or 'OR']
      */
-    public function addFilterCollection(array $filters, string $groupOperator = null, string $groupName = 'default', string $conjunction = null) : model {
+    public function addFilterCollection(array $filters, string $groupOperator = 'AND', string $groupName = 'default', string $conjunction = null) : model {
       $filterCollection = array();
       foreach($filters as $filter) {
         $field = $filter['field'];
@@ -821,7 +838,8 @@ abstract class model implements \codename\core\model\modelInterface {
             }
             array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $filter_conjunction));
         } else {
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator, $filter_conjunction));
+            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            array_push($filterCollection, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $filter_conjunction));
         }
       }
       if(count($filterCollection) > 0) {
@@ -848,7 +866,8 @@ abstract class model implements \codename\core\model\modelInterface {
             }
             array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $filter_conjunction));
         } else {
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator, $filter_conjunction));
+            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            array_push($filterCollection, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $filter_conjunction));
         }
       }
       if(sizeof($filterCollection) > 0) {
@@ -940,6 +959,34 @@ abstract class model implements \codename\core\model\modelInterface {
         return $this;
     }
 
+    /**
+     * virtual field functions
+     * @var callable[]
+     */
+    protected $virtualFields = [];
+
+    /**
+     * [addVirtualField description]
+     * @param string   $field         [description]
+     * @param callable $fieldFunction [description]
+     * @return model [this instance]
+     */
+    public function addVirtualField(string $field, callable $fieldFunction) : model {
+      $this->virtualFields[$field] = $fieldFunction;
+      return $this;
+    }
+
+    /**
+     * [handleVirtualFields description]
+     * @param  array $dataset [description]
+     * @return array          [description]
+     */
+    public function handleVirtualFields(array $dataset) : array {
+      foreach($this->virtualFields as $field => $function) {
+        $dataset[$field] = $function($dataset);
+      }
+      return $dataset;
+    }
 
     /**
      *
@@ -1079,18 +1126,25 @@ abstract class model implements \codename\core\model\modelInterface {
     public function loadByUnique(string $field, string $value) : array {
         $data = $this->addFilter($field, $value, '=')->setLimit(1);
 
-        if($field == $this->getPrimarykey()) {
+        if($field == $this->getPrimarykey() && count($this->filter) === 1 && count($this->filterCollections) === 0) {
             $cacheObj = app::getCache();
             $cacheGroup = $this->getCachegroup();
             $cacheKey = "PRIMARY_" . $value;
 
             $myData = $cacheObj->get($cacheGroup, $cacheKey);
-            if(!is_array($myData) || count($myData) == 0) {
+
+            if(!is_array($myData) || count($myData) === 0) {
                 $myData = $data->search()->getResult();
                 if(count($myData) == 1) {
                     $cacheObj->set($cacheGroup, $cacheKey, $myData);
                 }
+            } else {
+              // NOTE/TODO:
+              // We might reset() the model here, as the filter created previously
+              // may be passed to the next query...
+              $data->reset();
             }
+
             if(count($myData) > 0) {
                 return $myData[0];
             }
@@ -1110,18 +1164,29 @@ abstract class model implements \codename\core\model\modelInterface {
      * @param \codename\core\value\text\modelfield $field
      * @return string
      */
-    public function getFieldtype(\codename\core\value\text\modelfield $field) : string {
+    public function getFieldtype(\codename\core\value\text\modelfield $field) {
       $specifier = $field->get();
       if(array_key_exists($specifier, $this->cachedFieldtype)) {
         return $this->cachedFieldtype[$specifier];
       } else {
 
+        // // DEBUG
+        // \codename\core\app::getResponse()->setData('getFieldtypeCounter', \codename\core\app::getResponse()->getData('getFieldtypeCounter') +1 );
+
         // fieldtype not in current model config
-        if(!$this->config->exists("datatype>" . $specifier)) {
+        if(($fieldtype = $this->config->get("datatype>" . $specifier))) {
+
+          // field in this model
+          $this->cachedFieldtype[$specifier] = $fieldtype;
+          return $this->cachedFieldtype[$specifier];
+
+        } else {
+
           // check nested model configs
           foreach($this->nestedModels as $joinPlugin) {
             $fieldtype = $joinPlugin->model->getFieldtype($field);
-            if($fieldtype != 'text') {
+            if($fieldtype !== null) {
+              $this->cachedFieldtype[$specifier] = $fieldtype;
               return $fieldtype;
             }
           }
@@ -1129,16 +1194,22 @@ abstract class model implements \codename\core\model\modelInterface {
           // check sibling model configs
           foreach($this->siblingModels as $joinPlugin) {
             $fieldtype = $joinPlugin->model->getFieldtype($field);
-            if($fieldtype != 'text') {
+            if($fieldtype !== null) {
+              $this->cachedFieldtype[$specifier] = $fieldtype;
               return $fieldtype;
             }
           }
-          return 'text';
+
+          // cache error value, too
+          $fieldtype = null;
+
+          // // DEBUG
+          // \codename\core\app::getResponse()->setData('fieldtype_errors', array_merge(\codename\core\app::getResponse()->getData('fieldtype_errors') ?? [], [ $this->getIdentifier().':'.$specifier ]) );
+
+          $this->cachedFieldtype[$specifier] = $fieldtype;
+          return $this->cachedFieldtype[$specifier];
         }
 
-        // use cached value
-        $this->cachedFieldtype[$specifier] = $this->config->get("datatype>".$specifier);
-        return $this->cachedFieldtype[$specifier];
       }
     }
 
@@ -1148,13 +1219,20 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     protected $cachedFieldtype = array();
 
-
     /**
      * Returns array of fields that exist in the model
      * @return array
      */
     public function getFields() : array {
         return $this->config->get('field');
+    }
+
+    /**
+     * returns an array of virtual fields (names) currently configured
+     * @return array [description]
+     */
+    public function getVirtualFields() : array {
+        return array_keys($this->virtualFields);
     }
 
     /**
@@ -1249,36 +1327,49 @@ abstract class model implements \codename\core\model\modelInterface {
           }
         }
 
-        $dataob = $this->data;
-        if(is_array($this->config->get("unique"))) {
-            foreach($this->config->get("unique") as $key => $fields) {
-                if(!is_array($fields)) {
-                    continue;
-                }
-                $filtersApplied = 0;
-
-                // exclude my own dataset if UPDATE is in progress
-                if(array_key_exists($this->getPrimarykey(), $data) && strlen($data[$this->getPrimarykey()]) > 0) {
-                    $this->addFilter($this->getPrimarykey(), $data[$this->getPrimarykey()], '!=');
-                }
-
-                foreach($fields as $field) {
-                    // if(!array_key_exists($field, $data) || strlen($data[$field]) == 0) {
-                    //     continue;
-                    // }
-                    $this->addFilter($field, $data[$field] ?? null, '=');
-                    $filtersApplied++;
-                }
-                if($filtersApplied == 0) {
-                    continue;
-                }
-
-                if(count($this->search()->getResult()) > 0) {
-                    $this->errorstack->addError($field, 'FIELD_DUPLICATE', $data[$field]);
-                }
-            }
-        }
-        $this->data = $dataob;
+        // $dataob = $this->data;
+        // if(is_array($this->config->get("unique"))) {
+        //     foreach($this->config->get("unique") as $key => $fields) {
+        //         if(!is_array($fields)) {
+        //             continue;
+        //         }
+        //         $filtersApplied = 0;
+        //
+        //         // exclude my own dataset if UPDATE is in progress
+        //         if(array_key_exists($this->getPrimarykey(), $data) && strlen($data[$this->getPrimarykey()]) > 0) {
+        //             $this->addFilter($this->getPrimarykey(), $data[$this->getPrimarykey()], '!=');
+        //         }
+        //
+        //         foreach($fields as $field) {
+        //             // if(!array_key_exists($field, $data) || strlen($data[$field]) == 0) {
+        //             //     continue;
+        //             // }
+        //             if(is_array($field)) {
+        //               // $this->addFilter($field, $data[$field] ?? null, '=');
+        //               $uniqueFilters = [];
+        //               foreach($field as $uniqueFieldComponent) {
+        //                 $uniqueFilters[] = [ 'field' => $uniqueFieldComponent, 'value' => $data[$uniqueFieldComponent], 'operator' => '='];
+        //                 if($data[$uniqueFieldComponent] === null) {
+        //                   break;
+        //                 }
+        //               }
+        //               $this->addFilterCollection($uniqueFilters, 'AND');
+        //             } else {
+        //               $this->addFilter($field, $data[$field] ?? null, '=');
+        //             }
+        //             $filtersApplied++;
+        //         }
+        //
+        //         if($filtersApplied === 0) {
+        //             continue;
+        //         }
+        //
+        //         if(count($this->search()->getResult()) > 0) {
+        //             $this->errorstack->addError($field, 'FIELD_DUPLICATE', $data[$field]);
+        //         }
+        //     }
+        // }
+        // $this->data = $dataob;
 
         return $this;
     }
@@ -1473,6 +1564,23 @@ abstract class model implements \codename\core\model\modelInterface {
         return app::getCache();
     }
 
+    /**
+     * [getCurrentCacheIdentifierParameters description]
+     * @return array [description]
+     */
+    protected function getCurrentCacheIdentifierParameters() : array {
+      $params = [];
+      // $params[$this->getIdentifier()] = array_merge($this->filter, $this->filterCollections);
+      $params['filter'] = $this->filter;
+      $params['filtercollections'] = $this->filterCollections;
+      foreach($this->getNestedJoins() as $join) {
+        $params['nest'][$join->model->getIdentifier()] = $join->model->getCurrentCacheIdentifierParameters();
+      }
+      foreach($this->getSiblingJoins() as $join) {
+        $params['sibling'][$join->model->getIdentifier()] = $join->model->getCurrentCacheIdentifierParameters();
+      }
+      return $params;
+    }
 
     /**
      * Perform the given query and save the result in the instance
@@ -1488,7 +1596,7 @@ abstract class model implements \codename\core\model\modelInterface {
               array(
                 get_class($this),
                 $query,
-                array_merge($this->filter, $this->filterCollections),
+                $this->getCurrentCacheIdentifierParameters(), // array_merge($this->filter, $this->filterCollections),
                 $params
               )
             ));
@@ -1537,30 +1645,103 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * perform a shim / bare metal join
+     * @param array $result [the resultset]
      * @return array
      */
     protected function performBareJoin(array $result) : array {
       if(count($this->getNestedJoins()) == 0 && count($this->getSiblingJoins()) == 0) {
         return $result;
       }
-      foreach($this->getNestedJoins() as $join) {
+
+      //
+      // Loop through Joins
+      // nested first
+      // siblings second
+      //
+      foreach(array_merge($this->getNestedJoins(), $this->getSiblingJoins()) as $join) {
         $nest = $join->model;
 
-        // check model joining compatible
-        // we explicitly join incompatible models using a bare-data here!
-        if(!$this->compatibleJoin($nest) && ($join instanceof \codename\core\model\plugin\join\executableJoinInterface)) {
-          $subresult = $nest->search()->getResult();
-          $result = $join->join($result, $subresult);
+        $vKey = null;
+        if($this instanceof \codename\core\model\virtualFieldResultInterface && $this->virtualFieldResult) {
+          // pick only parts of the arrays
+          if(($children = $this->config->get('children')) !== null) {
+            foreach($children as $vField => $config) {
+              if($config['type'] === 'foreign' && $config['field'] === $join->modelField) {
+                $vKey = $vField;
+              }
+            }
+          }
         }
-      }
-      foreach($this->getSiblingJoins() as $join) {
-        $nest = $join->model;
 
-        // check model joining compatible
-        // we explicitly join incompatible models using a bare-data join here!
+        // virtual field?
+        if($vKey) {
+
+          //
+          // Skip recursive performBareJoin
+          // if we have none coming up next
+          //
+          if(count($nest->getNestedJoins()) == 0 && count($nest->getSiblingJoins()) == 0) {
+            continue;
+          }
+
+          //
+          // Unwind resultset
+          // [ item, item, item ] -> [ item[key], item[key], item[key] ]
+          //
+          $tResult = array_map(function($r) use ($vKey) {
+            return $r[$vKey];
+          }, $result);
+
+          //
+          // Recursively check for bareJoinable models
+          // with a subset of the current result
+          //
+          $tResult = $nest->performBareJoin($tResult);
+
+          //
+          // Re-wind resultset
+          // [ item[key], item[key], item[key] ] -> merge into [ item, item, item ]
+          //
+          foreach($result as $index => &$r) {
+            $r[$vKey] = array_merge( $r[$vKey], $tResult[$index]);
+          }
+        } else {
+          $result = $nest->performBareJoin($result);
+        }
+
+        //
+        // check if model is joining compatible
+        // we explicitly join incompatible models using a bare-data here!
+        //
         if(!$this->compatibleJoin($nest) && ($join instanceof \codename\core\model\plugin\join\executableJoinInterface)) {
+
           $subresult = $nest->search()->getResult();
-          $result = $join->join($result, $subresult);
+
+          if($vKey) {
+            //
+            // Unwind resultset
+            // [ item, item, item ] -> [ item[key], item[key], item[key] ]
+            //
+            $tResult = array_map(function($r) use ($vKey) {
+              return $r[$vKey];
+            }, $result);
+
+            //
+            // Recursively perform the
+            // with a subset of the current result
+            //
+            $tResult = $join->join($tResult, $subresult);
+
+            //
+            // Re-wind resultset
+            // [ item[key], item[key], item[key] ] -> merge into [ item, item, item ]
+            //
+            foreach($result as $index => &$r) {
+              $r[$vKey] = array_merge( $tResult[$index] );
+            }
+          } else {
+            $result = $join->join($result, $subresult);
+          }
         }
       }
       return $result;
@@ -1653,6 +1834,12 @@ abstract class model implements \codename\core\model\modelInterface {
     protected $normalizeModelFieldTypeStructureCache = array();
 
     /**
+     * [protected description]
+     * @var bool[]
+     */
+    protected $normalizeModelFieldTypeVirtualCache = array();
+
+    /**
      * Normalizes a single row of a dataset
      * @param array $dataset
      */
@@ -1667,13 +1854,24 @@ abstract class model implements \codename\core\model\modelInterface {
             // Check for (key == null) first, as it is faster than is_string
             if($dataset[$field] == null || !is_string($dataset[$field])) {continue;}
 
+            // determine virtuality status of the field
+            if(!isset($this->normalizeModelFieldTypeVirtualCache[$field])) {
+              $tVirtualModelField = \codename\core\value\text\modelfield\virtual::getInstance($field);
+              $this->normalizeModelFieldTypeCache[$field] = $this->getFieldtype($tVirtualModelField);
+              $this->normalizeModelFieldTypeVirtualCache[$field] = $this->normalizeModelFieldTypeCache[$field] === 'virtual';
+            }
+
             ///
             /// Fixing a bad performance issue
             /// using result-specific model field caching
             /// as they're re-constructed EVERY call!
             ///
             if(!isset($this->normalizeModelFieldCache[$field])) {
-              $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield::getInstance($field);
+              if($this->normalizeModelFieldTypeVirtualCache[$field]) {
+                $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield\virtual::getInstance($field);
+              } else {
+                $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield::getInstance($field);
+              }
             }
 
             if(!isset($this->normalizeModelFieldTypeCache[$field])) {
@@ -1710,6 +1908,12 @@ abstract class model implements \codename\core\model\modelInterface {
         $this->filterDuplicates = false;
         $this->order = array();
         $this->errorstack->reset();
+        foreach($this->nestedModels as $nest) {
+          $nest->model->reset();
+        }
+        foreach($this->siblingModels as $nest) {
+          $nest->model->reset();
+        }
         return;
     }
 

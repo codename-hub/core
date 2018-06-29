@@ -143,4 +143,61 @@ class database extends \codename\core\observable {
       return $this->connection;
     }
 
+    /**
+     * Virtual Transaction Counter
+     * @var array
+     */
+    protected $virtualTransactions = [];
+
+    /**
+     * Global virtual transaction counter
+     * @var int
+     */
+    protected $aggregatedVirtualTransactions = 0;
+
+    /**
+     * Starts a virtualized transaction
+     * that may handle multi-model transactions
+     *
+     * @param  string $transactionName [description]
+     * @return void
+     */
+    public function beginVirtualTransaction(string $transactionName = 'default') {
+      if(!isset($this->virtualTransactions[$transactionName])) {
+        $this->virtualTransactions[$transactionName] = 0;
+      }
+      if($this->virtualTransactions[$transactionName] === 0 && $this->aggregatedVirtualTransactions === 0) {
+        // this may cause errors when using multiple transaction names...
+        if($this->connection->inTransaction()) {
+          throw new exception('EXCEPTION_DATABASE_VIRTUALTRANSACTION_UNTRACKED_TRANSACTION_RUNNING', exception::$ERRORLEVEL_FATAL);
+        }
+        // We have no open transactions with the given name, open a new one
+        $this->connection->beginTransaction();
+      }
+
+      $this->virtualTransactions[$transactionName]++;
+      $this->aggregatedVirtualTransactions++;
+    }
+
+    /**
+     * [endVirtualTransaction description]
+     * @param  string $transactionName [description]
+     * @return [type]                  [description]
+     */
+    public function endVirtualTransaction(string $transactionName = 'default') {
+      if(!isset($this->virtualTransactions[$transactionName]) || $this->virtualTransactions[$transactionName] === 0) {
+        throw new exception('EXCEPTION_DATABASE_VIRTUALTRANSACTION_END_DOESNOTEXIST', exception::$ERRORLEVEL_FATAL, $transactionName);
+      }
+      if(!$this->connection->inTransaction()) {
+        throw new exception('EXCEPTION_DATABASE_VIRTUALTRANSACTION_END_TRANSACTION_INTERRUPTED', exception::$ERRORLEVEL_FATAL, $transactionName);
+      }
+
+      $this->virtualTransactions[$transactionName]--;
+      $this->aggregatedVirtualTransactions--;
+
+      if($this->virtualTransactions[$transactionName] === 0 && $this->aggregatedVirtualTransactions === 0) {
+        $this->connection->commit();
+      }
+    }
+
 }

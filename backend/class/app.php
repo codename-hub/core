@@ -265,8 +265,12 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
         // Core Exception Handler
         set_exception_handler(function(\Throwable $t) {
-          $code = is_int($t->getCode()) ? $t->getCode() : 0;
-          app::getResponse()->displayException(new \Exception($t->getMessage(), $code, $t));
+          if(self::shouldThrowException()) {
+            throw $t;
+          } else {
+            $code = is_int($t->getCode()) ? $t->getCode() : 0;
+            app::getResponse()->displayException(new \Exception($t->getMessage(), $code, $t));
+          }
         });
 
         self::getHook()->fire(\codename\core\hook::EVENT_APP_INITIALIZING);
@@ -275,7 +279,13 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         return;
     }
 
-
+    /**
+     * [shouldThrowException description]
+     * @return bool
+     */
+    protected static function shouldThrowException() : bool {
+      return self::getEnv() == 'dev' && extension_loaded('xdebug') && xdebug_is_enabled() && !isset($_REQUEST['XDEBUG_SESSION_STOP']) && (isset($_REQUEST['XDEBUG_SESSION_START']) || isset($_COOKIE['XDEBUG_SESSION']));
+    }
 
     /**
      * [initDebug description]
@@ -337,6 +347,21 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     }
 
     /**
+     * [handleAccess description]
+     * @return bool [description]
+     */
+    protected function handleAccess() : bool {
+      if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
+          self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
+          $this->getResponse()->setRedirect($this->getApp(), 'login');
+          $this->getResponse()->doRedirect();
+          return false;
+      } else {
+        return true;
+      }
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\app_interface::run()
@@ -357,18 +382,26 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         try {
           $this->makeRequest();
         } catch (\Exception $e) {
-          $this->getResponse()->displayException($e);
+          if(self::shouldThrowException()) {
+            throw $e;
+          } else {
+            $this->getResponse()->displayException($e);
+          }
         }
 
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_MAIN);
 
         try {
 
-          if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
-              self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
-              $this->getResponse()->setRedirect($this->getApp(), 'login');
-              $this->getResponse()->doRedirect();
-              return;
+          // if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
+          //     self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
+          //     $this->getResponse()->setRedirect($this->getApp(), 'login');
+          //     $this->getResponse()->doRedirect();
+          //     return;
+          // }
+
+          if(!$this->handleAccess()) {
+            return;
           }
 
           // perform the main application lifecycle calls
@@ -377,7 +410,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         } catch (\Exception $e) {
           // display exception using the current response class
           // which may be either http or even CLI !
-          $this->getResponse()->displayException($e);
+          if(self::shouldThrowException()) {
+            throw $e;
+          } else {
+            $this->getResponse()->displayException($e);
+          }
         }
 
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_END);
@@ -661,19 +698,22 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
                 throw new \codename\core\exception(self::EXCEPTION_GETCONFIG_APPCONFIGCONTAINSNOCONTEXT, \codename\core\exception::$ERRORLEVEL_FATAL, self::$json_config);
             }
 
-            if(array_key_exists('extensions', $config)) {
-              foreach($config['extensions'] as $ext) {
-                $class = '\\' . str_replace('_', '\\', $ext) . '\\extension';
-                if(class_exists($class) && (new \ReflectionClass($class))->isSubclassOf('\\codename\\core\\extension')) {
-                  $extension = new $class();
-                  self::injectApp($extension->getInjectParameters());
-                } else {
-                  throw new exception('CORE_APP_EXTENSION_COULD_NOT_BE_LOADED', exception::$ERRORLEVEL_FATAL, $ext);
-                }
-              }
-              // re-build appstack?
-              self::makeCurrentAppstack();
-            }
+            //
+            // NOTE: Extension injection moved to appstack building
+            //
+            // if(array_key_exists('extensions', $config)) {
+            //   foreach($config['extensions'] as $ext) {
+            //     $class = '\\' . str_replace('_', '\\', $ext) . '\\extension';
+            //     if(class_exists($class) && (new \ReflectionClass($class))->isSubclassOf('\\codename\\core\\extension')) {
+            //       $extension = new $class();
+            //       self::injectApp($extension->getInjectParameters());
+            //     } else {
+            //       throw new exception('CORE_APP_EXTENSION_COULD_NOT_BE_LOADED', exception::$ERRORLEVEL_FATAL, $ext);
+            //     }
+            //   }
+            //   // re-build appstack?
+            //   self::makeCurrentAppstack();
+            // }
 
             // Testing: Adding the default (install) context
             // TODO: Filepath-beautify
@@ -1440,6 +1480,10 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
           array_splice($stack, -1, 0, array($injectApp));
         }
 
+        foreach(self::getExtensions($vendor, $app) as $injectApp) {
+          array_splice($stack, -1, 0, array($injectApp));
+        }
+
         // inject core-ui app before core app, if defined
         if(class_exists("\\codename\\core\\ui\\app")) {
           $uiApp = array(
@@ -1454,18 +1498,57 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     }
 
     /**
-     * array of injected or to-be-injected apps during makeAppstack
-     * @var array
+     * get extensions for a given vendor/app
+     * @param  string $vendor [description]
+     * @param  string $app    [description]
+     * @return array
      */
-    protected static $injectedApps = array();
+    protected static function getExtensions($vendor, $app) {
+      $appJson = self::getHomedir($vendor, $app) . 'config/app.json';
+      if(self::getInstance('filesystem_local')->fileAvailable($appJson)) {
+        $json = new \codename\core\config\json($appJson, false, false);
+        $extensions = $json->get('extensions');
+        if($extensions !== null) {
+          $extensionParameters = [];
+          foreach($extensions as $ext) {
+            $class = '\\' . str_replace('_', '\\', $ext) . '\\extension';
+            if(class_exists($class) && (new \ReflectionClass($class))->isSubclassOf('\\codename\\core\\extension')) {
+              $extension = new $class();
+              $extensionParameters[] = $extension->getInjectParameters();
+            } else {
+              throw new exception('CORE_APP_EXTENSION_COULD_NOT_BE_LOADED', exception::$ERRORLEVEL_FATAL, $ext);
+            }
+          }
+          return $extensionParameters;
+        }
+      }
+      return [];
+    }
+
+    /**
+     * array of injected or to-be-injected apps during makeAppstack
+     * @var array[]
+     */
+    protected static $injectedApps = [];
+
+    /**
+     * [protected description]
+     * @var string[]
+     */
+    protected static $injectedAppIdentifiers = [];
 
     /**
      * [final description]
-     * @var [type]
+     * @param array $injectApp [app injection parameters]
      */
     final protected static function injectApp(array $injectApp) {
       if(isset($injectApp['vendor']) && isset($injectApp['app']) && isset($injectApp['namespace'])) {
-        self::$injectedApps[] = $injectApp;
+        $identifier = $injectApp['vendor'].'#'.$injectApp['app'].'#'.$injectApp['namespace'];
+        // Prevent double-injecting the apps
+        if(!in_array($identifier, self::$injectedAppIdentifiers)) {
+          self::$injectedApps[] = $injectApp;
+          self::$injectedAppIdentifiers[] = $identifier;
+        }
       } else {
         throw new exception("EXCEPTION_APP_INJECTAPP_CANNOT_INJECT_APP", exception::$ERRORLEVEL_FATAL, $injectApp);
       }

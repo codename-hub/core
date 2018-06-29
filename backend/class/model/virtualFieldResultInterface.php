@@ -21,6 +21,7 @@ interface virtualFieldResultInterface {
    * changes the state of the virtual field result handling
    *
    * @param bool $state [state of the virtual field result handling]
+   * @return \codename\core\model [current instance]
    */
-  function setVirtualFieldResult(bool $state);
+  function setVirtualFieldResult(bool $state) : \codename\core\model;
 }

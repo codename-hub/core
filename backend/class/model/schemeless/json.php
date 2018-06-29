@@ -31,7 +31,7 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    * I contain the prefix of the model to use
    * @var string $prefix
    */
-  protected $prefix = '';
+  public $prefix = '';
 
   /**
    * Creates an instance
@@ -152,6 +152,14 @@ abstract class json extends \codename\core\model\schemeless implements \codename
 
     $data = self::$t_data[$identifier];
 
+    if(count($this->virtualFields) > 0) {
+      foreach($data as &$d) {
+        foreach($this->virtualFields as $field => $function) {
+          $d[$field] = $function($d);
+        }
+      }
+    }
+
     if(count($this->filter) > 0) {
         $data = $this->filterResults($data);
     }
@@ -165,36 +173,63 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    * @return array       [description]
    */
   protected function filterResults(array $data) : array {
-
       //
       // special hack
       // to highly speed up filtering for json/array key filtering
-      // 
-      foreach($this->filter as $filter) {
-        if($filter->field->get() == $this->getPrimarykey() && $filter->operator == '=') {
-          $data = isset($data[$filter->value]) ? [$data[$filter->value]] : [];
+      //
+      if(count($this->filter) === 1) {
+        foreach($this->filter as $filter) {
+          if($filter->field->get() == $this->getPrimarykey() && $filter->operator == '=') {
+            $data = isset($data[$filter->value]) ? [$data[$filter->value]] : [];
+          }
         }
       }
-
-      $filteredData = array_filter($data, function($entry) {
-        $pass = true;
-        foreach($this->filter as $filter) {
-            if(!$pass) {
-                continue;
-            }
-            if($filter instanceof \codename\core\model\plugin\filter\executableFilterInterface) {
-              if(!$filter->matches($entry)) {
-                $pass = false;
-                break;
+      if(count($this->filter) >= 1) {
+        $filteredData = array_filter($data, function($entry) {
+          $pass = null;
+          foreach($this->filter as $filter) {
+              if($pass === false && $filter->conjunction === 'AND') {
+                  continue;
               }
-            } else {
-              // we may warn for incompatible filters?
-            }
-        }
-        return $pass;
-      });
+
+              if($filter instanceof \codename\core\model\plugin\filter\executableFilterInterface) {
+                // if(!$filter->matches($entry)) {
+                //   $pass = false;
+                //   break;
+                // }
+                if($pass === null) {
+                  $pass = $filter->matches($entry);
+                } else {
+                  // if($filter->conjunction === 'AND') {
+                  //   $pass = $pass && $filter->matches($entry);
+                  // }
+                  if($filter->conjunction === 'OR') {
+                    $pass = $pass || $filter->matches($entry);
+                  } else {
+                    $pass = $pass && $filter->matches($entry);
+                  }
+                }
+              } else {
+                // we may warn for incompatible filters?
+              }
+          }
+
+          //
+          // NOTE/TODO: What to do, when pass === null ?
+          //
+          return $pass;
+        });
+      }
       return array_values($filteredData);
   }
+
+  /**
+   * @inheritDoc
+   */
+   protected function compatibleJoin(\codename\core\model $model) : bool
+   {
+     return false;
+   }
 
   /**
    * [mapResults description]

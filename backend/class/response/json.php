@@ -13,6 +13,7 @@ class json extends \codename\core\response\http {
    */
   public function pushOutput()
   {
+    http_response_code($this->translateStatusToHttpStatus());
     echo(json_encode($this->getData()));
   }
 
