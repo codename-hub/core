@@ -1,6 +1,7 @@
 <?php
 namespace codename\core\bucket;
 use \codename\core\app;
+use codename\core\exception;
 use codename\login\context\remote;
 
 /**
@@ -12,7 +13,7 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
 
     /**
      * Contains the FTP connection stream
-     * @var unknown
+     * @var resource
      */
     protected $connection = null;
 
@@ -45,12 +46,14 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
         if(is_bool($this->connection) && !$this->connection) {
             $this->errorstack->addError('FILE', 'CONNECTION_FAILED', null);
             app::getLog('errormessage')->warning('CORE_BACKEND_CLASS_BUCKET_FTP_CONSTRUCT::CONNECTION_FAILED ($host = ' . $data['ftpserver']['host'] .')');
+            throw new exception('EXCEPTION_BUCKET_FTP_CONNECTION_FAILED', exception::$ERRORLEVEL_ERROR, [ 'host' => $data['ftpserver']['host'] ]);
             return $this;
         }
 
         if(!@ftp_login($this->connection, $data['ftpserver']['user'], $data['ftpserver']['pass'])) {
-            app::getLog('errormessage')->warning('CORE_BACKEND_CLASS_BUCKET_FTP_CONSTRUCT::LOGIN_FAILED ($user = ' . $data['ftpserver']['user'] .')');
             $this->errorstack->addError('FILE', 'LOGIN_FAILED', null);
+            app::getLog('errormessage')->warning('CORE_BACKEND_CLASS_BUCKET_FTP_CONSTRUCT::LOGIN_FAILED ($user = ' . $data['ftpserver']['user'] .')');
+            throw new exception('EXCEPTION_BUCKET_FTP_LOGIN_FAILED', exception::$ERRORLEVEL_ERROR, [ 'user' => $data['ftpserver']['user'] ]);
             return $this;
         }
 
