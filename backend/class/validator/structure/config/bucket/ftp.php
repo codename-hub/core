@@ -10,7 +10,7 @@ class ftp extends \codename\core\validator\structure\config\bucket implements \c
      */
     public $arrKeys = array(
             'basedir',
-            'public',
+            // 'public',
             'ftpserver'
     );
 
@@ -24,23 +24,23 @@ class ftp extends \codename\core\validator\structure\config\bucket implements \c
         if(count($this->errorstack->getErrors()) > 0) {
             return $this->errorstack->getErrors();
         }
-        
-        if(!is_bool($value['public'])) {
-            $this->errorstack->addError('VALUE', 'PUBLIC_KEY_NOT_FOUND');
+
+        if(isset($value['public']) && !is_bool($value['public'])) {
+            $this->errorstack->addError('VALUE', 'PUBLIC_KEY_INVALID');
             return $this->errorstack->getErrors();
         }
-        
-        if($value['public'] && !array_key_exists('baseurl', $value)) {
+
+        if(isset($value['public']) && $value['public'] && !array_key_exists('baseurl', $value)) {
             $this->errorstack->addError('VALUE', 'BASEURL_NOT_FOUND');
             return $this->errorstack->getErrors();
         }
-        
+
         if(count($errors = app::getValidator('structure_config_ftp')->validate($value['ftpserver'])) > 0) {
             $this->errorstack->addError('VALUE', 'FTP_CONTAINER_INVALID', $errors);
             return $this->errorstack->getErrors();
         }
-        
+
         return $this->errorstack->getErrors();
     }
-    
+
 }
