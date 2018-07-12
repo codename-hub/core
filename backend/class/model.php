@@ -1800,7 +1800,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
         // Normalize single row
         if(count($result) == 1) {
-            $result = $result[0];
+            $result = reset($result);
             return array($this->normalizeRow($result));
         }
 
