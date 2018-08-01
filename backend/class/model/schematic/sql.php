@@ -1521,11 +1521,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       $result = array();
       if(count($this->fieldlist) == 0 && count($this->hiddenFields) > 0) {
         foreach($this->config->get('field') as $fieldName) {
-          if(!in_array($fieldName, $this->hiddenFields)) {
-            if($alias != null) {
-              $result[] = array($alias, $fieldName);
-            } else {
-              $result[] = array($this->schema, $this->table, $fieldName);
+          if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
+            if(!in_array($fieldName, $this->hiddenFields)) {
+              if($alias != null) {
+                $result[] = array($alias, $fieldName);
+              } else {
+                $result[] = array($this->schema, $this->table, $fieldName);
+              }
             }
           }
         }
@@ -1534,7 +1536,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           foreach($this->fieldlist as $field) {
             if($field instanceof \codename\core\model\plugin\calculatedfield\calculatedfieldInterface) {
               $result[] = array($field->get());
-            } else {
+            } else if($this->config->get('datatype>'.$field->field->get()) !== 'virtual') {
+              //
+              // omit virtual fields
+              // they're not part of the DB.
+              //
               if($alias != null) {
                 $result[] = array($alias, $field->field->get());
               } else {
