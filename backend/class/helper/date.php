@@ -10,6 +10,14 @@ use \codename\core\app;
  */
 class date extends \codename\core\helper {
 
+  /**
+   * formatting string
+   * for displaying a datetime value as
+   * YYYY-MM-DD HH:MM:SS
+   * @var string
+   */
+	const DATETIME_WITHOUT_TIMEZONE = 'Y-m-d H:i:s';
+
     CONST INTERVAL_MONTH = 'month';
     CONST INTERVAL_YEAR = 'year';
 
