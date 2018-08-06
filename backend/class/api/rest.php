@@ -120,7 +120,9 @@ class rest extends \codename\core\api\codename {
 
     if(!$res) {
       $err = curl_error($this->curlHandler);
-      $this->errorstack->addError('curl', 0, $err);
+      if($err !== '') {
+        $this->errorstack->addError('curl', 0, $err);
+      }
     }
 
     curl_close($this->curlHandler);
