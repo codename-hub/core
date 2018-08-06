@@ -277,6 +277,11 @@ class codename extends \codename\core\api {
         $this->response = $response;
         if(array_key_exists('errors', $response)) {
             app::getLog('errormessage')->warning('CORE_BACKEND_CLASS_API_CODENAME_DECODERESPONSE::RESPONSE_CONTAINS_ERRORS ($response = ' . json_encode($response) . ')');
+
+            //
+            //  Push errors to errorstack
+            //
+            $this->errorstack->addErrors($response['errors']);
             return false;
         }
 
