@@ -455,6 +455,10 @@ abstract class model implements \codename\core\model\modelInterface {
           throw new exception('EXCEPTION_NO_COLLECTION_CONFIG', exception::$ERRORLEVEL_ERROR, $modelField);
         }
 
+        if($collectionConfig['model'] != $model->getIdentifier()) {
+          throw new exception('EXCEPTION_MODEL_ADDCOLLECTIONMODEL_INCOMPATIBLE', exception::$ERRORLEVEL_ERROR, [$collectionConfig['model'], $model->getIdentifier()]);
+        }
+
         $modelFieldInstance = \codename\core\value\text\modelfield::getInstance($modelField);
 
         // Finally, add model
