@@ -203,26 +203,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             // Collection Saving of childs
             //
 
-            // TODO: implement collection saving
-
+            // collection saving done below
             if(isset($this->collectionPlugins[$child]) && $data[$child]) {
               $childCollectionSaves[$child] = $data[$child];
-              // $collection = $this->collectionPlugins[$child];
-              // $model = $collection->collectionModel;
-              // foreach($data[$child] as $childValue) {
-              //   // TODO: check for references!
-              //   // For now, we're just overwriting the reference to THIS model / current dataset
-              //   if($childValue[$collection->getCollectionModelBaseRefField()] != $data[$collection->getBaseField()]) {
-              //     $childValue[$collection->getCollectionModelBaseRefField()] = $data[$collection->getBaseField()];
-              //   }
-              //   $model->saveWithChildren($childValue);
-              // }
             }
-            // $res = array_filter($this->getNestedCollections(), function(\codename\core\model\plugin\collection $collection) use ($field) {
-            //   return $collection->modelField == $field;
-            // });
-
-
 
             // unset the child collection field
             // as it cannot be handled by SQL
