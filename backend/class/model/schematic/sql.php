@@ -125,80 +125,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       $params['virtualfieldresult'] = $this->virtualFieldResult;
       return $params;
     }
-    /**
-     * Undocumented variable
-     *
-     * @var \codename\core\model\plugin\collection[]
-     */
-    protected $collectionFields = [];
-
-    /**
-     * Undocumented function
-     *
-     * @param string $field
-     * @return \codename\core\model
-     */
-    public function addCollectionField(string $field) : \codename\core\model {
-      $modelfield = \codename\core\value\text\modelfield::getInstance($field);
-      // if($this->fieldExists($modelfield)) {
-
-        $cfg = $this->config->get('collection>'.$modelfield->get());
-
-        if($cfg) {
-          if($cfg['manytomany'] && $cfg['aux']) {
-            // $this->collectionFields[] =
-
-            $aux = $cfg['aux'];
-            $auxModel = app::getModel($aux['model'], $aux['app'] ?? '');
-            $refModel = app::getModel($cfg['model'], $cfg['app'] ?? '');
-
-            $class = '\\codename\\core\\model\\plugin\\collection\\' . $this->getType();
-            array_push($this->collectionFields, new $class($modelfield, $this, $auxModel, $refModel));
-            return $this;
-          }
-        }
-      // }
-      // return $this;
-      die("err");
-    }
-
-    /**
-     * Undocumented function
-     *
-     * @return array
-     */
-    public function getResultWithCollections() : array {
-
-      $result = $this->getResult();
-
-      if(count($this->collectionFields) > 0) {
-        foreach($this->collectionFields as $collectionField) {
-
-          // prepare the collection model for querying
-          $collectionModel = $collectionField->getModel();
-
-          // perform the plugin on each result row
-          foreach($result as &$r) {
-
-            // check if $r[$baseField] == null !!
-            $collectionResult = $collectionModel
-              // ->addField($collectionField->getAuxRefField()) // ??
-              ->addFilter($collectionField->getAuxBaseField(), $r[$collectionField->getBaseField()])
-              ->search()->getResult();
-
-            // map collection result to singular/scalar values
-            $collectionMapped = array_map(function($cr) use ($collectionField) {
-              return $cr[$collectionField->getAuxRefField()];
-            }, $collectionResult);
-
-            // put collection result in final result array element
-            $r[$collectionField->field->get()] = $collectionMapped;
-          }
-        }
-      }
-
-      return $result;
-    }
 
     /**
      * Undocumented function
@@ -219,13 +145,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       $this->db->beginVirtualTransaction();
 
       $data2 = $data;
-
-      // // unset all collection fields for this to work
-      // if(count($this->collectionFields) > 0) {
-      //   foreach($this->collectionFields as $collectionField) {
-      //     unset($data2[$collectionField->field->get()]);
-      //   }
-      // }
 
       //
       // delay collection saving
@@ -490,6 +409,27 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
               foreach($result as &$dataset) {
                 if($vModel != null) {
+
+                  // //
+                  // // Actually, we're checking for the existance of the primarykey value in a subset
+                  // // which means, e.g.
+                  // // dataset[some_primary_key] = [0] => ..., [1] => ...
+                  // // if it's a joined result AND an array
+                  // //
+                  // // OR
+                  // //
+                  // // we simply check if its null
+                  // //
+                  // // Both cases mean: there's no subset.
+                  // //
+                  // if(is_array($dataset[$vModel->getPrimaryKey()]) && !isset($dataset[$vModel->getPrimaryKey()][$index])) {
+                  //   $dataset[$field] = null;
+                  //   continue;
+                  // } else if(!is_array($dataset[$vModel->getPrimaryKey()]) && $dataset[$vModel->getPrimaryKey()] === null) {
+                  //   $dataset[$field] = null;
+                  //   continue;
+                  // }
+
                   $vData = [];
                   foreach($vModel->getFields() as $modelField) {
                     if(isset($dataset[$modelField])) {
