@@ -405,6 +405,73 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [protected description]
+     * @var \codename\core\model\plugin\collection[]
+     */
+    protected $collectionPlugins = [];
+
+    /**
+     * [addCollectionModel description]
+     * @param \codename\core\model $model      [description]
+     * @param string|null          $modelField [description]
+     */
+    public function addCollectionModel(\codename\core\model $model, string $modelField = null) {
+      if($this->config->exists('collection')) {
+
+        $collectionConfig = null;
+
+        //
+        // try to determine modelfield by the best-matching collection
+        //
+        if(!$modelField) {
+          if($this->config->exists('collection')) {
+            foreach($this->config->get('collection') as $collectionFieldName => $config) {
+              if($config['model'] === $model->getIdentifier()) {
+                $modelField = $collectionFieldName;
+                $collectionConfig = $config;
+              }
+            }
+          }
+        }
+
+        //
+        // Still no modelfield
+        //
+        if(!$modelField) {
+          throw new exception('EXCEPTION_UNKNOWN_COLLECTION_MODEL', exception::$ERRORLEVEL_ERROR, [$this->getIdentifier(), $model->getIdentifier()]);
+        }
+
+        //
+        // Case where we haven't retrieved the collection config yet
+        //
+        if(!$collectionConfig) {
+          $collectionConfig = $this->config->get('collection>'.$modelField);
+        }
+
+        //
+        // Still no collection config
+        //
+        if(!$collectionConfig) {
+          throw new exception('EXCEPTION_NO_COLLECTION_CONFIG', exception::$ERRORLEVEL_ERROR, $modelField);
+        }
+
+        $modelFieldInstance = \codename\core\value\text\modelfield::getInstance($modelField);
+
+        // Finally, add model
+        $this->collectionPlugins[$modelFieldInstance->get()] = new \codename\core\model\plugin\collection(
+          $modelFieldInstance,
+          $this,
+          $model
+        );
+
+      } else {
+        throw new exception('EXCEPTION_NO_COLLECTION_KEY', exception::$ERRORLEVEL_ERROR, $this->getIdentifier());
+      }
+
+      return $this;
+    }
+
+    /**
      * @todo DOCUMENTATION
      */
     public function addModel(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT, string $modelField = null, string $referenceField = null) : \codename\core\model {
@@ -1295,20 +1362,41 @@ abstract class model implements \codename\core\model\modelInterface {
             if($this->config->exists('children') && $this->config->exists('children>'.$field)) {
               // validate child using child/nested model
               $childConfig = $this->config->get('children>'.$field);
-              $foreignConfig = $this->config->get('foreign>'.$childConfig['field']);
-              $foreignKeyField = $childConfig['field'];
 
-              // get the join plugin valid for the child reference field
-              $res = array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($foreignKeyField) {
-                return $join->modelField == $foreignKeyField;
-              });
+              if($childConfig['type'] === 'foreign') {
+                //
+                // Normal Foreign-Key based child (1:1)
+                //
+                $foreignConfig = $this->config->get('foreign>'.$childConfig['field']);
+                $foreignKeyField = $childConfig['field'];
 
-              if(count($res) === 1) {
-                $join = reset($res);
-                $join->model->validate($data[$field]);
-                $this->errorstack->addErrors($join->model->getErrors());
-              } else {
-                continue;
+                // get the join plugin valid for the child reference field
+                $res = array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($foreignKeyField) {
+                  return $join->modelField == $foreignKeyField;
+                });
+
+                if(count($res) === 1) {
+                  $join = reset($res);
+                  $join->model->validate($data[$field]);
+                  $this->errorstack->addErrors($join->model->getErrors());
+                } else {
+                  continue;
+                }
+              } else if($childConfig['type'] === 'collection') {
+                //
+                // Collections in a virtual field
+                //
+                $collectionConfig = $this->config->get('collection>'.$field);
+
+                // TODO: get the corresponding model
+                // we might introduce a new "addCollectionModel" method or so
+
+                if(isset($this->collectionPlugins[$field])) {
+                  $this->collectionPlugins[$field]->collectionModel->validate($data[$field]);
+                  $this->errorstack->addErrors($this->collectionPlugins[$field]->collectionModel->getErrors());
+                } else {
+                  continue;
+                }
               }
             }
 
