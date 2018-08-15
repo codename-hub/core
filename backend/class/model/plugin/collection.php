@@ -1,12 +1,14 @@
 <?php
 namespace codename\core\model\plugin;
 
+use codename\core\exception;
+
 /**
  * Provide many to many relationship functionality as a plugin
  * @package core
  * @since 2018-01-08
  */
-abstract class collection extends \codename\core\model\plugin {
+class collection extends \codename\core\model\plugin {
 
   /**
    * the original model (base)
@@ -16,16 +18,10 @@ abstract class collection extends \codename\core\model\plugin {
   public $baseModel = null;
 
   /**
-   * auxiliary (helper) model
+   * the collection model
    * @var \codename\core\model
    */
-  public $auxModel = null;
-
-  /**
-   * the referenced model
-   * @var \codename\core\model
-   */
-  public $refModel = null;
+  public $collectionModel = null;
 
   /**
    * Field in the original model the data will reside in
@@ -38,36 +34,44 @@ abstract class collection extends \codename\core\model\plugin {
    *
    * @param \codename\core\value\text\modelfield $field
    * @param \codename\core\model $baseModel
-   * @param \codename\core\model $auxModel
-   * @param \codename\core\model $refModel
+   * @param \codename\core\model $collectionModel
    */
-  public function __construct(\codename\core\value\text\modelfield $field, \codename\core\model $baseModel, \codename\core\model $auxModel, \codename\core\model $refModel) {
+  public function __construct(\codename\core\value\text\modelfield $field, \codename\core\model $baseModel, \codename\core\model $collectionModel) {
     $this->field = $field;
     $this->baseModel = $baseModel;
-    $this->auxModel = $auxModel;
-    $this->refModel = $refModel;
+    $this->collectionModel = $collectionModel;
 
     // prepare some data
-    foreach($this->auxModel->config->get('foreign') as $fkey => $fcfg) {
+    foreach($this->collectionModel->config->get('foreign') as $fkey => $fcfg) {
       if($fcfg['model'] == $this->baseModel->getIdentifier()) {
         $this->baseField = $fcfg['key'];
-        $this->auxBaseField = $fkey;
+        $this->collectionModelBaseRefField = $fkey;
+        break;
       }
     }
 
-    foreach($this->auxModel->config->get('foreign') as $fkey => $fcfg) {
-      if($fcfg['model'] == $this->refModel->getIdentifier()) {
-        $this->refField = $fcfg['key'];
-        $this->auxRefField = $fkey;
-      }
+    if(!$this->baseField) {
+      throw new exception('EXCEPTION_MODEL_PLUGIN_COLLECTION_MISSING_BASEFIELD', exception::$ERRORLEVEL_ERROR);
     }
-
-    // construct this model
-    $this->model = $this->auxModel->addModel($this->refModel);
+    if(!$this->collectionModelBaseRefField) {
+      throw new exception('EXCEPTION_MODEL_PLUGIN_COLLECTION_MISSING_COLLECTIONMODEL_BASEREF_FIELD', exception::$ERRORLEVEL_ERROR);
+    }
   }
 
+  /**
+   * field of the base model
+   * that is used as the join counterpart
+   * mostly, this should be the PKEY of the base model
+   * @var string
+   */
   protected $baseField = null;
-  protected $auxBaseField = null;
+
+  /**
+   * the field of the collection model
+   * that references the base model
+   * @var string
+   */
+  protected $collectionModelBaseRefField = null;
 
   /**
    * returns the field name in the base model
@@ -86,48 +90,8 @@ abstract class collection extends \codename\core\model\plugin {
    *
    * @return string
    */
-  public function getAuxBaseField() : string {
-    return $this->auxBaseField;
-  }
-
-  protected $refField = null;
-  protected $auxRefField = null;
-
-  /**
-   * returns the field name in the foreign (ref/referenced) model
-   * usually, this should be the primary key.
-   *
-   * @return string
-   */
-  public function getRefField() : string {
-    return $this->refField;
-  }
-
-  /**
-   * returns the field name in the auxiliary model
-   * that stores the reference to the foreign (ref/referenced) model
-   * (-> getRefField)
-   *
-   * @return string
-   */
-  public function getAuxRefField() : string {
-    return $this->auxRefField;
-  }
-
-  /**
-   * Undocumented variable
-   *
-   * @var \codename\core\model
-   */
-  protected $model = null;
-
-  /**
-   * returns the model specific for this collection plugin
-   *
-   * @return \codename\core\model
-   */
-  public function getModel() : \codename\core\model {
-    return $this->model;
+  public function getCollectionModelBaseRefField() : string {
+    return $this->collectionModelBaseRefField;
   }
 
 }

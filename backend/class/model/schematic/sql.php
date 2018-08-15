@@ -125,80 +125,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       $params['virtualfieldresult'] = $this->virtualFieldResult;
       return $params;
     }
-    /**
-     * Undocumented variable
-     *
-     * @var \codename\core\model\plugin\collection[]
-     */
-    protected $collectionFields = [];
-
-    /**
-     * Undocumented function
-     *
-     * @param string $field
-     * @return \codename\core\model
-     */
-    public function addCollectionField(string $field) : \codename\core\model {
-      $modelfield = \codename\core\value\text\modelfield::getInstance($field);
-      // if($this->fieldExists($modelfield)) {
-
-        $cfg = $this->config->get('collection>'.$modelfield->get());
-
-        if($cfg) {
-          if($cfg['manytomany'] && $cfg['aux']) {
-            // $this->collectionFields[] =
-
-            $aux = $cfg['aux'];
-            $auxModel = app::getModel($aux['model'], $aux['app'] ?? '');
-            $refModel = app::getModel($cfg['model'], $cfg['app'] ?? '');
-
-            $class = '\\codename\\core\\model\\plugin\\collection\\' . $this->getType();
-            array_push($this->collectionFields, new $class($modelfield, $this, $auxModel, $refModel));
-            return $this;
-          }
-        }
-      // }
-      // return $this;
-      die("err");
-    }
-
-    /**
-     * Undocumented function
-     *
-     * @return array
-     */
-    public function getResultWithCollections() : array {
-
-      $result = $this->getResult();
-
-      if(count($this->collectionFields) > 0) {
-        foreach($this->collectionFields as $collectionField) {
-
-          // prepare the collection model for querying
-          $collectionModel = $collectionField->getModel();
-
-          // perform the plugin on each result row
-          foreach($result as &$r) {
-
-            // check if $r[$baseField] == null !!
-            $collectionResult = $collectionModel
-              // ->addField($collectionField->getAuxRefField()) // ??
-              ->addFilter($collectionField->getAuxBaseField(), $r[$collectionField->getBaseField()])
-              ->search()->getResult();
-
-            // map collection result to singular/scalar values
-            $collectionMapped = array_map(function($cr) use ($collectionField) {
-              return $cr[$collectionField->getAuxRefField()];
-            }, $collectionResult);
-
-            // put collection result in final result array element
-            $r[$collectionField->field->get()] = $collectionMapped;
-          }
-        }
-      }
-
-      return $result;
-    }
 
     /**
      * Undocumented function
@@ -219,104 +145,136 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       $this->db->beginVirtualTransaction();
 
       $data2 = $data;
-      // unset all collection fields for this to work
-      if(count($this->collectionFields) > 0) {
-        foreach($this->collectionFields as $collectionField) {
-          unset($data2[$collectionField->field->get()]);
-        }
-      }
+
+      //
+      // delay collection saving
+      // we might need the pkey, if the base model entry is not yet created
+      //
+      $childCollectionSaves = [];
 
       // save children
       if($this->config->exists('children')) {
         foreach($this->config->get('children') as $child => $childConfig) {
 
-          // get the nested models / join plugin instances
-          $foreignConfig = $this->config->get('foreign>'.$childConfig['field']);
-          $field = $childConfig['field'];
-
-          // get the join plugin valid for the child reference field
-          $res = array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($field) {
-            return $join->modelField == $field;
-          });
-
-          if(count($res) === 1) {
-            // NOTE: array_filter preserves keys. use array_values to simply use index 0
-            // TODO: check for required fields...
-            if(isset($data[$child])) {
-              $model = array_values($res)[0]->model;
-              $model->saveWithChildren($data[$child]);
-              // if we just inserted a NEW entry, get its primary key and save into the root model
-              if(empty($data[$child][$model->getPrimaryKey()])) {
-                $data2[$childConfig['field']] = $model->lastInsertId();
-              }
-            }
-          } else {
-            // error?
-            // Throw an exception if there is no single, but multiple joins that match our condition
-            if(count($res) > 1) {
-              throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_CHILDREN_AMBIGUOUS_JOINS', exception::$ERRORLEVEL_ERROR, [
-                'child' => $child,
-                'childConfig' => $childConfig,
-                'foreign' => $field,
-                'foreignConfig' => $foreignConfig
-              ]);
-            }
-
-            // TODO: make sure we should do it like that.
+          if($childConfig['type'] === 'foreign') {
             //
+            // Foreign Key based child saving
+            //
+
+            // get the nested models / join plugin instances
+            $foreignConfig = $this->config->get('foreign>'.$childConfig['field']);
+            $field = $childConfig['field'];
+
+            // get the join plugin valid for the child reference field
+            $res = array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($field) {
+              return $join->modelField == $field;
+            });
+
+            if(count($res) === 1) {
+              // NOTE: array_filter preserves keys. use array_values to simply use index 0
+              // TODO: check for required fields...
+              if(isset($data[$child])) {
+                $model = array_values($res)[0]->model;
+                $model->saveWithChildren($data[$child]);
+                // if we just inserted a NEW entry, get its primary key and save into the root model
+                if(empty($data[$child][$model->getPrimaryKey()])) {
+                  $data2[$childConfig['field']] = $model->lastInsertId();
+                }
+              }
+            } else {
+              // error?
+              // Throw an exception if there is no single, but multiple joins that match our condition
+              if(count($res) > 1) {
+                throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_CHILDREN_AMBIGUOUS_JOINS', exception::$ERRORLEVEL_ERROR, [
+                  'child' => $child,
+                  'childConfig' => $childConfig,
+                  'foreign' => $field,
+                  'foreignConfig' => $foreignConfig
+                ]);
+              }
+
+              // TODO: make sure we should do it like that.
+              //
+            }
+            unset($data2[$child]);
+
+          } else if($childConfig['type'] === 'collection') {
+            //
+            // Collection Saving of childs
+            //
+
+            // collection saving done below
+            if(isset($this->collectionPlugins[$child]) && $data[$child]) {
+              $childCollectionSaves[$child] = $data[$child];
+            }
+
+            // unset the child collection field
+            // as it cannot be handled by SQL
+            unset($data2[$child]);
           }
-          unset($data2[$child]);
+
         }
       }
       // end save children
 
-
+      //
+      // Save the main dataset
+      //
       $this->save($data2);
 
+      //
+      // Determine, if we're updating OR inserting (depending on PKEY value existance)
+      //
       $update = (array_key_exists($this->getPrimarykey(), $data) && strlen($data[$this->getPrimarykey()]) > 0);
-
       if(!$update) {
         $data[$this->getPrimarykey()] = $this->lastInsertId();
       }
 
-      if(count($this->collectionFields) > 0) {
-        foreach($this->collectionFields as $collectionField) {
+      //
+      // Save child collections
+      //
+      if(count($childCollectionSaves) > 0) {
+        foreach($childCollectionSaves as $child => $childData) {
+          $collection = $this->collectionPlugins[$child];
+          $model = $collection->collectionModel;
 
-          $collectionResult = [];
-          $existing = [];
+          // TODO: get all existing references/entries
+          // that must be deleted/obsoleted
+          $model->addFilter($collection->getCollectionModelBaseRefField(), $data[$collection->getBaseField()]);
+          $existingCollectionItems = $model->search()->getResult();
 
-          if($update) {
-            $collectionResult = $collectionField->getModel()
-              ->addFilter($collectionField->getAuxBaseField(), $data[$collectionField->getBaseField()])
-              ->search()->getResult();
-
-            $existing = array_map(function($cr) use ($collectionField) {
-              return $cr[$collectionField->getAuxRefField()];
-            }, $collectionResult);
-          }
-
-          // get all unchanged values
-          // by calculating the intersection of existing and to-be-saved values
-          $unchanged = array_intersect($existing, $data[$collectionField->field->get()]);
-
-          $create = array_diff($data[$collectionField->field->get()], $existing);
-          $delete = array_diff($existing, $data[$collectionField->field->get()]);
-
-          foreach($collectionResult as $v) {
-            if(in_array($v[$collectionField->getAuxRefField()], $delete)) {
-              $collectionField->getModel()->delete($v[$collectionField->getModel()->getPrimaryKey()]);
-              continue;
+          // determine must-have-pkeys
+          $targetStateIds = array_reduce($childData, function($carry, $item) use ($model) {
+            if($id = ($item[$model->getPrimaryKey()] ?? null)) {
+              $carry[] = $id;
             }
+            return $carry;
+          }, []);
+
+          // determine must-have-pkeys
+          $existingIds = array_reduce($existingCollectionItems, function($carry, $item) use ($model) {
+            if($id = ($item[$model->getPrimaryKey()] ?? null)) {
+              $carry[] = $id;
+            }
+            return $carry;
+          }, []);
+
+          // the difference - to-be-deleted IDs
+          $deleteIds = array_diff($existingIds, $targetStateIds);
+
+          // delete them
+          foreach($deleteIds as $id) {
+            $model->delete($id);
           }
 
-          foreach($create as $v) {
-            $collectionField->auxModel->save([
-              $collectionField->getAuxBaseField() => $data[$collectionField->getBaseField()],
-              $collectionField->getAuxRefField() => $v
-            ]);
+          foreach($childData as $childValue) {
+            // TODO?: check for references!
+            // For now, we're just overwriting the reference to THIS model / current dataset
+            if(!isset($childValue[$collection->getCollectionModelBaseRefField()]) || ($childValue[$collection->getCollectionModelBaseRefField()] != $data[$collection->getBaseField()])) {
+              $childValue[$collection->getCollectionModelBaseRefField()] = $data[$collection->getBaseField()];
+            }
+            $model->saveWithChildren($childValue);
           }
-
-
         }
       }
 
@@ -435,6 +393,27 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
               foreach($result as &$dataset) {
                 if($vModel != null) {
+
+                  // //
+                  // // Actually, we're checking for the existance of the primarykey value in a subset
+                  // // which means, e.g.
+                  // // dataset[some_primary_key] = [0] => ..., [1] => ...
+                  // // if it's a joined result AND an array
+                  // //
+                  // // OR
+                  // //
+                  // // we simply check if its null
+                  // //
+                  // // Both cases mean: there's no subset.
+                  // //
+                  // if(is_array($dataset[$vModel->getPrimaryKey()]) && !isset($dataset[$vModel->getPrimaryKey()][$index])) {
+                  //   $dataset[$field] = null;
+                  //   continue;
+                  // } else if(!is_array($dataset[$vModel->getPrimaryKey()]) && $dataset[$vModel->getPrimaryKey()] === null) {
+                  //   $dataset[$field] = null;
+                  //   continue;
+                  // }
+
                   $vData = [];
                   foreach($vModel->getFields() as $modelField) {
                     if(isset($dataset[$modelField])) {
@@ -463,6 +442,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // app::getResponse()->setData('vModelIsNull>'.$this->getIdentifier(), [$foreign['model'], $index]);
                   $dataset[$field] = null;
                 }
+              }
+            }
+          } else if($config['type'] === 'collection') {
+            // check for active collectionmodel / plugin
+            if(isset($this->collectionPlugins[$field])) {
+              $collection = $this->collectionPlugins[$field];
+              $vModel = $collection->collectionModel;
+
+              foreach($result as &$dataset) {
+                $vModel->addFilter($collection->getCollectionModelBaseRefField(), $dataset[$collection->getBaseField()]);
+                $vResult = $vModel->search()->getResult();
+                $dataset[$field] = $vResult;
               }
             }
           }
