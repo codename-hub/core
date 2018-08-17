@@ -416,15 +416,24 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
                   $vData = [];
                   foreach($vModel->getFields() as $modelField) {
-                    if(isset($dataset[$modelField])) {
-                      if(is_array($dataset[$modelField]) && $vModel->getFieldtype(\codename\core\value\text\modelfield::getInstance($modelField)) !== 'virtual') {
-                        $vData[$modelField] = $dataset[$modelField][$index] ?? null;
-                      } else {
-                        $vData[$modelField] = $dataset[$modelField] ?? null;
-                      }
-                      // if($vData[$modelField] === null) {
-                      //   app::getResponse()->setData('vModelModelFieldIsNull>'.$this->getIdentifier(), [$foreign['model'], $index, $modelField, $dataset]);
-                      // }
+                    //
+                    // NOTE:
+                    // We're looping through the fields of the virtual model
+                    // if we detect a field being an array and NOT a virtual field by itself
+                    // this is a PDO-Fetch-Named-Result specialty
+                    // -> Join Results are being mapped onto an indexed array as the respective field
+                    // Otherwise, we simply map the value provided.
+                    //
+                    // we used isset() around $dataset[$modelField]
+                    // which was wrong - because isset evaluates to false
+                    // even if the array value is NULL (which is, in fact, relevant for our framework)
+                    // using it instead just to check for the presence of a value and then for the type (-> array & not virtual)
+                    // otherwise, we do a ternary to work around nonexisting keys
+                    //
+                    if(isset($dataset[$modelField]) && is_array($dataset[$modelField]) && $vModel->getFieldtype(\codename\core\value\text\modelfield::getInstance($modelField)) !== 'virtual') {
+                      $vData[$modelField] = $dataset[$modelField][$index] ?? null;
+                    } else {
+                      $vData[$modelField] = $dataset[$modelField] ?? null;
                     }
                   }
 
