@@ -53,8 +53,16 @@ class bare extends \codename\core\model\plugin\join implements \codename\core\mo
           break;
         }
       }
-      if(!$found && $this->getJoinMethod() == self::TYPE_INNER) {
-        $leftValue = null;
+      if(!$found) {
+        if($this->getJoinMethod() == self::TYPE_INNER) {
+          $leftValue = null;
+        } else if($this->getJoinMethod() == self::TYPE_LEFT) {
+          $emptyFields = [];
+          foreach($this->model->config->get('field') as $field) {
+            $emptyFields[$field] = null;
+          }
+          $leftValue = array_merge($leftValue, $emptyFields);
+        }
       }
     }, [$right, $leftField, $rightField]);
 
