@@ -18,7 +18,7 @@ class serviceprovider extends \codename\core\validator\structure\api\codename im
             'host',
             'port'
     );
-    
+
     /**
      *
      * {@inheritDoc}
@@ -26,20 +26,20 @@ class serviceprovider extends \codename\core\validator\structure\api\codename im
      */
     public function validate($value) : array {
         parent::validate($value);
-    
+
         if (count($this->errorstack->getErrors()) > 0) {
             return $this->errorstack->getErrors();
         }
 
-        if(count($errors = app::getValidator('text_hostname')->validate($value['host'])) > 0) {
+        if(count($errors = app::getValidator('text_endpoint')->validate($value['host'])) > 0) {
             $this->errorstack->addError('VALUE', 'HOST_INVALID', $errors);
         }
-        
+
         if(count($errors = app::getValidator('number_port')->validate($value['port'])) > 0) {
             $this->errorstack->addError('VALUE', 'PORT_INVALID', $errors);
         }
-        
+
         return $this->errorstack->getErrors();
     }
-    
+
 }
