@@ -1382,7 +1382,9 @@ abstract class model implements \codename\core\model\modelInterface {
                 if(count($res) === 1) {
                   $join = reset($res);
                   $join->model->validate($data[$field]);
-                  $this->errorstack->addError($field, 'FIELD_INVALID', $join->model->getErrors());
+                  if(count($errors = $join->model->getErrors()) > 0) {
+                    $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
+                  }
                 } else {
                   continue;
                 }
@@ -1397,7 +1399,9 @@ abstract class model implements \codename\core\model\modelInterface {
 
                 if(isset($this->collectionPlugins[$field])) {
                   $this->collectionPlugins[$field]->collectionModel->validate($data[$field]);
-                  $this->errorstack->addError($field, 'FIELD_INVALID', $this->collectionPlugins[$field]->collectionModel->getErrors());
+                  if(count($errors = $this->collectionPlugins[$field]->collectionModel->getErrors()) > 0) {
+                    $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
+                  }
                 } else {
                   continue;
                 }
