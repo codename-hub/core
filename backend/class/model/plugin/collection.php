@@ -46,6 +46,12 @@ class collection extends \codename\core\model\plugin {
       if($fcfg['model'] == $this->baseModel->getIdentifier()) {
         $this->baseField = $fcfg['key'];
         $this->collectionModelBaseRefField = $fkey;
+
+        //
+        // FKEY field needs to be set
+        // Workaround: simply don't allow NULL values here.
+        //
+        $this->collectionModel->addDefaultfilter($fkey, null, '!=');
         break;
       }
     }
