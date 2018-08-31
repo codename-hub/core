@@ -1480,6 +1480,9 @@ abstract class model implements \codename\core\model\modelInterface {
         $myData = array();
         foreach($this->config->get('field') as $field) {
             // if field has object identified
+            //
+            // OBSOLETE, possibly. From the old days.
+            //
             if(array_key_exists($field.'_', $data)) {
                 $object = array();
                 foreach($data as $key => $value) {
