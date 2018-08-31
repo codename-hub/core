@@ -2022,6 +2022,9 @@ abstract class model implements \codename\core\model\modelInterface {
     protected function importField(\codename\core\value\text\modelfield $field, $value = null) {
         switch($this->getFieldtype($field)) {
             case 'boolean' :
+                if(is_bool($value)) {
+                    return $value;
+                }
                 if(strlen($value) == 0) {
                     return null;
                 }
