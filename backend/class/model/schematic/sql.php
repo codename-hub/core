@@ -1672,7 +1672,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       } else {
         if(count($this->fieldlist) > 0) {
           //
-          // No hidden fields, but explicit field list
+          // Explicit field list
           //
           foreach($this->fieldlist as $field) {
             if($field instanceof \codename\core\model\plugin\calculatedfield\calculatedfieldInterface) {
@@ -1690,43 +1690,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             }
           }
 
-          // //
-          // // add the rest of the data-model-defined fields
-          // //
-          // foreach($this->config->get('field') as $fieldName) {
-          //   if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
-          //     if(!in_array($fieldName, $this->hiddenFields)) {
-          //       if($alias != null) {
-          //         $result[] = array($alias, $fieldName);
-          //       } else {
-          //         $result[] = array($this->schema, $this->table, $fieldName);
-          //       }
-          //     }
-          //   }
-          // }
-
           //
-          // NOTE:
-          // array_unique can be used on arrays that contain objects or sub-arrays
-          // you need to use SORT_REGULAR for this case (!)
-          //
-          // $result = array_unique($result, SORT_REGULAR);
-
-        }
-
-        // no hidden fields, simply add a wildcard
-        if(count($this->hiddenFields) === 0) {
-          //
-          // The rest of the fields
-          //
-          if($alias != null) {
-            $result[] = array($alias, '*');
-          } else {
-            $result[] = array($this->schema, $this->table, '*');
-          }
-        } else {
-          //
-          // there are some more hidden fields.
+          // add the rest of the data-model-defined fields
+          // as long as they're not hidden.
           //
           foreach($this->config->get('field') as $fieldName) {
             if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
@@ -1738,6 +1704,31 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 }
               }
             }
+          }
+
+          //
+          // NOTE:
+          // array_unique can be used on arrays that contain objects or sub-arrays
+          // you need to use SORT_REGULAR for this case (!)
+          //
+          $result = array_unique($result, SORT_REGULAR);
+
+        } else {
+          //
+          // No explicit fieldlist
+          // No explicit hidden fields
+          //
+          if(count($this->hiddenFields) === 0) {
+            //
+            // The rest of the fields. Simply using a wildcard
+            //
+            if($alias != null) {
+              $result[] = array($alias, '*');
+            } else {
+              $result[] = array($this->schema, $this->table, '*');
+            }
+          } else {
+            // ugh?
           }
         }
 
