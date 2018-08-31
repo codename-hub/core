@@ -330,13 +330,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           }
 
           foreach($tResult as $index => $r) {
-            $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeData($r));
+            $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeByFieldlist($r));
           }
         }
 
         foreach($tResult as $index => $r) {
           // normalize using this model
-          $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeData($r));
+          $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeByFieldlist($r));
         }
 
         $result = $fResult;
@@ -351,6 +351,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
       }
       return $result;
+    }
+
+    /**
+     * [normalizeByFieldlist description]
+     * @param  array $dataset [description]
+     * @return array          [description]
+     */
+    public function normalizeByFieldlist(array $dataset) : array {
+      if(count($this->fieldlist) > 0) {
+        return array_intersect_key( $dataset, array_flip( $this->getFieldlistArray($this->fieldlist) ) );
+      } else {
+        return $dataset;
+      }
     }
 
     /**
@@ -1543,6 +1556,21 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             }
         }
         return $text;
+    }
+
+    /**
+     * [getFieldlistArray description]
+     * @param  array $fields [description]
+     * @return array         [description]
+     */
+    protected function getFieldlistArray(array $fields) : array {
+      $returnFields = [];
+      if(count($fields) > 0) {
+        foreach($fields as $field) {
+          $returnFields[] = $field->field->get();
+        }
+      }
+      return $returnFields;
     }
 
     /**
