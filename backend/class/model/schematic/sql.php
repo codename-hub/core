@@ -301,56 +301,123 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     {
       $result = $this->db->getResult();
       if($this->virtualFieldResult) {
+
+        // echo("<pre>" . print_r($result, true) . "</pre>");
+
         $tResult = $this->getVirtualFieldResult($result);
 
-        $fResult = [];
-
+        // $fResult = [];
         //
-        // normalize
-        // TODO: Sibling Joins?
+        // //
+        // // normalize
+        // // TODO: Sibling Joins?
+        // //
+        // foreach($this->getNestedJoins() as $join) {
+        //   // normalize using nested model - BUT: only if it's NOT already actively used as a child virtual field
+        //   $found = false;
+        //   if(($children = $this->config->get('children')) != null) {
+        //     foreach($children as $field => $config) {
+        //       if($config['type'] === 'foreign') {
+        //         $foreign = $this->config->get('foreign>'.$config['field']);
+        //         if($foreign['model'] === $join->model->getIdentifier()) {
+        //           if($this->config->get('datatype>'.$field) == 'virtual') {
+        //             $found = true;
+        //             break;
+        //           }
+        //         }
+        //       }
+        //     }
+        //   }
+        //   if($found) {
+        //     continue;
+        //   }
         //
-        foreach($this->getNestedJoins() as $join) {
-          // normalize using nested model - BUT: only if it's NOT already actively used as a child virtual field
-          $found = false;
-          if(($children = $this->config->get('children')) != null) {
-            foreach($children as $field => $config) {
-              if($config['type'] === 'foreign') {
-                $foreign = $this->config->get('foreign>'.$config['field']);
-                if($foreign['model'] === $join->model->getIdentifier()) {
-                  if($this->config->get('datatype>'.$field) == 'virtual') {
-                    $found = true;
-                    break;
-                  }
-                }
-              }
-            }
-          }
-          if($found) {
-            continue;
-          }
+        //   foreach($tResult as $index => $r) {
+        //     $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeByFieldlist($r));
+        //   }
+        // }
+        //
+        // foreach($tResult as $index => $r) {
+        //   // normalize using this model
+        //   $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeByFieldlist($r));
+        // }
+        //
+        // $result = $fResult;
 
-          foreach($tResult as $index => $r) {
-            $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeByFieldlist($r));
-          }
-        }
-
-        foreach($tResult as $index => $r) {
-          // normalize using this model
-          $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeByFieldlist($r));
-        }
-
-        $result = $fResult;
 
         //
         // Root element virtual fields
         //
         if(count($this->virtualFields) > 0) {
-          foreach($result as &$d) {
+          foreach($tResult as &$d) {
             $d = $this->handleVirtualFields($d);
           }
         }
+
+        $result = $this->normalizeRecursivelyByFieldlist($tResult);
       }
       return $result;
+    }
+
+    /**
+     * [normalizeRecursivelyByFieldlist description]
+     * @param  array $result [description]
+     * @return array         [description]
+     */
+    public function normalizeRecursivelyByFieldlist(array $result) : array {
+      $fResult = [];
+
+      //
+      // normalize
+      // TODO: Sibling Joins?
+      //
+      foreach($this->getNestedJoins() as $join) {
+        // normalize using nested model - BUT: only if it's NOT already actively used as a child virtual field
+        $found = false;
+        if(($children = $this->config->get('children')) != null) {
+          foreach($children as $field => $config) {
+            if($config['type'] === 'foreign') {
+              $foreign = $this->config->get('foreign>'.$config['field']);
+              if($foreign['model'] === $join->model->getIdentifier()) {
+                if($this->config->get('datatype>'.$field) == 'virtual') {
+                  $found = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+        if($found) {
+          continue;
+        }
+
+        $normalized = $join->model->normalizeRecursivelyByFieldlist($result);
+
+        // echo("<pre>".print_r($normalized, true)."</pre>");
+
+        // METHOD 1: merge manually, row by row
+        // foreach($normalized as $index => $r) {
+        //   // normalize using this model
+        //   $fResult[$index] = array_merge(($fResult[$index] ?? []), $r);
+        // }
+
+        // METHOD 2: recursive merge
+        $fResult = array_merge_recursive($fResult, $join->model->normalizeRecursivelyByFieldlist($result));
+
+        // foreach($tResult as $index => $r) {
+        //   // $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeByFieldlist($r));
+        //   // $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeRec($r));
+        // }
+      }
+
+      foreach($result as $index => $r) {
+        // normalize using this model
+        $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeByFieldlist($r));
+      }
+
+      return $fResult;
+      // $result = $fResult;
+      // return $result;
     }
 
     /**
@@ -360,8 +427,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     public function normalizeByFieldlist(array $dataset) : array {
       if(count($this->fieldlist) > 0) {
-        return array_intersect_key( $dataset, array_flip( $this->getFieldlistArray($this->fieldlist) ) );
+        // return $dataset;
+        return array_intersect_key( $dataset, array_flip( array_merge( $this->getFieldlistArray($this->fieldlist), $this->getFields() ) ) );
       } else {
+        // return $dataset;
         return array_intersect_key( $dataset, array_flip( $this->getFields() ) );
       }
     }
