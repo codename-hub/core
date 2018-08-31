@@ -362,7 +362,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       if(count($this->fieldlist) > 0) {
         return array_intersect_key( $dataset, array_flip( $this->getFieldlistArray($this->fieldlist) ) );
       } else {
-        return $dataset;
+        return array_intersect_key( $dataset, array_flip( $this->getFields() ) );
       }
     }
 
