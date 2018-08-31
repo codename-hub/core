@@ -301,7 +301,40 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     {
       $result = $this->db->getResult();
       if($this->virtualFieldResult) {
-        $result = $this->getVirtualFieldResult($result);
+        $tResult = $this->getVirtualFieldResult($result);
+
+        $fResult = [];
+
+        // normalize
+        foreach($tResult as $index => $r) {
+          // normalize using this model
+          $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeData($r));
+
+          foreach($this->getNestedJoins() as $join) {
+            // normalize using nested model - BUT: only if it's NOT already actively used as a child virtual field
+            $found = false;
+            if(($children = $this->config->get('children')) != null) {
+              foreach($children as $field => $config) {
+                if($config['type'] === 'foreign') {
+                  $foreign = $this->config->get('foreign>'.$config['field']);
+                  if($foreign['model'] === $join->model->getIdentifier()) {
+                    if($this->config->get('datatype>'.$field) == 'virtual') {
+                      $found = true;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+            if($found) {
+              continue;
+            }
+
+            $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeData($r));
+          }
+        }
+
+        $result = $fResult;
 
         //
         // Root element virtual fields
