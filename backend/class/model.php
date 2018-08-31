@@ -1132,9 +1132,7 @@ abstract class model implements \codename\core\model\modelInterface {
       $field = \codename\core\value\text\modelfield::getInstance($field);
       $this->fieldlist = array_filter($this->fieldlist, function($item) use ($field) {
         if($item instanceof \codename\core\model\plugin\calculatedfield) {
-          if($item->field->schema == $field->schema
-          && $item->field->table == $field->table
-          && $item->field->field == $field->field) {
+          if($item->field->get() == $field->get()) {
             return false;
           }
         }
@@ -1997,8 +1995,8 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function reset() {
         $this->cache = false;
-        $this->fieldlist = array();
-        $this->hiddenFields = array();
+        // $this->fieldlist = array();
+        // $this->hiddenFields = array();
         $this->filter = $this->defaultfilter;
         $this->flagfilter = $this->defaultflagfilter;
         $this->filterCollections = $this->defaultfilterCollections;
