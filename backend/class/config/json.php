@@ -76,7 +76,11 @@ class json extends \codename\core\config {
         }
 
         foreach(array_reverse($useAppstack) as $app) {
-            $fullpath = app::getHomedir($app['vendor'], $app['app']) . $file;
+            if(realpath($file) !== false) {
+              $fullpath = $file;
+            } else {
+              $fullpath = app::getHomedir($app['vendor'], $app['app']) . $file;
+            }
             if(!app::getInstance('filesystem_local')->fileAvailable($fullpath)) {
                 continue;
             }
