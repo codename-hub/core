@@ -1299,9 +1299,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // instead, we're now using the identity operator === to explicitly check for a real NULL
                   // @see http://www.php.net/manual/en/types.comparisons.php
                   if(($filter->value === null) || (is_string($filter->value) && (strlen($filter->value) === 0)) || ($filter->value === 'null')) {
-                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $filterQuery['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
-                      $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
+                      // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
+                      $filterQuery['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // no param!
+                      // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                   } else {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
                       $filterQuery['query'] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
@@ -1388,9 +1388,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // value is a singular value
                   // NOTE: see other $filter->value == null (equality or identity operator) note and others
                   if($filter->value === null || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value === 'null') {
-                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $t_filter['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
-                      $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
+                      // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
+                      $t_filter['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // var = PDO Param
+                      // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                   } else {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
                       $t_filter['query'] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' ';
