@@ -976,20 +976,22 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   continue;
               }
               if(array_key_exists($field, $data)) {
-                if (is_object($data[$field]) || is_array($data[$field])) {
-                    $data[$field] = $this->jsonEncode($data[$field]);
-                }
+                // if (is_object($data[$field]) || is_array($data[$field])) {
+                //     $data[$field] = $this->jsonEncode($data[$field]);
+                // }
+                //
+                // $var = $this->getStatementVariable(array_keys($param), $field);
+                //
+                // // performance hack: store modelfield instance!
+                // if(!isset($this->modelfieldInstance[$field])) {
+                //   $this->modelfieldInstance[$field] = \codename\core\value\text\modelfield::getInstance($field);
+                // }
+                // $fieldInstance = $this->modelfieldInstance[$field];
+                //
+                // $param[$var] = $this->getParametrizedValue($this->delimit($fieldInstance, $data[$field]), $this->getFieldtype($fieldInstance));
+                // $parts[] = $field . ' = ' . ':'.$var;
 
-                $var = $this->getStatementVariable($param, $field);
-
-                // performance hack: store modelfield instance!
-                if(!isset($this->modelfieldInstance[$field])) {
-                  $this->modelfieldInstance[$field] = \codename\core\value\text\modelfield::getInstance($field);
-                }
-                $fieldInstance = $this->modelfieldInstance[$field];
-
-                $param[$var] = $this->getParametrizedValue($this->delimit($fieldInstance, $data[$field]), $this->getFieldtype($fieldInstance));
-                $parts[] = $field . ' = ' . ':'.$var;
+                $parts[] = "{$field} = VALUES({$field})";
               }
           }
           $query .= implode(',', $parts);
