@@ -1334,14 +1334,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             'query' => null
           ];
 
-          $var = $this->getStatementVariable(array_keys($appliedFilters), $this->table.'_flag');
+          $flagVar1 = $this->getStatementVariable(array_keys($appliedFilters), $this->table.'_flag');
+          $appliedFilters[$flagVar1] = null; // temporary dummy value
+          $flagVar2 = $this->getStatementVariable(array_keys($appliedFilters), $this->table.'_flag');
+          $appliedFilters[$flagVar2] = null; // temporary dummy value
 
           if($flagfilter < 0) {
-            $filterQuery['query'] = $this->table.'_flag & ' . ':'.$var . ' <> ' . ':'.$var . ' '; // var = PDO Param
-            $appliedFilters[$var] = $this->getParametrizedValue($flagfilter * -1, 'number_natural'); // values separated from query
+            $filterQuery['query'] = $this->table.'_flag & ' . ':'.$flagVar1 . ' <> ' . ':'.$flagVar2 . ' '; // var = PDO Param
+            $appliedFilters[$flagVar1] = $this->getParametrizedValue($flagfilter * -1, 'number_natural'); // values separated from query
+            $appliedFilters[$flagVar2] = $this->getParametrizedValue($flagfilter * -1, 'number_natural'); // values separated from query
           } else {
-            $filterQuery['query'] = $this->table.'_flag & ' . ':'.$var . ' = ' . ':'.$var . ' '; // var = PDO Param
-            $appliedFilters[$var] = $this->getParametrizedValue($flagfilter, 'number_natural'); // values separated from query
+            $filterQuery['query'] = $this->table.'_flag & ' . ':'.$flagVar1 . ' = ' . ':'.$flagVar2 . ' '; // var = PDO Param
+            $appliedFilters[$flagVar1] = $this->getParametrizedValue($flagfilter, 'number_natural'); // values separated from query
+            $appliedFilters[$flagVar2] = $this->getParametrizedValue($flagfilter, 'number_natural'); // values separated from query
           }
 
           // we don't have to check for existance of 'query', as it is definitely handled
