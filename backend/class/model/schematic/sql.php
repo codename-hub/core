@@ -1015,7 +1015,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         } else if($fieldtype == 'number_natural') {
           $param = \PDO::PARAM_INT;
         } else if($fieldtype == 'boolean') {
-          $param = \PDO::PARAM_BOOL;
+          //
+          // Temporary workaround for MySQL being so odd.
+          // bool == tinyint(1) in MySQL-world. So, we pre-evaluate
+          // the value to 0 or 1 (NULL being handled above)
+          //
+          $value = $value ? 1 : 0;
+          $param = \PDO::PARAM_INT;
+          // $param = \PDO::PARAM_BOOL;
         } else {
           $param = \PDO::PARAM_STR; // Fallback
         }
