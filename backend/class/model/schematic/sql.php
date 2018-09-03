@@ -888,7 +888,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
                 $index++;
 
-                $var = $this->getStatementVariable($param, $field);
+                $var = $this->getStatementVariable(array_keys($param), $field);
 
                 // performance hack: store modelfield instance!
                 if(!isset($this->modelfieldInstance[$field])) {
@@ -901,7 +901,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             }
         }
 
-        $var = $this->getStatementVariable($param, $this->getPrimarykey());
+        $var = $this->getStatementVariable(array_keys($param), $this->getPrimarykey());
         $param[$var] = $this->getParametrizedValue($data[$this->getPrimarykey()], 'number_natural'); // ? hardcoded type?
 
         $query .= " , " . $this->table . "_modified = now() WHERE " . $this->getPrimarykey() . " = " . ':'.$var;
@@ -954,7 +954,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 }
                 $index++;
 
-                $var = $this->getStatementVariable($param, $field);
+                $var = $this->getStatementVariable(array_keys($param), $field);
 
                 // performance hack: store modelfield instance!
                 if(!isset($this->modelfieldInstance[$field])) {
@@ -1120,7 +1120,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   $data[$field] = $this->jsonEncode($data[$field]);
               }
 
-              $var = $this->getStatementVariable($param, $field);
+              $var = $this->getStatementVariable(array_keys($param), $field);
 
               // performance hack: store modelfield instance!
               if(!isset($this->modelfieldInstance[$field])) {
