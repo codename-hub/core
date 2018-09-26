@@ -917,9 +917,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * returns a query that performs a save using INSERT
-     * @param  array  $data   [data]
-     * @param  array  &$param [reference array that keeps track of PDO variable names]
-     * @return string         [query]
+     * @param  array  $data     [data]
+     * @param  array  &$param   [reference array that keeps track of PDO variable names]
+     * @param  bool   $replace  [use replace on duplicate unique/pkey]
+     * @return string           [query]
      */
     protected function saveCreate(array $data, array &$param = array(), bool $replace = false) {
         $this->saveLog('CREATE', $data);
