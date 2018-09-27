@@ -365,6 +365,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @return array         [description]
      */
     public function normalizeRecursivelyByFieldlist(array $result) : array {
+
       $fResult = [];
 
       //
@@ -393,13 +394,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $normalized = $join->model->normalizeRecursivelyByFieldlist($result);
 
-        // DEBUG
+        // // DEBUG
         // echo("<pre>Pre-Merge".chr(10));
         // print_r($fResult);
         // echo("</pre>");
+
         // echo("<pre>".print_r($normalized, true)."</pre>");
 
-        // METHOD 1: merge manually, row by row
+        // // METHOD 1: merge manually, row by row
         foreach($normalized as $index => $r) {
           // normalize using this model
           $fResult[$index] = array_merge(($fResult[$index] ?? []), $r);
@@ -416,7 +418,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           //   // $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeRec($r));
         // }
 
-        // DEBUG
+        // // DEBUG
         // echo("<pre>Post-merge".chr(10));
         // print_r($fResult);
         // echo("</pre>");
@@ -429,6 +431,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // normalize using this model
         $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeByFieldlist($r));
       }
+
+      // \codename\core\app::getResponse()->setData('model_normalize_debug', array_merge(\codename\core\app::getResponse()->getData('model_normalize_debug') ?? [], $fResult));
+
+      // // DEBUG
+      // echo("<pre>fResult:".chr(10));
+      // print_r($fResult);
+      // echo("</pre>");
 
       return $fResult;
     }
@@ -478,20 +487,38 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     public function getVirtualFieldResult(array $result, &$track = [], array $structure = []) {
 
-      // app::getResponse()->setData('structure', array_merge(app::getResponse()->getData('structure') ?? [], [$structure]));
+      // DEBUG app::getResponse()->setData('structure', array_merge(app::getResponse()->getData('structure') ?? [], [$structure]));
+      // DEBUG echo("structure1 ".implode('=>', $structure).'<br>');
 
       foreach($this->getNestedJoins() as $join) {
         $track[$join->model->getIdentifier()][] = $join->model;
+
         if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
-          $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, [$join->modelField]) );
+          $structureDive = [];
+          if(($children = $this->config->get('children')) != null) {
+            foreach($children as $field => $config) {
+              if($config['type'] === 'foreign') {
+                $foreign = $this->config->get('foreign>'.$config['field']);
+                if($this->config->get('datatype>'.$field) == 'virtual') {
+                  if($join->modelField === $config['field']) {
+                    $structureDive = [$field];
+                  }
+                }
+              }
+            }
+          }
+          $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, $structureDive) );
         }
       }
-      foreach($this->getSiblingJoins() as $join) {
-        $track[$join->model->getIdentifier()][] = $join->model;
-        if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
-          $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, [$join->modelField]) );
-        }
-      }
+      // TODO, fix, refactor
+      // foreach($this->getSiblingJoins() as $join) {
+      //   $track[$join->model->getIdentifier()][] = $join->model;
+      //   if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
+      //     $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, [$join->modelField]) );
+      //   }
+      // }
+
+      // DEBUG echo("structure2 ".implode('=>', $structure).'<br>');
 
       if(($children = $this->config->get('children')) != null) {
         foreach($children as $field => $config) {
@@ -503,10 +530,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               }
               // $index = count($track[$foreign['model']])-1;
               $index = null;
+
+              // DEBUG echo("Determining index for {$foreign['model']} ({$this->getIdentifier()}.{$field})...<br>");
+
               foreach($this->getNestedJoins() as $join) {
                 if($join->modelField === $config['field']) {
                   if(count($indexes = array_keys($track[$foreign['model']], $join->model, true)) === 1) {
                     $index = $indexes[0];
+                    // DEBUG echo("- index found: $index <br>");
                   }
                 }
               }
@@ -522,7 +553,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               }
               $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
 
+              // DEBUG
+              // $vModel->tIndex = $index;
+              // $vModel->tIndexes = $indexes ?? null;
               // app::getResponse()->setData('fieldvModelIndex>'.$field, $index);
+
+              // if((count($result) > 0) && $vModel !== null) {
+              //   echo("Example source dataset entry: ".var_export($result[0][$vModel->getPrimaryKey()],true)."<br><br><br>");
+              // }
 
               foreach($result as &$dataset) {
                 if($vModel != null) {
@@ -548,6 +586,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // }
 
                   $vData = [];
+
+
+
+                  // // DEBUG
+                  // $vData['used_index'] = $index;
+                  // $vData['used_rawdata'] = [];
+                  // $vData['used_structure'] = $structure;
+                  // echo("USED INDEX: ".$index ." for field $field<br><br><br>");
+
+
                   foreach($vModel->getFields() as $modelField) {
                     //
                     // NOTE:
@@ -568,9 +616,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     } else {
                       $vData[$modelField] = $dataset[$modelField] ?? null;
                     }
+
+
+                    // DEBUG
+                    // $vData['used_rawdata'][$modelField] = $dataset[$modelField] ?? null;
                   }
 
                   $vData = $vModel->normalizeRow($vData);
+
 
                   // handle custom virtual fields
                   if(count($vModel->getVirtualFields()) > 0) {
@@ -579,23 +632,132 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     // }
                   }
 
-                  $dataset[$field] = $vData;
+                  // Old method, put data to root array
+                  // $dataset[$field] = $vData;
+
+                  // new method: deep dive to set data
+                  $dive = &$dataset;
+                  foreach($structure as $key) {
+                    $dive[$key] = $dive[$key] ?? [];
+                    $dive = &$dive[$key];
+                  }
+                  $dive[$field] = array_merge_recursive($dive[$field] ?? [], $vData);
+
+                  // DEBUG
+                  // \codename\core\app::getResponse()->setData(
+                  //   'dive_set',
+                  //   array_merge(
+                  //     \codename\core\app::getResponse()->getData('dive_set') ?? [],
+                  //     [[
+                  //       'structure' => $structure,
+                  //       'field' => $field,
+                  //       'data' => $vData
+                  //     ]]
+                  //   )
+                  // );
+
                 } else {
                   // app::getResponse()->setData('vModelIsNull>'.$this->getIdentifier(), [$foreign['model'], $index]);
-                  $dataset[$field] = null;
+
+                  // Old method, put data to root array
+                  // $dataset[$field] = null;
+
+                  // new method: deep dive to set data
+                  $dive = &$dataset;
+                  foreach($structure as $key) {
+                    $dive[$key] = $dive[$key] ?? [];
+                    $dive = &$dive[$key];
+                  }
+                  $dive[$field] = array_merge_recursive($dive[$field] ?? [], $vData);
+
+                  // DEBUG
+                  // \codename\core\app::getResponse()->setData(
+                  //   'dive_set',
+                  //   array_merge(
+                  //     \codename\core\app::getResponse()->getData('dive_set') ?? [],
+                  //     [[
+                  //       'structure' => $structure,
+                  //       'field' => $field,
+                  //       'data' => $vData
+                  //     ]]
+                  //   )
+                  // );
                 }
               }
             }
+          // }
           } else if($config['type'] === 'collection') {
+
             // check for active collectionmodel / plugin
             if(isset($this->collectionPlugins[$field])) {
               $collection = $this->collectionPlugins[$field];
               $vModel = $collection->collectionModel;
 
+              // determine to-be-used index for THIS model, as it is the base for the collection?
+              // $index =
+              $index = null;
+
+              if(!isset($track[$this->getIdentifier()])) {
+                $index = null;
+              } else {
+                // foreach($this->getNestedJoins() as $join) {
+                  // if($join->modelField === $config['field']) {
+                    if(count($indexes = array_keys($track[$this->getIdentifier()], $this, true)) === 1) {
+                      $index = $indexes[0];
+                    }
+                  // }
+                // }
+              }
+              // if($index === null) {
+              //   // err?
+              // }
+
               foreach($result as &$dataset) {
-                $vModel->addFilter($collection->getCollectionModelBaseRefField(), $dataset[$collection->getBaseField()]);
+
+
+                $filterValue = ($index !== null) ? $dataset[$collection->getBaseField()][$index] : $dataset[$collection->getBaseField()];
+
+                // DEBUG
+                // \codename\core\app::getResponse()->setData(
+                //   'model_collection_debug',
+                //   array_merge(
+                //     \codename\core\app::getResponse()->getData('model_collection_debug') ?? [],
+                //     [[
+                //       'currentModelProcess' => $this->getIdentifier(),
+                //       'filter with' => [
+                //         $collection->getCollectionModelBaseRefField(),
+                //         $dataset[$collection->getBaseField()],
+                //       ],
+                //       'filterValue' => $filterValue,
+                //       'params' => [
+                //         'track' => $track,
+                //         'structure' => $structure,
+                //         'collection' => [
+                //           'getBaseField' => $collection->getBaseField(),
+                //           'getCollectionModelBaseRefField' => $collection->getCollectionModelBaseRefField()
+                //         ]
+                //       ],
+                //       'index' => $index,
+                //       'testing',
+                //       $dataset[$collection->getBaseField()]
+                //     ]]
+                //   )
+                // );
+
+                $vModel->addFilter($collection->getCollectionModelBaseRefField(), $filterValue);
                 $vResult = $vModel->search()->getResult();
-                $dataset[$field] = $vResult;
+
+
+                // new method: deep dive to set data
+                $dive = &$dataset;
+                foreach($structure as $key) {
+                  $dive[$key] = $dive[$key] ?? [];
+                  $dive = &$dive[$key];
+                }
+                $dive[$field] = $vResult;
+
+                // OLD METHOD
+                // $dataset[$field] = $vResult;
               }
             }
           }
