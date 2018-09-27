@@ -393,31 +393,44 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $normalized = $join->model->normalizeRecursivelyByFieldlist($result);
 
+        // DEBUG
+        // echo("<pre>Pre-Merge".chr(10));
+        // print_r($fResult);
+        // echo("</pre>");
         // echo("<pre>".print_r($normalized, true)."</pre>");
 
         // METHOD 1: merge manually, row by row
-        // foreach($normalized as $index => $r) {
-        //   // normalize using this model
-        //   $fResult[$index] = array_merge(($fResult[$index] ?? []), $r);
-        // }
+        foreach($normalized as $index => $r) {
+          // normalize using this model
+          $fResult[$index] = array_merge(($fResult[$index] ?? []), $r);
+        }
 
         // METHOD 2: recursive merge
-        $fResult = array_merge_recursive($fResult, $join->model->normalizeRecursivelyByFieldlist($result));
+        // NOTE: Actually, this doesn't work right.
+        // It may split a model's result apart into two array elements in some cases.
+        // $fResult = array_merge_recursive($fResult, $join->model->normalizeRecursivelyByFieldlist($result));
 
-        // foreach($tResult as $index => $r) {
-        //   // $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeByFieldlist($r));
-        //   // $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeRec($r));
+        // TESTING, OLD
+        // foreach($fResult as $index => $r) {
+          //   // $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeByFieldlist($r));
+          //   // $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeRec($r));
         // }
+
+        // DEBUG
+        // echo("<pre>Post-merge".chr(10));
+        // print_r($fResult);
+        // echo("</pre>");
       }
 
+      //
+      // Normalize using this model's fields
+      //
       foreach($result as $index => $r) {
         // normalize using this model
         $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeByFieldlist($r));
       }
 
       return $fResult;
-      // $result = $fResult;
-      // return $result;
     }
 
     /**
