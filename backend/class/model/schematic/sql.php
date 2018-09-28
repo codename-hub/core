@@ -587,8 +587,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
                   $vData = [];
 
-
-
                   // // DEBUG
                   // $vData['used_index'] = $index;
                   // $vData['used_rawdata'] = [];
@@ -613,8 +611,20 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     //
                     if(isset($dataset[$modelField]) && is_array($dataset[$modelField]) && $vModel->getFieldtype(\codename\core\value\text\modelfield::getInstance($modelField)) !== 'virtual') {
                       $vData[$modelField] = $dataset[$modelField][$index] ?? null;
-                    } else {
-                      $vData[$modelField] = $dataset[$modelField] ?? null;
+                    } else if(array_key_exists($modelField, $dataset)) {
+                      //
+                      // HACK/NOTE:
+                      // this fixes the bug that leaves some 0 and 1 index keys in the resulting array
+                      // possible explanation:
+                      // If we set a null value at this stage, this gets merged (possibly recursively) with the real sub-result
+                      // which causes the real result to appear AND additionally a null entry
+                      //
+                      // e.g.
+                      // [field] => null
+                      // later merge with [field] => [ 1, 2, 3 ]
+                      // results in: [ 1, 2, 3, null ]
+                      //
+                      $vData[$modelField] = $dataset[$modelField]; //  ?? null;
                     }
 
 
@@ -668,7 +678,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     $dive[$key] = $dive[$key] ?? [];
                     $dive = &$dive[$key];
                   }
-                  $dive[$field] = array_merge_recursive($dive[$field] ?? [], $vData);
+                  $dive[$field] = null; // array_merge_recursive($dive[$field] ?? [], $vData);
 
                   // DEBUG
                   // \codename\core\app::getResponse()->setData(
@@ -697,7 +707,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               // $index =
               $index = null;
 
-              if(!isset($track[$this->getIdentifier()])) {
+              if((!isset($track[$this->getIdentifier()])) || count($track[$this->getIdentifier()]) === 0) {
                 $index = null;
               } else {
                 // foreach($this->getNestedJoins() as $join) {
@@ -715,9 +725,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               foreach($result as &$dataset) {
 
 
-                $filterValue = ($index !== null) ? $dataset[$collection->getBaseField()][$index] : $dataset[$collection->getBaseField()];
+                $filterValue = ($index !== null && is_array($dataset[$collection->getBaseField()])) ? $dataset[$collection->getBaseField()][$index] : $dataset[$collection->getBaseField()];
 
-                // DEBUG
+
+                $vModel->addFilter($collection->getCollectionModelBaseRefField(), $filterValue);
+                $vResult = $vModel->search()->getResult();
+
+                // // DEBUG
                 // \codename\core\app::getResponse()->setData(
                 //   'model_collection_debug',
                 //   array_merge(
@@ -729,6 +743,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 //         $dataset[$collection->getBaseField()],
                 //       ],
                 //       'filterValue' => $filterValue,
+                //       'determination' => [
+                //         'isset_' => isset($track[$this->getIdentifier()]),
+                //         'count' => isset($track[$this->getIdentifier()]) ? count($track[$this->getIdentifier()]) : 'NOT SET',
+                //         'indexes' => isset($track[$this->getIdentifier()]) ? array_keys($track[$this->getIdentifier()], $this, true) : 'NOT SET'
+                //       ],
                 //       'params' => [
                 //         'track' => $track,
                 //         'structure' => $structure,
@@ -739,14 +758,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 //       ],
                 //       'index' => $index,
                 //       'testing',
-                //       $dataset[$collection->getBaseField()]
+                //       $dataset[$collection->getBaseField()],
+                //       'vResult' => $vResult
                 //     ]]
                 //   )
                 // );
-
-                $vModel->addFilter($collection->getCollectionModelBaseRefField(), $filterValue);
-                $vResult = $vModel->search()->getResult();
-
 
                 // new method: deep dive to set data
                 $dive = &$dataset;
