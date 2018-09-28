@@ -365,6 +365,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @return array         [description]
      */
     public function normalizeRecursivelyByFieldlist(array $result) : array {
+
       $fResult = [];
 
       //
@@ -393,31 +394,52 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $normalized = $join->model->normalizeRecursivelyByFieldlist($result);
 
+        // // DEBUG
+        // echo("<pre>Pre-Merge".chr(10));
+        // print_r($fResult);
+        // echo("</pre>");
+
         // echo("<pre>".print_r($normalized, true)."</pre>");
 
-        // METHOD 1: merge manually, row by row
-        // foreach($normalized as $index => $r) {
-        //   // normalize using this model
-        //   $fResult[$index] = array_merge(($fResult[$index] ?? []), $r);
-        // }
+        // // METHOD 1: merge manually, row by row
+        foreach($normalized as $index => $r) {
+          // normalize using this model
+          $fResult[$index] = array_merge(($fResult[$index] ?? []), $r);
+        }
 
         // METHOD 2: recursive merge
-        $fResult = array_merge_recursive($fResult, $join->model->normalizeRecursivelyByFieldlist($result));
+        // NOTE: Actually, this doesn't work right.
+        // It may split a model's result apart into two array elements in some cases.
+        // $fResult = array_merge_recursive($fResult, $join->model->normalizeRecursivelyByFieldlist($result));
 
-        // foreach($tResult as $index => $r) {
-        //   // $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeByFieldlist($r));
-        //   // $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeRec($r));
+        // TESTING, OLD
+        // foreach($fResult as $index => $r) {
+          //   // $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeByFieldlist($r));
+          //   // $fResult[$index] = array_merge(($fResult[$index] ?? []), $join->model->normalizeRec($r));
         // }
+
+        // // DEBUG
+        // echo("<pre>Post-merge".chr(10));
+        // print_r($fResult);
+        // echo("</pre>");
       }
 
+      //
+      // Normalize using this model's fields
+      //
       foreach($result as $index => $r) {
         // normalize using this model
         $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeByFieldlist($r));
       }
 
+      // \codename\core\app::getResponse()->setData('model_normalize_debug', array_merge(\codename\core\app::getResponse()->getData('model_normalize_debug') ?? [], $fResult));
+
+      // // DEBUG
+      // echo("<pre>fResult:".chr(10));
+      // print_r($fResult);
+      // echo("</pre>");
+
       return $fResult;
-      // $result = $fResult;
-      // return $result;
     }
 
     /**
@@ -465,20 +487,38 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     public function getVirtualFieldResult(array $result, &$track = [], array $structure = []) {
 
-      // app::getResponse()->setData('structure', array_merge(app::getResponse()->getData('structure') ?? [], [$structure]));
+      // DEBUG app::getResponse()->setData('structure', array_merge(app::getResponse()->getData('structure') ?? [], [$structure]));
+      // DEBUG echo("structure1 ".implode('=>', $structure).'<br>');
 
       foreach($this->getNestedJoins() as $join) {
         $track[$join->model->getIdentifier()][] = $join->model;
+
         if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
-          $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, [$join->modelField]) );
+          $structureDive = [];
+          if(($children = $this->config->get('children')) != null) {
+            foreach($children as $field => $config) {
+              if($config['type'] === 'foreign') {
+                $foreign = $this->config->get('foreign>'.$config['field']);
+                if($this->config->get('datatype>'.$field) == 'virtual') {
+                  if($join->modelField === $config['field']) {
+                    $structureDive = [$field];
+                  }
+                }
+              }
+            }
+          }
+          $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, $structureDive) );
         }
       }
-      foreach($this->getSiblingJoins() as $join) {
-        $track[$join->model->getIdentifier()][] = $join->model;
-        if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
-          $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, [$join->modelField]) );
-        }
-      }
+      // TODO, fix, refactor
+      // foreach($this->getSiblingJoins() as $join) {
+      //   $track[$join->model->getIdentifier()][] = $join->model;
+      //   if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
+      //     $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, [$join->modelField]) );
+      //   }
+      // }
+
+      // DEBUG echo("structure2 ".implode('=>', $structure).'<br>');
 
       if(($children = $this->config->get('children')) != null) {
         foreach($children as $field => $config) {
@@ -490,10 +530,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               }
               // $index = count($track[$foreign['model']])-1;
               $index = null;
+
+              // DEBUG echo("Determining index for {$foreign['model']} ({$this->getIdentifier()}.{$field})...<br>");
+
               foreach($this->getNestedJoins() as $join) {
                 if($join->modelField === $config['field']) {
                   if(count($indexes = array_keys($track[$foreign['model']], $join->model, true)) === 1) {
                     $index = $indexes[0];
+                    // DEBUG echo("- index found: $index <br>");
                   }
                 }
               }
@@ -509,7 +553,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               }
               $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
 
+              // DEBUG
+              // $vModel->tIndex = $index;
+              // $vModel->tIndexes = $indexes ?? null;
               // app::getResponse()->setData('fieldvModelIndex>'.$field, $index);
+
+              // if((count($result) > 0) && $vModel !== null) {
+              //   echo("Example source dataset entry: ".var_export($result[0][$vModel->getPrimaryKey()],true)."<br><br><br>");
+              // }
 
               foreach($result as &$dataset) {
                 if($vModel != null) {
@@ -535,6 +586,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // }
 
                   $vData = [];
+
+                  // // DEBUG
+                  // $vData['used_index'] = $index;
+                  // $vData['used_rawdata'] = [];
+                  // $vData['used_structure'] = $structure;
+                  // echo("USED INDEX: ".$index ." for field $field<br><br><br>");
+
+
                   foreach($vModel->getFields() as $modelField) {
                     //
                     // NOTE:
@@ -552,12 +611,29 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     //
                     if(isset($dataset[$modelField]) && is_array($dataset[$modelField]) && $vModel->getFieldtype(\codename\core\value\text\modelfield::getInstance($modelField)) !== 'virtual') {
                       $vData[$modelField] = $dataset[$modelField][$index] ?? null;
-                    } else {
-                      $vData[$modelField] = $dataset[$modelField] ?? null;
+                    } else if(array_key_exists($modelField, $dataset)) {
+                      //
+                      // HACK/NOTE:
+                      // this fixes the bug that leaves some 0 and 1 index keys in the resulting array
+                      // possible explanation:
+                      // If we set a null value at this stage, this gets merged (possibly recursively) with the real sub-result
+                      // which causes the real result to appear AND additionally a null entry
+                      //
+                      // e.g.
+                      // [field] => null
+                      // later merge with [field] => [ 1, 2, 3 ]
+                      // results in: [ 1, 2, 3, null ]
+                      //
+                      $vData[$modelField] = $dataset[$modelField]; //  ?? null;
                     }
+
+
+                    // DEBUG
+                    // $vData['used_rawdata'][$modelField] = $dataset[$modelField] ?? null;
                   }
 
                   $vData = $vModel->normalizeRow($vData);
+
 
                   // handle custom virtual fields
                   if(count($vModel->getVirtualFields()) > 0) {
@@ -566,23 +642,138 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     // }
                   }
 
-                  $dataset[$field] = $vData;
+                  // Old method, put data to root array
+                  // $dataset[$field] = $vData;
+
+                  // new method: deep dive to set data
+                  $dive = &$dataset;
+                  foreach($structure as $key) {
+                    $dive[$key] = $dive[$key] ?? [];
+                    $dive = &$dive[$key];
+                  }
+                  $dive[$field] = array_merge_recursive($dive[$field] ?? [], $vData);
+
+                  // DEBUG
+                  // \codename\core\app::getResponse()->setData(
+                  //   'dive_set',
+                  //   array_merge(
+                  //     \codename\core\app::getResponse()->getData('dive_set') ?? [],
+                  //     [[
+                  //       'structure' => $structure,
+                  //       'field' => $field,
+                  //       'data' => $vData
+                  //     ]]
+                  //   )
+                  // );
+
                 } else {
                   // app::getResponse()->setData('vModelIsNull>'.$this->getIdentifier(), [$foreign['model'], $index]);
-                  $dataset[$field] = null;
+
+                  // Old method, put data to root array
+                  // $dataset[$field] = null;
+
+                  // new method: deep dive to set data
+                  $dive = &$dataset;
+                  foreach($structure as $key) {
+                    $dive[$key] = $dive[$key] ?? [];
+                    $dive = &$dive[$key];
+                  }
+                  $dive[$field] = null; // array_merge_recursive($dive[$field] ?? [], $vData);
+
+                  // DEBUG
+                  // \codename\core\app::getResponse()->setData(
+                  //   'dive_set',
+                  //   array_merge(
+                  //     \codename\core\app::getResponse()->getData('dive_set') ?? [],
+                  //     [[
+                  //       'structure' => $structure,
+                  //       'field' => $field,
+                  //       'data' => $vData
+                  //     ]]
+                  //   )
+                  // );
                 }
               }
             }
+          // }
           } else if($config['type'] === 'collection') {
+
             // check for active collectionmodel / plugin
             if(isset($this->collectionPlugins[$field])) {
               $collection = $this->collectionPlugins[$field];
               $vModel = $collection->collectionModel;
 
+              // determine to-be-used index for THIS model, as it is the base for the collection?
+              // $index =
+              $index = null;
+
+              if((!isset($track[$this->getIdentifier()])) || count($track[$this->getIdentifier()]) === 0) {
+                $index = null;
+              } else {
+                // foreach($this->getNestedJoins() as $join) {
+                  // if($join->modelField === $config['field']) {
+                    if(count($indexes = array_keys($track[$this->getIdentifier()], $this, true)) === 1) {
+                      $index = $indexes[0];
+                    }
+                  // }
+                // }
+              }
+              // if($index === null) {
+              //   // err?
+              // }
+
               foreach($result as &$dataset) {
-                $vModel->addFilter($collection->getCollectionModelBaseRefField(), $dataset[$collection->getBaseField()]);
+
+
+                $filterValue = ($index !== null && is_array($dataset[$collection->getBaseField()])) ? $dataset[$collection->getBaseField()][$index] : $dataset[$collection->getBaseField()];
+
+
+                $vModel->addFilter($collection->getCollectionModelBaseRefField(), $filterValue);
                 $vResult = $vModel->search()->getResult();
-                $dataset[$field] = $vResult;
+
+                // // DEBUG
+                // \codename\core\app::getResponse()->setData(
+                //   'model_collection_debug',
+                //   array_merge(
+                //     \codename\core\app::getResponse()->getData('model_collection_debug') ?? [],
+                //     [[
+                //       'currentModelProcess' => $this->getIdentifier(),
+                //       'filter with' => [
+                //         $collection->getCollectionModelBaseRefField(),
+                //         $dataset[$collection->getBaseField()],
+                //       ],
+                //       'filterValue' => $filterValue,
+                //       'determination' => [
+                //         'isset_' => isset($track[$this->getIdentifier()]),
+                //         'count' => isset($track[$this->getIdentifier()]) ? count($track[$this->getIdentifier()]) : 'NOT SET',
+                //         'indexes' => isset($track[$this->getIdentifier()]) ? array_keys($track[$this->getIdentifier()], $this, true) : 'NOT SET'
+                //       ],
+                //       'params' => [
+                //         'track' => $track,
+                //         'structure' => $structure,
+                //         'collection' => [
+                //           'getBaseField' => $collection->getBaseField(),
+                //           'getCollectionModelBaseRefField' => $collection->getCollectionModelBaseRefField()
+                //         ]
+                //       ],
+                //       'index' => $index,
+                //       'testing',
+                //       $dataset[$collection->getBaseField()],
+                //       'vResult' => $vResult
+                //     ]]
+                //   )
+                // );
+
+                // new method: deep dive to set data
+                $dive = &$dataset;
+                foreach($structure as $key) {
+                  $dive[$key] = $dive[$key] ?? [];
+                  $dive = &$dive[$key];
+                }
+                $dive[$field] = $vResult;
+
+                // OLD METHOD
+                // $dataset[$field] = $vResult;
               }
             }
           }
@@ -888,7 +1079,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
                 $index++;
 
-                $var = $this->getStatementVariable($param, $field);
+                $var = $this->getStatementVariable(array_keys($param), $field);
 
                 // performance hack: store modelfield instance!
                 if(!isset($this->modelfieldInstance[$field])) {
@@ -901,7 +1092,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             }
         }
 
-        $var = $this->getStatementVariable($param, $this->getPrimarykey());
+        $var = $this->getStatementVariable(array_keys($param), $this->getPrimarykey());
         $param[$var] = $this->getParametrizedValue($data[$this->getPrimarykey()], 'number_natural'); // ? hardcoded type?
 
         $query .= " , " . $this->table . "_modified = now() WHERE " . $this->getPrimarykey() . " = " . ':'.$var;
@@ -917,9 +1108,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * returns a query that performs a save using INSERT
-     * @param  array  $data   [data]
-     * @param  array  &$param [reference array that keeps track of PDO variable names]
-     * @return string         [query]
+     * @param  array  $data     [data]
+     * @param  array  &$param   [reference array that keeps track of PDO variable names]
+     * @param  bool   $replace  [use replace on duplicate unique/pkey]
+     * @return string           [query]
      */
     protected function saveCreate(array $data, array &$param = array(), bool $replace = false) {
         $this->saveLog('CREATE', $data);
@@ -954,7 +1146,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 }
                 $index++;
 
-                $var = $this->getStatementVariable($param, $field);
+                $var = $this->getStatementVariable(array_keys($param), $field);
 
                 // performance hack: store modelfield instance!
                 if(!isset($this->modelfieldInstance[$field])) {
@@ -976,20 +1168,22 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   continue;
               }
               if(array_key_exists($field, $data)) {
-                if (is_object($data[$field]) || is_array($data[$field])) {
-                    $data[$field] = $this->jsonEncode($data[$field]);
-                }
+                // if (is_object($data[$field]) || is_array($data[$field])) {
+                //     $data[$field] = $this->jsonEncode($data[$field]);
+                // }
+                //
+                // $var = $this->getStatementVariable(array_keys($param), $field);
+                //
+                // // performance hack: store modelfield instance!
+                // if(!isset($this->modelfieldInstance[$field])) {
+                //   $this->modelfieldInstance[$field] = \codename\core\value\text\modelfield::getInstance($field);
+                // }
+                // $fieldInstance = $this->modelfieldInstance[$field];
+                //
+                // $param[$var] = $this->getParametrizedValue($this->delimit($fieldInstance, $data[$field]), $this->getFieldtype($fieldInstance));
+                // $parts[] = $field . ' = ' . ':'.$var;
 
-                $var = $this->getStatementVariable($param, $field);
-
-                // performance hack: store modelfield instance!
-                if(!isset($this->modelfieldInstance[$field])) {
-                  $this->modelfieldInstance[$field] = \codename\core\value\text\modelfield::getInstance($field);
-                }
-                $fieldInstance = $this->modelfieldInstance[$field];
-
-                $param[$var] = $this->getParametrizedValue($this->delimit($fieldInstance, $data[$field]), $this->getFieldtype($fieldInstance));
-                $parts[] = $field . ' = ' . ':'.$var;
+                $parts[] = "{$field} = VALUES({$field})";
               }
           }
           $query .= implode(',', $parts);
@@ -1015,7 +1209,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         } else if($fieldtype == 'number_natural') {
           $param = \PDO::PARAM_INT;
         } else if($fieldtype == 'boolean') {
-          $param = \PDO::PARAM_BOOL;
+          //
+          // Temporary workaround for MySQL being so odd.
+          // bool == tinyint(1) in MySQL-world. So, we pre-evaluate
+          // the value to 0 or 1 (NULL being handled above)
+          //
+          $value = $value ? 1 : 0;
+          $param = \PDO::PARAM_INT;
+          // $param = \PDO::PARAM_BOOL;
         } else {
           $param = \PDO::PARAM_STR; // Fallback
         }
@@ -1113,7 +1314,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   $data[$field] = $this->jsonEncode($data[$field]);
               }
 
-              $var = $this->getStatementVariable($param, $field);
+              $var = $this->getStatementVariable(array_keys($param), $field);
 
               // performance hack: store modelfield instance!
               if(!isset($this->modelfieldInstance[$field])) {
@@ -1292,9 +1493,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // instead, we're now using the identity operator === to explicitly check for a real NULL
                   // @see http://www.php.net/manual/en/types.comparisons.php
                   if(($filter->value === null) || (is_string($filter->value) && (strlen($filter->value) === 0)) || ($filter->value === 'null')) {
-                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $filterQuery['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
-                      $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
+                      // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
+                      $filterQuery['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // no param!
+                      // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                   } else {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
                       $filterQuery['query'] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
@@ -1325,14 +1526,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             'query' => null
           ];
 
-          $var = $this->getStatementVariable(array_keys($appliedFilters), $this->table.'_flag');
+          $flagVar1 = $this->getStatementVariable(array_keys($appliedFilters), $this->table.'_flag');
+          $appliedFilters[$flagVar1] = null; // temporary dummy value
+          $flagVar2 = $this->getStatementVariable(array_keys($appliedFilters), $this->table.'_flag');
+          $appliedFilters[$flagVar2] = null; // temporary dummy value
 
           if($flagfilter < 0) {
-            $filterQuery['query'] = $this->table.'_flag & ' . ':'.$var . ' <> ' . ':'.$var . ' '; // var = PDO Param
-            $appliedFilters[$var] = $this->getParametrizedValue($flagfilter * -1, 'number_natural'); // values separated from query
+            $filterQuery['query'] = $this->table.'_flag & ' . ':'.$flagVar1 . ' <> ' . ':'.$flagVar2 . ' '; // var = PDO Param
+            $appliedFilters[$flagVar1] = $this->getParametrizedValue($flagfilter * -1, 'number_natural'); // values separated from query
+            $appliedFilters[$flagVar2] = $this->getParametrizedValue($flagfilter * -1, 'number_natural'); // values separated from query
           } else {
-            $filterQuery['query'] = $this->table.'_flag & ' . ':'.$var . ' = ' . ':'.$var . ' '; // var = PDO Param
-            $appliedFilters[$var] = $this->getParametrizedValue($flagfilter, 'number_natural'); // values separated from query
+            $filterQuery['query'] = $this->table.'_flag & ' . ':'.$flagVar1 . ' = ' . ':'.$flagVar2 . ' '; // var = PDO Param
+            $appliedFilters[$flagVar1] = $this->getParametrizedValue($flagfilter, 'number_natural'); // values separated from query
+            $appliedFilters[$flagVar2] = $this->getParametrizedValue($flagfilter, 'number_natural'); // values separated from query
           }
 
           // we don't have to check for existance of 'query', as it is definitely handled
@@ -1381,9 +1587,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // value is a singular value
                   // NOTE: see other $filter->value == null (equality or identity operator) note and others
                   if($filter->value === null || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value === 'null') {
-                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $t_filter['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' ' . ':'.$var . ' '; // var = PDO Param
-                      $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
+                      // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
+                      $t_filter['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // var = PDO Param
+                      // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                   } else {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
                       $t_filter['query'] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' ';

@@ -74,7 +74,8 @@ class database extends \codename\core\observable {
 
             $this->connection = new \PDO($this->driver . ":" . ( $autoconnectDatabase ? "dbname=" . $config['database'] . ";" : '') . 'host=' . $config['host'] . (isset($config['charset']) ? (';charset='.$config['charset']) : ''), $config['user'], $pass);
 
-            $this->connection->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true);
+            $this->connection->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false);
+            $this->connection->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         }
         catch (\PDOException $e) {
             throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONNECTIONERROR, \codename\core\exception::$ERRORLEVEL_FATAL, $e);

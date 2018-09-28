@@ -2011,6 +2011,7 @@ abstract class model implements \codename\core\model\modelInterface {
         foreach($this->siblingModels as $nest) {
           $nest->model->reset();
         }
+        // TODO: reset collection models?
         return;
     }
 
