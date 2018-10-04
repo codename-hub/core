@@ -1315,7 +1315,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @return string
      */
     public function getPrimarykey() : string {
-        if($this->primarykey == null) {
+        if($this->primarykey === null) {
           if(!$this->config->exists("primary")) {
               throw new \codename\core\exception(self::EXCEPTION_GETPRIMARYKEY_NOPRIMARYKEYINCONFIG, \codename\core\exception::$ERRORLEVEL_FATAL, $this->config->get());
           }

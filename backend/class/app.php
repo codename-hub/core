@@ -989,7 +989,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\hook
      */
     final public static function getHook() : \codename\core\hook {
-        if(is_null(self::$hook)) {
+        if(self::$hook === null) {
             self::$hook = \codename\core\hook::getInstance();
         }
         return self::$hook;
