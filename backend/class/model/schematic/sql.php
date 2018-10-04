@@ -1249,9 +1249,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @return [type]       [description]
      */
     protected function saveLog(string $mode, array $data) {
-        if(strpos(get_class($this), 'activitystream') == false) {
-            app::writeActivity("MODEL_" . $mode, get_class($this), $data);
-        }
+        // if(strpos(get_class($this), 'activitystream') == false) {
+        //     app::writeActivity("MODEL_" . $mode, get_class($this), $data);
+        // }
     }
 
     /**
