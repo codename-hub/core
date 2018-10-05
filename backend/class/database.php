@@ -86,6 +86,12 @@ class database extends \codename\core\observable {
     }
 
     /**
+     * [protected description]
+     * @var \PDOStatement[]
+     */
+    protected $statements = [];
+
+    /**
      * Performs the given $query on the \PDO instance.
      * <br />Stores the \PDOStatement to the instance for result management
      * @param string $query
@@ -97,7 +103,26 @@ class database extends \codename\core\observable {
         app::getLog($this->queryLog)->debug($query);
       }
       app::getHook()->fire(\codename\core\hook::EVENT_DATABASE_QUERY_QUERY_BEFORE, array('query' => $query, 'params' => $params));
-      $this->statement = $this->connection->prepare($query);
+
+      $this->statement = null;
+      foreach($this->statements as $statement) {
+        if($statement->queryString == $query) {
+          $this->statement = $statement;
+          break;
+        }
+      }
+      if($this->statement === null) {
+        $this->statement = $this->connection->prepare($query);
+
+        //
+        // Clear cached prepared PDO statements, if there're more than N of them
+        //
+        if(count($this->statements) > $this->maximumCachedStatements) {
+          $this->statements = [];
+        }
+
+        $this->statements[] = $this->statement;
+      }
 
       foreach($params as $key => $param) {
         // use parameters set in getParametrizedValue
@@ -116,6 +141,12 @@ class database extends \codename\core\observable {
       $this->notify();
       return;
     }
+
+    /**
+     * limit of how many PDO Prepared Statement Instances are kept for this database
+     * @var int
+     */
+    protected $maximumCachedStatements = 10;
 
     /**
      * Returns the array of records in the result
