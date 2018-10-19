@@ -1565,7 +1565,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
         switch($this->getFieldtype($field)) {
             case 'boolean' :
-                return $value ? 'true' : 'false';
+                return $value === null ? null : ($value ? true : false); //  ? 'true' : 'false';
                 break;
             case 'text_date':
                 return date('Y-m-d', strtotime($value));
