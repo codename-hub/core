@@ -1571,7 +1571,7 @@ abstract class model implements \codename\core\model\modelInterface {
                 return date('Y-m-d', strtotime($value));
                 break;
             case 'text' :
-                return str_replace('#__DELIMITER__#', $this->delimiter, $value);
+                return $value; // str_replace('#__DELIMITER__#', $this->delimiter, $value);
                 break;
         }
 
@@ -2109,6 +2109,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * I remove all special SQL characters from a string.
+     * @deprecated
      * @param string $string
      * @return string
      */
