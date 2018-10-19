@@ -38,6 +38,7 @@ class rest extends \codename\core\api\codename {
 
     if($method == 'POST') {
       curl_setopt($this->curlHandler, CURLOPT_POST, 1);
+      $this->setData($params);
     } else {
       curl_setopt($this->curlHandler, CURLOPT_POST, 0);
       if($method != 'GET') {
