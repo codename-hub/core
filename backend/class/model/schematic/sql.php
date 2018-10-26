@@ -58,7 +58,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             return $this;
         }
 
-        $this->config = $this->loadConfig();
+        if(!$this->config) {
+          $this->config = $this->loadConfig();
+        }
 
         // Connection now defined in model .json
         if($this->config->exists("connection")) {
@@ -92,7 +94,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @return \codename\core\config
      */
     protected function loadConfig() : \codename\core\config {
-      return new \codename\core\config\json('config/model/' . $this->schema . '_' . $this->table . '.json', true);
+      return new \codename\core\config\json('config/model/' . $this->schema . '_' . $this->table . '.json', true, true);
     }
 
     /**
