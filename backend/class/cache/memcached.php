@@ -42,6 +42,11 @@ class memcached extends \codename\core\cache {
      */
     public function get(string $group, string $key) {
         $data = $this->uncompress($this->memcached->get("{$group}_{$key}"));
+
+        if($this->memcached->getResultCode() !== \Memcached::RES_SUCCESS) {
+          return null;
+        }
+
         $this->notify('CACHE_GET');
         if($this->log) {
           app::getLog($this->log)->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_GET::GETTING($group = ' . $group . ', $key= ' . $key . ')');
