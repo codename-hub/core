@@ -18,6 +18,13 @@ class database extends \codename\core\session implements \codename\core\session\
         // save prior to serialization
         $this->sessionData = new \codename\core\datacontainer($data['session_data']);
 
+        // setcookie ("PHPSESSID", "", time() - 3600);
+        if(session_status() === PHP_SESSION_NONE) {
+          @session_start();
+        }
+
+        // print_r($_COOKIE['PHPSESSID']);
+
         $data['session_data'] = serialize($data['session_data']);
         $this->myModel()->save($data);
 
@@ -37,7 +44,10 @@ class database extends \codename\core\session implements \codename\core\session\
             return;
         }
         foreach($sess as $session) {
-            $this->myModel()->entryLoad($session['session_id'])->entryUnsetflag(\codename\core\model\session::$FLAG_ACTIVE)->entrySave();
+            $this->myModel()
+              ->entryLoad($session['session_id'])
+              // ->entryUnsetflag(\codename\core\model\session::FLAG_ACTIVE)
+              ->entrySave();
         }
         setcookie ("PHPSESSID", "", time() - 3600);
         return;
@@ -47,7 +57,10 @@ class database extends \codename\core\session implements \codename\core\session\
      * @todo DOCUMENTATION
      */
     public function identify() : bool {
-        $data = $this->myModel()->addFilter('session_sessionid', $_COOKIE['PHPSESSID'])->withFlag(\codename\core\model\session::$FLAG_ACTIVE)->search()->getResult();
+        $data = $this->myModel()
+          ->addFilter('session_sessionid', $_COOKIE['PHPSESSID'])
+          // ->withFlag(\codename\core\model\session::$FLAG_ACTIVE)
+          ->search()->getResult();
         if(count($data) == 0) {
             return false;
         }
@@ -55,7 +68,7 @@ class database extends \codename\core\session implements \codename\core\session\
 
         $this->sessionEntry = new \codename\core\datacontainer($data);
 
-        $sessData = unserialize($data['session_data']);
+        $sessData = is_string($data['session_data']) ? unserialize($data['session_data']) : $data['session_data'];
 
         if(is_array($sessData)) {
           $this->sessionData = new \codename\core\datacontainer($sessData);
