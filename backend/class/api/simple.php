@@ -43,10 +43,7 @@ class simple extends \codename\core\api\codename {
     curl_setopt($this->curlHandler, CURLOPT_URL, $url);
     curl_setopt($this->curlHandler, CURLOPT_RETURNTRANSFER, true);
 
-    curl_setopt($this->curlHandler, CURLOPT_HTTPHEADER, array(
-            "X-App: " . $this->authentication->getData('app_name'),
-            "X-Auth: " . $this->makeHash()
-    ));
+    curl_setopt($this->curlHandler, CURLOPT_HTTPHEADER, $this->headers);
 
     $this->sendData();
     app::getLog('codenameapi')->debug(serialize($this));

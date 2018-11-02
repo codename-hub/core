@@ -190,6 +190,24 @@ class codename extends \codename\core\api {
     }
 
     /**
+     * headers to send with the request
+     * @var array
+     */
+    protected $headers = [];
+
+    /**
+     * [setHeader description]
+     * @param string $key   [description]
+     * @param [type] $value [description]
+     */
+    protected function setHeader(string $key, $value) {
+      if($value === null) {
+        unset($this->headers[$key]);
+      }
+      $this->headers[$key] = $value;
+    }
+
+    /**
      * Performs the request
      * @param string $type
      * @return mixed|bool
@@ -202,15 +220,34 @@ class codename extends \codename\core\api {
         curl_setopt($this->curlHandler, CURLOPT_URL, $url);
         curl_setopt($this->curlHandler, CURLOPT_RETURNTRANSFER, true);
 
-        curl_setopt($this->curlHandler, CURLOPT_HTTPHEADER, array(
-                "X-App: " . $this->authentication->getData('app_name'),
-                "X-Auth: " . $this->makeHash()
-        ));
+        // curl_setopt($this->curlHandler, CURLOPT_HTTPHEADER, array(
+        //         "X-App: " . $this->authentication->getData('app_name'),
+        //         "X-Auth: " . $this->makeHash()
+        // ));
+
+        $preparedHeaders = [];
+        foreach($this->headers as $k => $v) {
+          $preparedHeaders[] = $k.": ".$v;
+        }
+
+        // curl_setopt($this->curlHandler, CURLINFO_HEADER_OUT, true);
+
+
+        //
+        // NOTE: doRequest() might be overwritten/re-implemented
+        // in derived classes. Don't forget to set headers there.
+        //
+        curl_setopt($this->curlHandler, CURLOPT_HTTPHEADER, $preparedHeaders);
+        // \codename\core\app::getResponse()->setData('curl_headers', $preparedHeaders);
+
 
         $this->sendData();
         // app::getLog('codenameapi')->debug(serialize($this));
 
-        $res = $this->decodeResponse(curl_exec($this->curlHandler));
+        $response = curl_exec($this->curlHandler);
+        $res = $this->decodeResponse($response);
+
+        // \codename\core\app::getResponse()->setData('curl_response', $response);
 
         curl_close($this->curlHandler);
 

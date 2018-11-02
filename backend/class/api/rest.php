@@ -114,10 +114,24 @@ class rest extends \codename\core\api\codename {
             "X-Auth: " . $this->makeHash()
     )); */
 
+    $preparedHeaders = [];
+    foreach($this->headers as $k => $v) {
+      $preparedHeaders[] = $k.": ".$v;
+    }
+
+    //
+    // NOTE: doRequest() might be overwritten/re-implemented
+    // in derived classes. Don't forget to set headers there.
+    //
+    curl_setopt($this->curlHandler, CURLOPT_HTTPHEADER, $preparedHeaders);
+
     $this->sendData();
+
     // app::getLog('codenameapi')->debug(serialize($this));
 
-    $res = $this->decodeResponse(curl_exec($this->curlHandler));
+    $response = curl_exec($this->curlHandler);
+    $res = $this->decodeResponse($response);
+
 
     if(!$res) {
       $err = curl_error($this->curlHandler);
