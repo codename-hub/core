@@ -1025,8 +1025,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $query .= $this->getFilterQuery($params);
 
-        if(count($this->group) > 0) {
-            $query .= $this->getGroups($this->group);
+        $groups = $this->getGroups($this->group);
+        if(count($groups) > 0) {
+          $query .= 'GROUP BY '. implode(', ', $groups);
         }
 
         if(count($this->order) > 0) {
@@ -1766,30 +1767,33 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
 
     /**
-     * Converts the given array of model_plugin_group instances to the GROUP BY... query string
+     * Returns grouping components
      * @author Kevin Dargel
-     * @param array $groups
-     * @return string
+     * @return array
      */
-    protected function getGroups(array $groups) : string {
-        // defaults
-        $group = '';
-        $appliedGroups = 0;
+    public function getGroups() : array {
+        $groupArray = [];
+
         // group by fields
-        foreach($groups as $myGroup) {
-            $group .= ($appliedGroups > 0) ? ', ' : ' GROUP BY ';
-            $specifier = array();
-            if($myGroup->field->getSchema() != null) {
-              $specifier[] = $myGroup->field->getSchema();
-            }
-            if($myGroup->field->getTable() != null) {
-              $specifier[] = $myGroup->field->getTable();
-            }
-            $specifier[] = $myGroup->field->get();
-            $group .= implode('.', $specifier);
-            $appliedGroups++;
+        foreach($this->group as $group) {
+            $groupArray[] = implode('.', array_filter([
+              $group->field->getSchema() ?? null,
+              $group->field->getTable() ?? null,
+              $group->field->get()
+            ]));
         }
-        return $group;
+
+        foreach($this->getNestedJoins() as $join) {
+          if($join->model instanceof \codename\core\model\schematic\sql) {
+            $groupArray = array_merge($groupArray, $join->model->getGroups());
+          }
+        }
+
+        //
+        // TODO: sibling joins?
+        //
+
+        return $groupArray;
     }
 
     /**
@@ -1884,6 +1888,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           //
           foreach($this->fieldlist as $field) {
             if($field instanceof \codename\core\model\plugin\calculatedfield\calculatedfieldInterface) {
+              $result[] = array($field->get());
+            } else if($field instanceof \codename\core\model\plugin\calculation\calculationInterface) {
               $result[] = array($field->get());
             } else if($this->config->get('datatype>'.$field->field->get()) !== 'virtual') {
               //
