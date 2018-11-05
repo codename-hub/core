@@ -1142,6 +1142,21 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * @inheritDoc
+     */
+    public function addCalculationField(string $field, string $calculationType, string $fieldBase) : model {
+      $field = \codename\core\value\text\modelfield::getInstance($field);
+      $fieldBase = \codename\core\value\text\modelfield::getInstance($fieldBase);
+      // only check for EXISTANCE of the fieldname, cancel if so - we don't want duplicates!
+      if($this->fieldExists($field)) {
+        throw new \codename\core\exception(self::EXCEPTION_ADDCALCULATEDFIELD_FIELDALREADYEXISTS, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
+      }
+      $class = '\\codename\\core\\model\\plugin\\calculation\\' . $this->getType();
+      $this->fieldlist[] = new $class($field, $calculationType, $fieldBase);
+      return $this;
+    }
+
+    /**
      * exception thrown if we try to add a calculated field which already exists (either as db field or another calculated one)
      * @var string
      */
