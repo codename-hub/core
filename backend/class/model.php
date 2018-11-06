@@ -1046,7 +1046,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * {@inheritDoc}
      * @see \codename\core\model_interface::addField($field)
      */
-    public function addField(string $field) : model {
+    public function addField(string $field, string $alias = null) : model {
         if(strpos($field, ',') !== false) {
             foreach(explode(',', $field) as $myField) {
                 $this->addField(trim($myField));
@@ -1060,7 +1060,8 @@ abstract class model implements \codename\core\model\modelInterface {
         }
 
         $class = '\\codename\\core\\model\\plugin\\field\\' . $this->getType();
-        $this->fieldlist[] = new $class($field);
+        $alias = $alias ? \codename\core\value\text\modelfield::getInstance($alias) : null;
+        $this->fieldlist[] = new $class($field, $alias);
         return $this;
     }
 

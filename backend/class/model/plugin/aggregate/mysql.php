@@ -14,27 +14,28 @@ class mysql extends \codename\core\model\plugin\aggregate implements \codename\c
   /**
    * @inheritDoc
    */
-  public function get() : string
+  public function get(string $tableAlias = null) : string
   {
     $sql = '';
+    $tableAlias = $tableAlias ? $tableAlias.'.' : '';
     switch ($this->calculationType) {
       case 'count':
-        $sql = 'COUNT('.$this->fieldBase->get().')';
+        $sql = 'COUNT('.$tableAlias.$this->fieldBase->get().')';
         break;
       case 'sum':
-        $sql = 'SUM('.$this->fieldBase->get().')';
+        $sql = 'SUM('.$tableAlias.$this->fieldBase->get().')';
         break;
       case 'avg':
-        $sql = 'AVG('.$this->fieldBase->get().')';
+        $sql = 'AVG('.$tableAlias.$this->fieldBase->get().')';
         break;
       case 'year':
-        $sql = 'YEAR('.$this->fieldBase->get().')';
+        $sql = 'YEAR('.$tableAlias.$this->fieldBase->get().')';
         break;
       case 'month':
-        $sql = 'MONTH('.$this->fieldBase->get().')';
+        $sql = 'MONTH('.$tableAlias.$this->fieldBase->get().')';
         break;
       case 'day':
-        $sql = 'DAY('.$this->fieldBase->get().')';
+        $sql = 'DAY('.$tableAlias.$this->fieldBase->get().')';
         break;
       default:
         throw new exception('EXCEPTION_MODEL_PLUGIN_CALCULATION_MYSQL_UNKKNOWN_CALCULATION_TYPE', exception::$ERRORLEVEL_ERROR, $this->calculationType);

@@ -15,13 +15,20 @@ class field extends \codename\core\model\plugin implements \codename\core\model\
     public $field = null;
 
     /**
+     * [public description]
+     * @var \codename\core\value\text\modelfield
+     */
+    public $alias = null;
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\model_plugin_field_interface::__CONSTRUCT(string $field)
      */
-    public function __CONSTRUCT(\codename\core\value\text\modelfield $field) {
+    public function __CONSTRUCT(\codename\core\value\text\modelfield $field, ?\codename\core\value\text\modelfield $alias = null) {
         $this->field = $field;
+        $this->alias = $alias;
         return $this;
     }
-    
+
 }

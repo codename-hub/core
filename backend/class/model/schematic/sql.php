@@ -1911,7 +1911,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * this also respects hiddenFields
      *
      * @author Kevin Dargel
-     * @param string|null  $alias   [optional: alias as prefix for the following fields]
+     * @param string|null  $alias   [optional: alias as prefix for the following fields - table alias!]
      * @return array
      */
     protected function getCurrentFieldlist(string $alias = null) : array {
@@ -1949,17 +1949,26 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               //
               // pre-defined aggregate function
               //
-              $result[] = array($field->get());
+              $result[] = array($field->get($alias));
 
             } else if($this->config->get('datatype>'.$field->field->get()) !== 'virtual') {
               //
               // omit virtual fields
               // they're not part of the DB.
               //
+              $fieldAlias = $field->alias !== null ? $field->alias->get() : null;
               if($alias != null) {
-                $result[] = array($alias, $field->field->get());
+                if($fieldAlias) {
+                  $result[] = [ $alias, $field->field->get() . ' AS ' . $fieldAlias ];
+                } else {
+                  $result[] = [ $alias, $field->field->get() ];
+                }
               } else {
-                $result[] = array($field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get());
+                if($fieldAlias) {
+                  $result[] = [ $field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get() . ' AS ' . $fieldAlias ];
+                } else {
+                  $result[] = [ $field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get() ];
+                }
               }
             }
           }

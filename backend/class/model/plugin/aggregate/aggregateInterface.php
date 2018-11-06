@@ -21,7 +21,10 @@ interface aggregateInterface {
     /**
      * returns the appropriate query string for the respective database type
      * based on the settings provided in this object
-     * @return string
+     * you can provide a tableAlias on need (for handling ambiguous field names)
+     *
+     * @param  string|null $tableAlias [description]
+     * @return string             [description]
      */
-    public function get() : string;
+    public function get(string $tableAlias = null) : string;
 }

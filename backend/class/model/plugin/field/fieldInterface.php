@@ -8,12 +8,14 @@ namespace codename\core\model\plugin\field;
  */
 interface fieldInterface {
 
-
     /**
      * Sets the field for this instance and returns the instance
-     * <br />Use it to add fields to a model request
-     * @param \codename\core\value\text\modelfield $field
+     * Use it to add fields to a model request
+     *
+     * @param  \codename\core\value\text\modelfield       $field [description]
+     * @param  \codename\core\value\text\modelfield|null  $alias [description]
+     * @return [type]                                  [description]
      */
-    public function __CONSTRUCT(\codename\core\value\text\modelfield $field);
-    
+    public function __construct(\codename\core\value\text\modelfield $field, ?\codename\core\value\text\modelfield $alias);
+
 }
