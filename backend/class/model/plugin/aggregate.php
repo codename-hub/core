@@ -2,12 +2,12 @@
 namespace codename\core\model\plugin;
 
 /**
- * Plugin for creating calculation fields by types and their alias
+ * Plugin for creating calculation (aggregate function) fields by types and their alias
  * @package core
  * @author Kevin Dargel
  * @since 2017-05-18
  */
-abstract class calculation extends \codename\core\model\plugin implements \codename\core\model\plugin\calculation\calculationInterface {
+abstract class aggregate extends \codename\core\model\plugin implements \codename\core\model\plugin\aggregate\aggregateInterface {
 
     /**
      * Contains the $field to return

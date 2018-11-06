@@ -187,6 +187,18 @@ abstract class model implements \codename\core\model\modelInterface {
     protected $defaultfilter = array();
 
     /**
+     * Contains instances of aggregate filters for the model request
+     * @var \codename\core\model\plugin\aggregatefilter[] $aggregateFilter
+     */
+    protected $aggregateFilter = array();
+
+    /**
+     * Contains instances of default (reused) aggregate filters for the model request
+     * @var \codename\core\model\plugin\aggregatefilter[] $defaultAggregateFilter
+     */
+    protected $defaultAggregateFilter = array();
+
+    /**
      * Contains an array of integer values for binary checks against the flag field
      * @var array $flagfilter
     **/
@@ -857,6 +869,28 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [addAggregateFilter description]
+     * @param  string               $field       [description]
+     * @param  string|int|bool|null $value       [description]
+     * @param  string $operator    [description]
+     * @param  string|null          $conjunction [description]
+     * @return model               [description]
+     */
+    public function addAggregateFilter(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
+      $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
+      if(is_array($value)) {
+          if(count($value) == 0) {
+              return $this;
+          }
+          array_push($this->aggregateFilter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
+      } else {
+          $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+          array_push($this->aggregateFilter, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $conjunction));
+      }
+      return $this;
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\model_interface::addFilter($field, $value, $operator)
@@ -1142,19 +1176,30 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
-     * @inheritDoc
+     * adds a field that uses aggregate functions to be calculated
+     *
+     * @param  string $field           [description]
+     * @param  string $calculationType [description]
+     * @param  string $fieldBase       [description]
+     * @return model                   [description]
      */
-    public function addCalculationField(string $field, string $calculationType, string $fieldBase) : model {
+    public function addAggregateField(string $field, string $calculationType, string $fieldBase) : model {
       $field = \codename\core\value\text\modelfield::getInstance($field);
       $fieldBase = \codename\core\value\text\modelfield::getInstance($fieldBase);
       // only check for EXISTANCE of the fieldname, cancel if so - we don't want duplicates!
       if($this->fieldExists($field)) {
-        throw new \codename\core\exception(self::EXCEPTION_ADDCALCULATEDFIELD_FIELDALREADYEXISTS, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
+        throw new \codename\core\exception(self::EXCEPTION_ADDAGGREGATEFIELD_FIELDALREADYEXISTS, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
       }
-      $class = '\\codename\\core\\model\\plugin\\calculation\\' . $this->getType();
+      $class = '\\codename\\core\\model\\plugin\\aggregate\\' . $this->getType();
       $this->fieldlist[] = new $class($field, $calculationType, $fieldBase);
       return $this;
     }
+
+    /**
+     * exception thrown on duplicate field existance (during addition of an aggregated field)
+     * @var string
+     */
+    const EXCEPTION_ADDAGGREGATEFIELD_FIELDALREADYEXISTS = 'EXCEPTION_ADDAGGREGATEFIELD_FIELDALREADYEXISTS';
 
     /**
      * exception thrown if we try to add a calculated field which already exists (either as db field or another calculated one)
@@ -2013,6 +2058,7 @@ abstract class model implements \codename\core\model\modelInterface {
         // $this->fieldlist = array();
         // $this->hiddenFields = array();
         $this->filter = $this->defaultfilter;
+        $this->aggregateFilter = $this->defaultAggregateFilter;
         $this->flagfilter = $this->defaultflagfilter;
         $this->filterCollections = $this->defaultfilterCollections;
         $this->limit = null;

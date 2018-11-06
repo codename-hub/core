@@ -1,5 +1,5 @@
 <?php
-namespace codename\core\model\plugin\calculation;
+namespace codename\core\model\plugin\aggregate;
 
 use codename\core\exception;
 
@@ -9,7 +9,7 @@ use codename\core\exception;
  * @author Kevin Dargel
  * @since 2017-05-18
  */
-class mysql extends \codename\core\model\plugin\calculation implements \codename\core\model\plugin\calculation\calculationInterface {
+class mysql extends \codename\core\model\plugin\aggregate implements \codename\core\model\plugin\aggregate\aggregateInterface {
 
   /**
    * @inheritDoc
@@ -26,6 +26,15 @@ class mysql extends \codename\core\model\plugin\calculation implements \codename
         break;
       case 'avg':
         $sql = 'AVG('.$this->fieldBase->get().')';
+        break;
+      case 'year':
+        $sql = 'YEAR('.$this->fieldBase->get().')';
+        break;
+      case 'month':
+        $sql = 'MONTH('.$this->fieldBase->get().')';
+        break;
+      case 'day':
+        $sql = 'DAY('.$this->fieldBase->get().')';
         break;
       default:
         throw new exception('EXCEPTION_MODEL_PLUGIN_CALCULATION_MYSQL_UNKKNOWN_CALCULATION_TYPE', exception::$ERRORLEVEL_ERROR, $this->calculationType);

@@ -1021,13 +1021,22 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // prepare an array for values to submit as PDO statement parameters
         // done by-ref, so the values are arriving right here after
         // running getFilterQuery()
-        $params = array();
+        $params = [];
 
         $query .= $this->getFilterQuery($params);
 
         $groups = $this->getGroups($this->group);
         if(count($groups) > 0) {
           $query .= 'GROUP BY '. implode(', ', $groups);
+        }
+
+        //
+        // HAVING clause
+        //
+        // $appliedAggregateFilters = [];
+        $aggregate = $this->getAggregateQueryComponents($params);
+        if(count($aggregate) > 0) {
+          $query .= ' HAVING '. self::convertFilterQueryArray($aggregate);
         }
 
         if(count($this->order) > 0) {
@@ -1502,7 +1511,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   } else {
                       $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
                       $filterQuery['query'] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
-                      $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field)); // values separated from query
+                      $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field) ?? 'text'); // values separated from query
                   }
               }
             } else if ($filter instanceof \codename\core\model\plugin\fieldfilter) {
@@ -1634,19 +1643,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           ];
         }
 
-        // get filters from nested models recursively
-        foreach($this->nestedModels as $join) {
-          if($this->compatibleJoin($join->model)) {
-            $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
-          }
-        }
-
-        // get filters from sibling models recursively
-        foreach($this->siblingModels as $join) {
-          if($this->compatibleJoin($join->model)) {
-            $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
-          }
-        }
+        // // get filters from nested models recursively
+        // foreach($this->nestedModels as $join) {
+        //   if($this->compatibleJoin($join->model)) {
+        //     $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
+        //   }
+        // }
+        //
+        // // get filters from sibling models recursively
+        // foreach($this->siblingModels as $join) {
+        //   if($this->compatibleJoin($join->model)) {
+        //     $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
+        //   }
+        // }
 
         // return a recursive array structure
         // that contains all collected
@@ -1710,7 +1719,48 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @return array
      */
     public function getFilterQueryComponents(array &$appliedFilters = array()) : array {
-      return $this->getFilters($this->filter, $this->flagfilter, $this->filterCollections, $appliedFilters);
+      $where = $this->getFilters($this->filter, $this->flagfilter, $this->filterCollections, $appliedFilters);
+
+      // get filters from nested models recursively
+      foreach($this->nestedModels as $join) {
+        if($this->compatibleJoin($join->model)) {
+          $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
+        }
+      }
+
+      // get filters from sibling models recursively
+      foreach($this->siblingModels as $join) {
+        if($this->compatibleJoin($join->model)) {
+          $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
+        }
+      }
+
+      return $where;
+    }
+
+    /**
+     * [getAggregateQueryComponents description]
+     * @param  array &$appliedFilters [description]
+     * @return array                 [description]
+     */
+    public function getAggregateQueryComponents(array &$appliedFilters = []) : array {
+      $aggregate = $this->getFilters($this->aggregateFilter, [], [], $appliedFilters);
+
+      // get filters from nested models recursively
+      foreach($this->nestedModels as $join) {
+        if($this->compatibleJoin($join->model)) {
+          $aggregate = array_merge($aggregate, $join->model->getAggregateQueryComponents($appliedFilters));
+        }
+      }
+
+      // get filters from sibling models recursively
+      foreach($this->siblingModels as $join) {
+        if($this->compatibleJoin($join->model)) {
+          $aggregate = array_merge($aggregate, $join->model->getAggregateQueryComponents($appliedFilters));
+        }
+      }
+
+      return $aggregate;
     }
 
     /**
@@ -1888,9 +1938,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           //
           foreach($this->fieldlist as $field) {
             if($field instanceof \codename\core\model\plugin\calculatedfield\calculatedfieldInterface) {
+
+              //
+              // custom field calculation
+              //
               $result[] = array($field->get());
-            } else if($field instanceof \codename\core\model\plugin\calculation\calculationInterface) {
+
+            } else if($field instanceof \codename\core\model\plugin\aggregate\aggregateInterface) {
+
+              //
+              // pre-defined aggregate function
+              //
               $result[] = array($field->get());
+
             } else if($this->config->get('datatype>'.$field->field->get()) !== 'virtual') {
               //
               // omit virtual fields

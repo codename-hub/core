@@ -1,5 +1,5 @@
 <?php
-namespace codename\core\model\plugin\calculation;
+namespace codename\core\model\plugin\aggregate;
 
 /**
  * Definition for \codename\core\model\plugin\calculation
@@ -7,7 +7,7 @@ namespace codename\core\model\plugin\calculation;
  * @author Kevin Dargel
  * @since 2017-05-18
  */
-interface calculationInterface {
+interface aggregateInterface {
 
 
     /**
