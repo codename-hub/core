@@ -1027,7 +1027,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $groups = $this->getGroups($this->group);
         if(count($groups) > 0) {
-          $query .= 'GROUP BY '. implode(', ', $groups);
+          $query .= ' GROUP BY '. implode(', ', $groups);
         }
 
         //
