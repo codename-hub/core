@@ -347,16 +347,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // $result = $fResult;
 
 
+        $result = $this->normalizeRecursivelyByFieldlist($tResult);
+        
         //
         // Root element virtual fields
         //
         if(count($this->virtualFields) > 0) {
-          foreach($tResult as &$d) {
+          foreach($result as &$d) {
             $d = $this->handleVirtualFields($d);
           }
         }
 
-        $result = $this->normalizeRecursivelyByFieldlist($tResult);
       }
       return $result;
     }
