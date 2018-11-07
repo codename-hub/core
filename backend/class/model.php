@@ -1256,7 +1256,13 @@ abstract class model implements \codename\core\model\modelInterface {
     public function loadByUnique(string $field, string $value) : array {
         $data = $this->addFilter($field, $value, '=')->setLimit(1);
 
-        if($field == $this->getPrimarykey() && count($this->filter) === 1 && count($this->filterCollections) === 0) {
+        //
+        // TODO: we should also check for siblingJoins
+        //
+        // the primary key based cache should ONLY be active, if we're querying only this model
+        // without joins and only with a filter on the primary key
+        //
+        if($field == $this->getPrimarykey() && count($this->filter) === 1 && count($this->filterCollections) === 0 && count($this->getNestedJoins()) === 0) {
             $cacheObj = app::getCache();
             $cacheGroup = $this->getCachegroup();
             $cacheKey = "PRIMARY_" . $value;
@@ -1754,11 +1760,20 @@ abstract class model implements \codename\core\model\modelInterface {
               array(
                 get_class($this),
                 $query,
-                $this->getCurrentCacheIdentifierParameters(), // array_merge($this->filter, $this->filterCollections),
+                $this->getCurrentCacheIdentifierParameters(),
                 $params
               )
             ));
+
+            // \codename\core\app::getResponse()->setData('cache_params', array(
+            //   get_class($this),
+            //   $query,
+            //   $this->getCurrentCacheIdentifierParameters(),
+            //   $params
+            // ));
+
             $this->result = $cacheObj->get($cacheGroup, $cacheKey);
+
             if (!is_null($this->result) && is_array($this->result)) {
                 $this->reset();
                 return $this;
