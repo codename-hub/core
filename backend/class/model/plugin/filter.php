@@ -46,4 +46,15 @@ class filter extends \codename\core\model\plugin implements \codename\core\model
         return $this;
     }
 
+    /**
+     * @inheritDoc
+     */
+    public function getFieldValue(string $tableAlias = null): string
+    {
+      // if tableAlias is set, return the field name prefixed with the alias
+      // otherwise, just return the full modelfield value
+      // TODO: check for cross-model filters...
+      return $tableAlias ? ($tableAlias . '.' . $this->field->get()) : $this->field->getValue();
+    }
+
 }

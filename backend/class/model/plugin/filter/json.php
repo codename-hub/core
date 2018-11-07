@@ -105,4 +105,15 @@ class json extends \codename\core\model\plugin\filter
     }
   }
 
+  /**
+   * @inheritDoc
+   */
+  public function getFieldValue(string $tableAlias = null): string
+  {
+    //
+    // no table alias
+    //
+    return $this->field->getValue();
+  }
+
 }

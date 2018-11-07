@@ -348,7 +348,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
 
         $result = $this->normalizeRecursivelyByFieldlist($tResult);
-        
+
         //
         // Root element virtual fields
         //
@@ -1463,13 +1463,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      *
      * returns a recursive array structure that can be converted to a query string
      *
-     * @param array $filters            [array of filters]
-     * @param array $flagfilters        [array of flagfilters]
-     * @param array $filterCollections  [array of filter collections]
-     * @param array &$appliedFilters    [cross-model-instance array of currently applied filters, to keep track of PDO variables]
+     * @param array       $filters            [array of filters]
+     * @param array       $flagfilters        [array of flagfilters]
+     * @param array       $filterCollections  [array of filter collections]
+     * @param array       &$appliedFilters    [cross-model-instance array of currently applied filters, to keep track of PDO variables]
+     * @param string|null $currentAlias       [current table alias provided during query time]
      * @return array
      */
-    public function getFilters(array $filters = array(), array $flagfilters = array(), array $filterCollections = array(), array &$appliedFilters = array()) : array {
+    public function getFilters(array $filters = array(), array $flagfilters = array(), array $filterCollections = array(), array &$appliedFilters = array(), string $currentAlias = null) : array {
 
         $where = [];
 
@@ -1490,13 +1491,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   $values = array();
                   $i = 0;
                   foreach($filter->value as $thisval) {
-                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue(), $i++);
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->getFieldValue($currentAlias), $i++);
                       $values[] = ':' . $var; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field)); // values separated from query
                   }
                   $string = implode(', ', $values);
                   $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
-                  $filterQuery['query'] = $filter->field->getValue() . ' ' . $operator . ' ( ' . $string . ') ';
+                  $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' ( ' . $string . ') ';
               } else {
 
                   // filter value is a singular value
@@ -1507,11 +1508,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // @see http://www.php.net/manual/en/types.comparisons.php
                   if(($filter->value === null) || (is_string($filter->value) && (strlen($filter->value) === 0)) || ($filter->value === 'null')) {
                       // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $filterQuery['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // no param!
+                      $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // no param!
                       // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                   } else {
-                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $filterQuery['query'] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->getFieldValue($currentAlias));
+                      $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field) ?? 'text'); // values separated from query
                   }
               }
@@ -1519,6 +1520,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               // handle field-based filters
               // this is not something PDO needs separately transmitted variables for
               // value IS indeed a field name
+              // TODO: provide getFieldValue($tableAlias) also for fieldfilters
               $filterQuery['query'] = $filter->field->getValue() . ' = ' . $filter->value->getValue();
             }
 
@@ -1589,23 +1591,23 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   $values = array();
                   $i = 0;
                   foreach($filter->value as $thisval) {
-                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue(), $i++);
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->getFieldValue($currentAlias), $i++);
                       $values[] = ':' . $var; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field));
                   }
                   $string = implode(', ', $values);
                   $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
-                  $t_filter['query'] = $filter->field->getValue() . ' ' . $operator . ' ( ' . $string . ') ';
+                  $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' ( ' . $string . ') ';
               } else {
                   // value is a singular value
                   // NOTE: see other $filter->value == null (equality or identity operator) note and others
                   if($filter->value === null || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value === 'null') {
                       // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $t_filter['query'] = $filter->field->getValue() . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // var = PDO Param
+                      $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // var = PDO Param
                       // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                   } else {
-                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $t_filter['query'] = $filter->field->getValue() . ' ' . $filter->operator . ' ' . ':'.$var.' ';
+                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->getFieldValue($currentAlias));
+                      $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . $filter->operator . ' ' . ':'.$var.' ';
                       $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field));
                   }
               }
@@ -1630,6 +1632,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           // put all collected filtercollections in the named group
           // into a recursive array structure
           $t_filtergroups[] = [
+            'group_name' => $groupName,
             'conjunction' => $this->filterOperator,
             'query' => $t_groups
           ];
@@ -1676,6 +1679,43 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     public function getFilterQuery(array &$appliedFilters = array()) : string {
       $filterQueryArray = $this->getFilterQueryComponents($appliedFilters);
+
+
+      //
+      // HACK: re-join filter groups
+      //
+      $grouped = [];
+      $ungrouped = [];
+      foreach($filterQueryArray as $part) {
+        if(is_array($part['query'])) {
+          //
+          // restructure part
+          //
+          $rePart = [
+            'conjunction' => $part['conjunction'],
+            'query' => []
+          ];
+          foreach($part['query'] as $queryComponent) {
+            if($queryComponent['group_name'] ?? false) {
+              $grouped[$queryComponent['group_name']] = $grouped[$queryComponent['group_name']] ?? [];
+              $grouped[$queryComponent['group_name']]['group_name'] = $queryComponent['group_name'];
+              $grouped[$queryComponent['group_name']]['conjunction'] = $queryComponent['conjunction']; // this resets it every time
+              $grouped[$queryComponent['group_name']]['query'] = array_merge($grouped[$queryComponent['group_name']]['query'] ?? [], $queryComponent['query']);
+            } else {
+              $rePart['query'][] = $queryComponent;
+            }
+          }
+          if(count($rePart['query']) > 0) {
+            $ungrouped[] = $rePart;
+          }
+        } else {
+          $ungrouped[] = $part;
+        }
+      }
+      
+      $filterQueryArray = array_merge($ungrouped, array_values($grouped));
+
+
       if($this->saveLastFilterQueryComponents) {
         $this->lastFilterQueryComponents = $filterQueryArray;
       }
@@ -1717,22 +1757,23 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     /**
      * [getFilterQueryComponents description]
      * @param  array  &$appliedFilters [description]
+     * @param  string|null $currentAlias
      * @return array
      */
-    public function getFilterQueryComponents(array &$appliedFilters = array()) : array {
-      $where = $this->getFilters($this->filter, $this->flagfilter, $this->filterCollections, $appliedFilters);
+    public function getFilterQueryComponents(array &$appliedFilters = array(), string $currentAlias = null) : array {
+      $where = $this->getFilters($this->filter, $this->flagfilter, $this->filterCollections, $appliedFilters, $currentAlias);
 
       // get filters from nested models recursively
       foreach($this->nestedModels as $join) {
         if($this->compatibleJoin($join->model)) {
-          $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
+          $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters, $join->currentAlias));
         }
       }
 
       // get filters from sibling models recursively
       foreach($this->siblingModels as $join) {
         if($this->compatibleJoin($join->model)) {
-          $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
+          $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters, $join->currentAlias));
         }
       }
 
