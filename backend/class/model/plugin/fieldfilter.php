@@ -47,4 +47,12 @@ class fieldfilter extends \codename\core\model\plugin implements \codename\core\
         return $this;
     }
 
+    /**
+     * @inheritDoc
+     */
+    public function getFieldValue(string $tableAlias = null) : string
+    {
+      return $this->field->getValue();
+    }
+
 }

@@ -46,4 +46,12 @@ class aggregatefilter extends \codename\core\model\plugin implements \codename\c
         return $this;
     }
 
+    /**
+     * @inheritDoc
+     */
+    public function getFieldValue(string $tableAlias = null) : string
+    {
+      return $this->field->getValue();
+    }
+
 }
