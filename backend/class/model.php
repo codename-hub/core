@@ -1281,8 +1281,10 @@ abstract class model implements \codename\core\model\modelInterface {
               $data->reset();
             }
 
-            if(count($myData) > 0) {
+            if(count($myData) === 1) {
                 return $myData[0];
+            } else if(count($myData) > 1) {
+                throw new \codename\core\exception('EXCEPTION_MODEL_LOADBYUNIQUE_MULTIPLE_RESULTS', exception::$ERRORLEVEL_FATAL, $myData);
             }
             return array();
         }
