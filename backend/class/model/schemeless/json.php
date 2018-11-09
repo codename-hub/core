@@ -193,16 +193,9 @@ abstract class json extends \codename\core\model\schemeless implements \codename
               }
 
               if($filter instanceof \codename\core\model\plugin\filter\executableFilterInterface) {
-                // if(!$filter->matches($entry)) {
-                //   $pass = false;
-                //   break;
-                // }
                 if($pass === null) {
                   $pass = $filter->matches($entry);
                 } else {
-                  // if($filter->conjunction === 'AND') {
-                  //   $pass = $pass && $filter->matches($entry);
-                  // }
                   if($filter->conjunction === 'OR') {
                     $pass = $pass || $filter->matches($entry);
                   } else {
