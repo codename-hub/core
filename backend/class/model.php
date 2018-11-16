@@ -1270,34 +1270,35 @@ abstract class model implements \codename\core\model\modelInterface {
         // the primary key based cache should ONLY be active, if we're querying only this model
         // without joins and only with a filter on the primary key
         //
-        if($field == $this->getPrimarykey() && count($this->filter) === 1 && count($this->filterCollections) === 0 && count($this->getNestedJoins()) === 0) {
-            $cacheObj = app::getCache();
-            $cacheGroup = $this->getCachegroup();
-            $cacheKey = "PRIMARY_" . $value;
+        // if($field == $this->getPrimarykey() && count($this->filter) === 1 && count($this->filterCollections) === 0 && count($this->getNestedJoins()) === 0) {
+        //     $cacheObj = app::getCache();
+        //     $cacheGroup = $this->getCachegroup();
+        //     $cacheKey = "PRIMARY_" . $value;
+        //
+        //     $myData = $cacheObj->get($cacheGroup, $cacheKey);
+        //
+        //     if(!is_array($myData) || count($myData) === 0) {
+        //         $myData = $data->search()->getResult();
+        //         if(count($myData) == 1) {
+        //             $cacheObj->set($cacheGroup, $cacheKey, $myData);
+        //         }
+        //     } else {
+        //       // REVIEW:
+        //       // We reset() the model here, as the filter created previously
+        //       // may be passed to the next query...
+        //       $data->reset();
+        //     }
+        //
+        //     if(count($myData) === 1) {
+        //         return $myData[0];
+        //     } else if(count($myData) > 1) {
+        //         throw new \codename\core\exception('EXCEPTION_MODEL_LOADBYUNIQUE_MULTIPLE_RESULTS', exception::$ERRORLEVEL_FATAL, $myData);
+        //     }
+        //     return array();
+        // }
+        //
+        // $data->useCache();
 
-            $myData = $cacheObj->get($cacheGroup, $cacheKey);
-
-            if(!is_array($myData) || count($myData) === 0) {
-                $myData = $data->search()->getResult();
-                if(count($myData) == 1) {
-                    $cacheObj->set($cacheGroup, $cacheKey, $myData);
-                }
-            } else {
-              // REVIEW:
-              // We reset() the model here, as the filter created previously
-              // may be passed to the next query...
-              $data->reset();
-            }
-
-            if(count($myData) === 1) {
-                return $myData[0];
-            } else if(count($myData) > 1) {
-                throw new \codename\core\exception('EXCEPTION_MODEL_LOADBYUNIQUE_MULTIPLE_RESULTS', exception::$ERRORLEVEL_FATAL, $myData);
-            }
-            return array();
-        }
-
-        $data->useCache();
         $data = $data->search()->getResult();
         if(count($data) == 0) {
             return array();
