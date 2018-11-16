@@ -315,6 +315,14 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [getNestedCollections description]
+     * @return \codename\core\model\plugin\collection[] [description]
+     */
+    public function getNestedCollections() : array {
+      return $this->collectionPlugins;
+    }
+
+    /**
      * [getSiblingJoins description]
      * @return \codename\core\model\plugin\join[]
      */
