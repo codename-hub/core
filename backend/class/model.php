@@ -1313,7 +1313,7 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function getFieldtype(\codename\core\value\text\modelfield $field) {
       $specifier = $field->get();
-      if(array_key_exists($specifier, $this->cachedFieldtype)) {
+      if(isset($this->cachedFieldtype[$specifier])) {
         return $this->cachedFieldtype[$specifier];
       } else {
 
