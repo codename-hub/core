@@ -102,7 +102,9 @@ class database extends \codename\core\observable {
       if($this->queryLog) {
         app::getLog($this->queryLog)->debug($query);
       }
-      app::getHook()->fire(\codename\core\hook::EVENT_DATABASE_QUERY_QUERY_BEFORE, array('query' => $query, 'params' => $params));
+
+      // NOTE: disabled firing hooks for now.
+      // app::getHook()->fire(\codename\core\hook::EVENT_DATABASE_QUERY_QUERY_BEFORE, array('query' => $query, 'params' => $params));
 
       $this->statement = null;
       foreach($this->statements as $statement) {
@@ -137,8 +139,10 @@ class database extends \codename\core\observable {
         throw new \codename\core\exception(self::EXCEPTION_QUERY_QUERYERROR, \codename\core\exception::$ERRORLEVEL_FATAL, array('errors' => $this->statement->errorInfo(), 'query' => $query, 'params' => $params));
       }
 
-      app::getHook()->fire(\codename\core\hook::EVENT_DATABASE_QUERY_QUERY_AFTER);
-      $this->notify();
+      // NOTE: disabled firing hooks for now.
+      // app::getHook()->fire(\codename\core\hook::EVENT_DATABASE_QUERY_QUERY_AFTER);
+      // NOTE: disabled calling notify() (observer)
+      // $this->notify();
       return;
     }
 
