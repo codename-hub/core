@@ -206,7 +206,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             //
 
             // collection saving done below
-            if(isset($this->collectionPlugins[$child]) && $data[$child]) {
+            if(isset($this->collectionPlugins[$child]) && array_key_exists($child, $data)) {
               $childCollectionSaves[$child] = $data[$child];
             }
 
