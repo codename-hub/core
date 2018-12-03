@@ -23,9 +23,13 @@ class database extends \codename\core\session implements \codename\core\session\
           @session_start();
         }
 
-        // print_r($_COOKIE['PHPSESSID']);
+        // close session directly after, as we don't need it anymore.
+        // this enables concurrent, non-blocking requests
+        // but we can't write to $_SESSION anymore from now on
+        // which is ok, because this is the database session driver
+        session_write_close();
 
-        $data['session_data'] = serialize($data['session_data']);
+        $data['session_data'] = $data['session_data'];
         $this->myModel()->save($data);
 
         // use identify() to fill datacontainers
@@ -39,14 +43,21 @@ class database extends \codename\core\session implements \codename\core\session\
      * @see \codename\core\session_interface::destroy()
      */
     public function destroy() {
-        $sess = $this->myModel()->addFilter('session_sessionid', $_COOKIE['PHPSESSID'])->search()->getResult();
+        $sess = $this->myModel()
+          ->addFilter('session_sessionid', $_COOKIE['PHPSESSID'])
+          ->addFilter('session_valid', true)
+          ->search()->getResult();
+
         if(count($sess) == 0) {
             return;
         }
+
         foreach($sess as $session) {
             $this->myModel()
               ->entryLoad($session['session_id'])
-              // ->entryUnsetflag(\codename\core\model\session::FLAG_ACTIVE)
+              ->entryUpdate([
+                'session_valid' => false
+              ])
               ->entrySave();
         }
         setcookie ("PHPSESSID", "", time() - 3600);
@@ -54,12 +65,13 @@ class database extends \codename\core\session implements \codename\core\session\
     }
 
     /**
-     * @todo DOCUMENTATION
+     * [identify description]
+     * @return bool [description]
      */
     public function identify() : bool {
         $data = $this->myModel()
           ->addFilter('session_sessionid', $_COOKIE['PHPSESSID'])
-          // ->withFlag(\codename\core\model\session::$FLAG_ACTIVE)
+          ->addFilter('session_valid', true)
           ->search()->getResult();
         if(count($data) == 0) {
             return false;
@@ -68,7 +80,7 @@ class database extends \codename\core\session implements \codename\core\session\
 
         $this->sessionEntry = new \codename\core\datacontainer($data);
 
-        $sessData = is_string($data['session_data']) ? unserialize($data['session_data']) : $data['session_data'];
+        $sessData = $data['session_data'];
 
         if(is_array($sessData)) {
           $this->sessionData = new \codename\core\datacontainer($sessData);
@@ -113,7 +125,7 @@ class database extends \codename\core\session implements \codename\core\session\
 
       if($this->sessionEntry != null) {
         // update id-based session model entry
-        $this->myModel()->entryLoad($this->sessionEntry->getData('session_id'))->entryUpdate( array( 'session_data' => serialize($this->sessionData->getData()) ) )->entrySave();
+        $this->myModel()->entryLoad($this->sessionEntry->getData('session_id'))->entryUpdate( ['session_data' => $this->sessionData->getData() ] )->entrySave();
       } else {
         throw new \codename\core\exception("SESSION_DATABASE_SETDATA_INVALID_SESSIONENTRY", \codename\core\exception::$ERRORLEVEL_ERROR, $data);
       }
