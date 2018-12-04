@@ -237,6 +237,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       //
       if(count($childCollectionSaves) > 0) {
         foreach($childCollectionSaves as $child => $childData) {
+
+          if($childData === null) {
+            continue;
+          }
+
           $collection = $this->collectionPlugins[$child];
           $model = $collection->collectionModel;
 
