@@ -135,8 +135,9 @@ abstract class json extends \codename\core\model\schemeless implements \codename
     $identifier = $this->file . '_' . ($this->modeldata->exists('appstack') ? '1' : '0');
     if(!isset(self::$t_data[$identifier])) {
       if($this->modeldata->exists('appstack')) {
+        $inherit = $this->modeldata->get('inherit') ?? false;
         // traverse (custom) appstack, if we defined it
-        self::$t_data[$identifier] = (new \codename\core\config\json($this->file, true, false, $this->modeldata->get('appstack')))->get();
+        self::$t_data[$identifier] = (new \codename\core\config\json($this->file, true, $inherit, $this->modeldata->get('appstack')))->get();
       } else {
         self::$t_data[$identifier] = (new \codename\core\config\json($this->file))->get();
       }
