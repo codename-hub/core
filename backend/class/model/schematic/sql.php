@@ -400,6 +400,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           continue;
         }
 
+        /**
+         * FIXME @Kevin: Weil wegen Baum und sehr sehr russisch
+         * @var [type]
+         */
+        if($join->model instanceof \codename\core\model\schemeless\json) {
+          continue;
+        }
+
         $normalized = $join->model->normalizeRecursivelyByFieldlist($result);
 
         // // DEBUG
@@ -1717,7 +1725,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           $ungrouped[] = $part;
         }
       }
-      
+
       $filterQueryArray = array_merge($ungrouped, array_values($grouped));
 
 
