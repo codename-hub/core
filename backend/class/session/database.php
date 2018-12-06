@@ -1,6 +1,7 @@
 <?php
 namespace codename\core\session;
 use \codename\core\app;
+use codename\core\exception;
 
 /**
  * Store sessions in a database model
@@ -10,17 +11,70 @@ use \codename\core\app;
 class database extends \codename\core\session implements \codename\core\session\sessionInterface {
 
     /**
+     * name of the cookie to use for session identification
+     * @var string
+     */
+    protected $cookieName = 'core-session';
+
+    /**
+     * lifetime of the cookie
+     * used for identifying the session
+     * @var string
+     */
+    protected $cookieLifetime = '+1 day';
+
+    /**
+     * maximum session lifetime
+     * static, cannot be prolonged
+     * @var string
+     */
+    protected $sessionLifetime = '12 hours';
+
+    /**
+     * updates validity for a session
+     * @param  string                 $until [description]
+     * @return \codename\core\session        [description]
+     */
+    public function setValidUntil(string $until) : \codename\core\session {
+      if($this->sessionEntry != null) {
+        // update id-based session model entry
+        $this->myModel()
+          ->entryLoad($this->sessionEntry->getData('session_id'))
+          ->entryUpdate([
+            'session_valid_until' => $until
+          ])
+          ->entrySave();
+      } else {
+        throw new \codename\core\exception("SESSION_DATABASE_SETVALIDUNTIL_INVALID_SESSIONENTRY", \codename\core\exception::$ERRORLEVEL_ERROR, $until);
+      }
+      return $this;
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\session_interface::start($data)
      */
     public function start(array $data) : \codename\core\session {
+
         // save prior to serialization
         $this->sessionData = new \codename\core\datacontainer($data['session_data']);
 
-        // setcookie ("PHPSESSID", "", time() - 3600);
         if(session_status() === PHP_SESSION_NONE) {
           @session_start();
+        }
+
+        //
+        // custom cookie handling
+        //
+        if(!isset($_COOKIE[$this->cookieName])) {
+          $sessionIdentifier = bin2hex(random_bytes(16));
+          if(!setcookie($this->cookieName, $sessionIdentifier, strtotime($this->cookieLifetime), '/', $_SERVER['SERVER_NAME'])) {
+            throw new exception('COOKIE_SETTING_UGH', exception::$ERRORLEVEL_FATAL);
+          }
+          $data['session_sessionid'] = $sessionIdentifier;
+        } else {
+          $data['session_sessionid'] = $_COOKIE[$this->cookieName];
         }
 
         // close session directly after, as we don't need it anymore.
@@ -44,7 +98,7 @@ class database extends \codename\core\session implements \codename\core\session\
      */
     public function destroy() {
         $sess = $this->myModel()
-          ->addFilter('session_sessionid', $_COOKIE['PHPSESSID'])
+          ->addFilter('session_sessionid', $_COOKIE[$this->cookieName])
           ->addFilter('session_valid', true)
           ->search()->getResult();
 
@@ -60,7 +114,7 @@ class database extends \codename\core\session implements \codename\core\session\
               ])
               ->entrySave();
         }
-        setcookie ("PHPSESSID", "", time() - 3600);
+        setcookie ($this->cookieName, "", 1);
         return;
     }
 
@@ -69,10 +123,38 @@ class database extends \codename\core\session implements \codename\core\session\
      * @return bool [description]
      */
     public function identify() : bool {
-        $data = $this->myModel()
-          ->addFilter('session_sessionid', $_COOKIE['PHPSESSID'])
-          ->addFilter('session_valid', true)
-          ->search()->getResult();
+
+        if(!isset($_COOKIE[$this->cookieName])) {
+          return false;
+        }
+
+        $model = $this->myModel();
+
+        // filter for must-have conditions:
+        // 1. session id match
+        // 2. valid session (not destroyed)
+        $model
+          ->addFilter('session_sessionid', $_COOKIE[$this->cookieName])
+          ->addFilter('session_valid', true);
+
+        //
+        // session_valid_until must be either null or above current time
+        //
+        $model->addFilterCollection([
+          [ 'field' => 'session_valid_until', 'operator' => '>=', 'value' => \codename\core\helper\date::getCurrentDateTimeAsDbdate() ],
+          [ 'field' => 'session_valid_until', 'operator' => '=', 'value' => null ]
+        ], 'OR');
+
+        //
+        // if enabled, this defines a maximum session lifetime
+        //
+        if($this->sessionLifetime) {
+           // flexible date, depending on keepalive
+          $model->addFilter('session_created', (new \DateTime('now'))->sub(\DateInterval::createFromDateString($this->sessionLifetime))->format('Y-m-d H:i:s'), '>=');
+        }
+
+        $data = $model->search()->getResult();
+
         if(count($data) == 0) {
             return false;
         }
