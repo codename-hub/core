@@ -62,6 +62,22 @@ class database extends \codename\core\observable {
               throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONNECTIONERROR, \codename\core\exception::$ERRORLEVEL_FATAL, array('ENV_PASS_NOT_SET'));
             }
 
+            if (isset($config['env_host'])) {
+              $host = getenv($config['env_host']);
+            } else if(isset($config['host'])) {
+              $host = $config['host'];
+            } else {
+              throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONNECTIONERROR, \codename\core\exception::$ERRORLEVEL_FATAL, array('ENV_HOST_NOT_SET'));
+            }
+
+            if (isset($config['env_user'])) {
+              $user = getenv($config['env_user']);
+            } else if(isset($config['user'])) {
+              $user = $config['user'];
+            } else {
+              throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONNECTIONERROR, \codename\core\exception::$ERRORLEVEL_FATAL, array('ENV_USER_NOT_SET'));
+            }
+
             // set query log
             $this->queryLog = $config['querylog'] ?? null;
 
@@ -72,7 +88,7 @@ class database extends \codename\core\observable {
               $autoconnectDatabase = $config['autoconnect_database'];
             }
 
-            $this->connection = new \PDO($this->driver . ":" . ( $autoconnectDatabase ? "dbname=" . $config['database'] . ";" : '') . 'host=' . $config['host'] . (isset($config['charset']) ? (';charset='.$config['charset']) : ''), $config['user'], $pass);
+            $this->connection = new \PDO($this->driver . ":" . ( $autoconnectDatabase ? "dbname=" . $config['database'] . ";" : '') . 'host=' . $host . (isset($config['charset']) ? (';charset='.$config['charset']) : ''), $user, $pass);
 
             $this->connection->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false);
             $this->connection->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
