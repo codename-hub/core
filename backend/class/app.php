@@ -649,26 +649,14 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      */
     final public static function getEnv() : string {
         if(!defined("CORE_ENVIRONMENT")) {
-            $env = null;
-            if(
-                isset($_SERVER['HTTP_HOST'])
-                && (strpos($_SERVER['HTTP_HOST'], '.localhost') !== false
-                || strpos($_SERVER['HTTP_HOST'], 'kdargel.com') !== false)
-            ) {
-                $env = 'dev';
-            }
-            if(is_null($env) &&
-                isset($_SERVER['HTTP_HOST'])
-                && strpos($_SERVER['HTTP_HOST'], 'beta.') !== false) {
-                $env = 'beta';
-            }
-            if(is_null($env) &&
-                isset($_SERVER['HTTP_HOST'])
-                && strpos($_SERVER['HTTP_HOST'], 'alpha.') !== false) {
-                $env = 'alpha';
-            }
-            if(is_null($env)) {
-                $env = 'production';
+            $env = getenv('CORE_ENVIRONMENT');
+            if(!$env) {
+              //
+              // We have to die() here
+              // as Exception Throwing+Displaying needs the environment to be defined.
+              //
+              echo("CORE_ENVIRONMENT not defined.");
+              die();
             }
             define('CORE_ENVIRONMENT', $env);
         }
