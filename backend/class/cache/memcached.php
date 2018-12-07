@@ -24,12 +24,21 @@ class memcached extends \codename\core\cache {
     /**
      * Creates instance and adds the server
      * @param array $config
-     * @return \codename\core\cache_memcached
+     * @return \codename\core\cache\memcached
      */
     public function __construct(array $config) {
+
+      if (isset($config['env_host'])) {
+        $host = getenv($config['env_host']);
+      } else if(isset($config['host'])) {
+        $host = $config['host'];
+      } else {
+        throw new \codename\core\exception('EXCEPTION_MEMCACHED_CONFIG_HOST_UNDEFINED', \codename\core\exception::$ERRORLEVEL_FATAL);
+      }
+
         $this->memcached = new \Memcached();
         $this->memcached->setOption(\Memcached::OPT_BINARY_PROTOCOL,true);
-        $this->memcached->addServer($config['host'], $config['port']);
+        $this->memcached->addServer($host, $config['port']);
         $this->log = $config['log'] ?? null;
         $this->attach(new \codename\core\observer\cache());
         return $this;
