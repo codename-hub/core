@@ -296,7 +296,7 @@ class http extends \codename\core\response {
      */
     public function displayException(\Exception $e)
     {
-      app::getResponse()->setStatuscode(500, "Internal Server Error");
+      $this->setStatuscode(500, "Internal Server Error");
 
       if(defined('CORE_ENVIRONMENT') && CORE_ENVIRONMENT != 'production') {
         echo "<h3>Hicks!</h3>";
@@ -316,7 +316,7 @@ class http extends \codename\core\response {
         die();
       }
 
-      app::getResponse()->pushOutput();
+      $this->pushOutput();
     }
 
 }
