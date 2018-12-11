@@ -298,7 +298,10 @@ class http extends \codename\core\response {
     {
       $this->setStatuscode(500, "Internal Server Error");
 
-      if(defined('CORE_ENVIRONMENT') && CORE_ENVIRONMENT != 'production') {
+      if(
+        defined('CORE_ENVIRONMENT')
+        // && CORE_ENVIRONMENT != 'production'
+      ) {
         echo "<h3>Hicks!</h3>";
         echo "<h6>{$e->getMessage()} (Code: {$e->getCode()})</h6>";
 
