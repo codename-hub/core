@@ -332,15 +332,48 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
       /**
        * @see http://stackoverflow.com/questions/18683206/list-objects-in-a-specific-folder-on-amazon-s3
        */
-      $result = $this->client->getIterator('ListObjects', array(
+
+      $response = $this->client->listObjectsV2([
         "Bucket" => $this->bucket,
-        "Prefix" => $this->getPrefixedPath($directory)
-      ));
+        "Prefix" => $this->getPrefixedPath($directory),
+        "Delimiter" => '/'
+      ]);
+
       $objects = array();
-      foreach($result as $object) {
-        $objects[] = $object['Key'];
+
+      //
+      // The "Files" (objects)
+      //
+      $result = $response->get('Contents') ?? false;
+      if($result) {
+        foreach($result as $object) {
+          //
+          // HACK:
+          // filter out self - s3 outputs the starting (requested) folder, too.
+          //
+          if($object['Key'] != $directory) {
+            $objects[] = $object['Key'];
+          }
+        }
+      }
+
+      if($response['CommonPrefixes'] ?? false) {
+        //
+        // The "Folders"
+        //
+        $commonPrefixes = $response->get('CommonPrefixes');
+        foreach($commonPrefixes as $object) {
+          //
+          // HACK:
+          // filter out self - s3 outputs also the starting (requested) folder in CommonPrefixes
+          //
+          if($object['Prefix'] != $directory) {
+            $objects[] = $object['Prefix'];
+          }
+        }
       }
       return $objects;
+
     } catch (S3Exception $e) {
       $this->errorstack->addError('BUCKET', 'S3_EXCEPTION', $e->getMessage());
     }
@@ -370,7 +403,7 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
     if(strpos($remotefile, '/') === 0) {
       $remotefile = substr($remotefile, 1, strlen($remotefile)-1);
     }
-    return $this->objectExists($remotefile);
+    return $this->objectExists($remotefile) && substr($remotefile, strlen($remotefile)-1, 1) !== '/';
   }
 
   /**
