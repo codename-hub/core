@@ -11,6 +11,21 @@ use codename\core\exception;
 class database extends \codename\core\session implements \codename\core\session\sessionInterface {
 
     /**
+     * @inheritDoc
+     */
+    public function __construct(array $data = array())
+    {
+      parent::__construct($data);
+      $this->sessionModel = app::getModel('session');
+    }
+
+    /**
+     * session model
+     * @var \codename\core\model
+     */
+    protected $sessionModel = null;
+
+    /**
      * name of the cookie to use for session identification
      * @var string
      */
@@ -218,7 +233,7 @@ class database extends \codename\core\session implements \codename\core\session\
      * @return \codename\core\model
      */
     protected function myModel() : \codename\core\model {
-        return app::getModel('session');
+        return $this->sessionModel;
     }
 
 }
