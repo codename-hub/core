@@ -47,7 +47,9 @@ class cli extends \codename\core\response {
   {
     $formatter = new \codename\core\helper\clicolors();
 
-    if(defined('CORE_ENVIRONMENT') && CORE_ENVIRONMENT != 'production') {
+    if(defined('CORE_ENVIRONMENT')
+      // && CORE_ENVIRONMENT != 'production'
+    ) {
       echo $formatter->getColoredString("Hicks", 'red') . chr(10);
       echo $formatter->getColoredString("{$e->getMessage()} (Code: {$e->getCode()})", 'yellow') . chr(10) . chr(10);
 
