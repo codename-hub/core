@@ -36,12 +36,34 @@ class memcached extends \codename\core\cache {
         throw new \codename\core\exception('EXCEPTION_MEMCACHED_CONFIG_HOST_UNDEFINED', \codename\core\exception::$ERRORLEVEL_FATAL);
       }
 
-        $this->memcached = new \Memcached();
-        $this->memcached->setOption(\Memcached::OPT_BINARY_PROTOCOL,true);
-        $this->memcached->addServer($host, $config['port']);
-        $this->log = $config['log'] ?? null;
-        $this->attach(new \codename\core\observer\cache());
-        return $this;
+      if (isset($config['env_port'])) {
+        $port = getenv($config['env_port']);
+      } else if(isset($config['port'])) {
+        $port = $config['port'];
+      } else {
+        throw new \codename\core\exception('EXCEPTION_MEMCACHED_CONFIG_PORT_UNDEFINED', \codename\core\exception::$ERRORLEVEL_FATAL);
+      }
+
+      $this->memcached = new \Memcached();
+
+      //
+      // set some client options
+      //
+      $this->setOptions();
+
+      $this->memcached->addServer($host, $port);
+
+      $this->log = $config['log'] ?? null;
+      $this->attach(new \codename\core\observer\cache());
+      return $this;
+    }
+
+    /**
+     * set options for the memcached clients
+     * may be overridden/extended by inherting from this class
+     */
+    protected function setOptions() {
+      $this->memcached->setOption(\Memcached::OPT_BINARY_PROTOCOL,true);
     }
 
     /**
