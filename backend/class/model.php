@@ -2034,9 +2034,19 @@ abstract class model implements \codename\core\model\modelInterface {
 
         foreach($dataset as $field=>$thisRow) {
 
-            // Performance optimization (and fix):
-            // Check for (key == null) first, as it is faster than is_string
-            if($dataset[$field] == null || !is_string($dataset[$field])) {continue;}
+          // Performance optimization (and fix):
+          // Check for (key == null) first, as it is faster than is_string
+          // NOTE: checking for !is_string commented-out
+          // we need to check - at least for booleans (DB provides 0 and 1 instead of true/false)
+          // if($dataset[$field] === null || !is_string($dataset[$field])) {continue;}
+          if($dataset[$field] === null) { continue; }
+
+          // special case: we need boolean normalization (0 / 1)
+          // but otherwise, just skip
+          if(
+            ( isset($this->normalizeModelFieldTypeCache[$field]) && ($this->normalizeModelFieldTypeCache[$field] !== 'boolean'))
+            && !is_string($dataset[$field])
+          ) { continue; }
 
             // determine virtuality status of the field
             if(!isset($this->normalizeModelFieldTypeVirtualCache[$field])) {
@@ -2060,6 +2070,14 @@ abstract class model implements \codename\core\model\modelInterface {
 
             if(!isset($this->normalizeModelFieldTypeCache[$field])) {
               $this->normalizeModelFieldTypeCache[$field] = $this->getFieldtype($this->normalizeModelFieldCache[$field]);
+            }
+
+            //
+            // HACK: only normalize boolean fields
+            //
+            if($this->normalizeModelFieldTypeCache[$field] === 'boolean') {
+              $dataset[$field] = $this->importField($this->normalizeModelFieldCache[$field], $dataset[$field]);
+              continue;
             }
 
             if(!isset($this->normalizeModelFieldTypeStructureCache[$field])) {
