@@ -2112,15 +2112,29 @@ abstract class model implements \codename\core\model\modelInterface {
     protected function importField(\codename\core\value\text\modelfield $field, $value = null) {
         switch($this->getFieldtype($field)) {
             case 'boolean' :
+                // pure boolean
                 if(is_bool($value)) {
                     return $value;
                 }
-                if(strlen($value) == 0) {
+                // int: 0 or 1
+                if(is_int($value)) {
+                    if($value !== 1 && $value !== 0) {
+                      throw new exception('EXCEPTION_MODEL_IMPORTFIELD_BOOLEAN_INVALID', exception::$ERRORLEVEL_ERROR, [
+                        'field' => $field->get(),
+                        'value' => $value
+                      ]);
+                    }
+                    return $value === 1 ? true : false;
+                }
+                // fallback
+                if(strlen($value) === 0) {
                     return null;
                 }
+                // string boolean
                 if($value == 'true') {
                     return true;
                 }
+                // fallback
                 return false;
                 break;
             case 'text_date':
