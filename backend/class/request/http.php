@@ -13,6 +13,13 @@ class http extends \codename\core\request {
      */
     public function __construct(array $data = array())
     {
+      //
+      // HTTPS over external Loadbalancer Fix
+      //
+      if(isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') {
+        $_SERVER['HTTPS'] = 'on';
+      }
+
       parent::__construct($data);
       $this->addData($_GET);
       $this->addData($_POST);
