@@ -69,7 +69,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         	$connection = 'default';
         }
 
-        $this->db = app::getDb($connection, $this->storeConnection);
+        if(!$this->db) {
+          $this->db = app::getDb($connection, $this->storeConnection);
+        }
 
         if(!in_array("{$this->table}_created", $this->config->get("field"))) {
            throw new exception('EXCEPTION_MODEL_CONFIG_MISSING_FIELD', exception::$ERRORLEVEL_FATAL, "{$this->table}_created");
