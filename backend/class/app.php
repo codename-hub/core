@@ -638,7 +638,6 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         if (!self::getInstance('filesystem_local')->dirAvailable(self::getHomedir())) {
             throw new \codename\core\exception(self::EXCEPTION_GETAPP_APPFOLDERNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, self::getHomedir());
         }
-        self::getRequest()->setData('app', $appdata[1]);
         return self::$app->get();
     }
 
