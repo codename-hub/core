@@ -679,6 +679,16 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      */
     final public static function getConfig() : \codename\core\config {
         if(is_null(self::$config)) {
+
+            // Pre-construct cachegroup
+            $cacheGroup = 'APPCONFIG';
+            $cacheKey = self::getVendor().'_'.self::getApp();
+
+            if($finalConfig = self::getCache()->get($cacheGroup, $cacheKey)) {
+              self::$config = new \codename\core\config($finalConfig);
+              return self::$config;
+            }
+
             $config = (new \codename\core\config\json(self::$json_config))->get();
 
             if(!array_key_exists('context', $config)) {
@@ -731,6 +741,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             }
 
             self::$config = new \codename\core\config($config);
+
+            self::getCache()->set($cacheGroup, $cacheKey, self::$config->get());
         }
         return self::$config;
     }
