@@ -136,8 +136,7 @@ class memcached extends \codename\core\cache {
         if($this->log) {
           app::getLog($this->log)->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_CLEARKEY::CLEARING ($group = ' . $group . ', $key= ' . $key . ')');
         }
-        $this->clear("{$group}_{$key}");
-        return;
+        return $this->clear("{$group}_{$key}");
     }
 
     /**
@@ -149,8 +148,18 @@ class memcached extends \codename\core\cache {
         if($this->log) {
           app::getLog($this->log)->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_CLEAR::CLEARING ($key= ' . $key . ')');
         }
-        $this->memcached->delete($key);
-        return;
+
+        //
+        // Special handling for memcached delete
+        // If the key doesn't exist and we try to delete
+        // it returns FALSE and RES_NOTFOUND
+        // => which more-or-less evaluates to TRUE
+        //
+        if(!$this->memcached->delete($key) && $this->memcached->getResultCode() !== \Memcached::RES_NOTFOUND) {
+          return false;
+        } else {
+          return true;
+        }
     }
 
     /**
@@ -162,16 +171,44 @@ class memcached extends \codename\core\cache {
         if($this->log) {
           app::getLog($this->log)->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_CLEARGROUP::CLEARING ($group = ' . $group . ')');
         }
+
+        //
+        // NOTE: getAllKeys doesn't work with BINARY PROTOCOL
+        //
         $keys = $this->memcached->getAllKeys();
+
         if(!is_array($keys)) {
-            return;
+          // echo("Failed clearing {$group}  sys".chr(10));
+          // echo($this->memcached->getLastErrorMessage().chr(10));
+          // print_r($keys);
+          return false; // some error
         }
+
+        $result = true;
         foreach($keys as $key) {
             if(substr($key, 0, strlen($group)) == $group) {
-                $this->clear($key);
+                $result &= $this->clear($key);
+                // if(!$result) {
+                //   echo("Failed clearing {$key} ".chr(10));
+                // }
             }
         }
-        return;
+
+        // if(!$result) {
+        //   echo($this->memcached->getLastErrorMessage().chr(10));
+        // }
+        return $result;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function flush()
+    {
+      if($this->log) {
+        app::getLog($this->log)->debug('CORE_BACKEND_CLASS_CACHE_MEMCACHED_FLUSH::FLUSHING (ALL)');
+      }
+      return $this->memcached->flush();
     }
 
     /**
@@ -179,6 +216,9 @@ class memcached extends \codename\core\cache {
      * @return unknown
      */
     public function getAllKeys() {
+      //
+      // NOTE: getAllKeys doesn't work with BINARY PROTOCOL
+      //
     	return $this->memcached->getAllKeys();
     }
 

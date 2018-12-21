@@ -54,4 +54,11 @@ class devnull extends \codename\core\cache {
   public function clearGroup(string $group)
   {
   }
+
+  /**
+   * @inheritDoc
+   */
+  public function flush()
+  {
+  }
 }
