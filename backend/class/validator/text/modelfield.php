@@ -12,7 +12,7 @@ class modelfield extends \codename\core\validator\text implements \codename\core
         //
         // NOTE: 64 chars is the MySQL column name length limit
         //
-        parent::__CONSTRUCT($nullAllowed, 3, 64, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_.0123456789');
+        parent::__CONSTRUCT($nullAllowed, 3, 128, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_.0123456789');
         return $this;
     }
 
