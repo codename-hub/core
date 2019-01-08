@@ -1474,9 +1474,13 @@ abstract class model implements \codename\core\model\modelInterface {
                 // we might introduce a new "addCollectionModel" method or so
 
                 if(isset($this->collectionPlugins[$field])) {
-                  $this->collectionPlugins[$field]->collectionModel->validate($data[$field]);
-                  if(count($errors = $this->collectionPlugins[$field]->collectionModel->getErrors()) > 0) {
-                    $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
+                  if(is_array($data[$field])) {
+                    foreach($data[$field] as $collectionItem) {
+                      $this->collectionPlugins[$field]->collectionModel->validate($collectionItem);
+                      if(count($errors = $this->collectionPlugins[$field]->collectionModel->getErrors()) > 0) {
+                        $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
+                      }
+                    }
                   }
                 } else {
                   continue;
