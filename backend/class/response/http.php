@@ -72,6 +72,15 @@ class http extends \codename\core\response {
     }
 
     /**
+     * [reset description]
+     * @return \codename\core\response [description]
+     */
+    public function reset(): \codename\core\response {
+      $this->data = [];
+      return $this;
+    }
+
+    /**
      * Helper to set HTTP status codes
      * @param int $statusCode
      * @param string $statusText
