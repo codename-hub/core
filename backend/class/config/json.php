@@ -55,7 +55,7 @@ class json extends \codename\core\config {
      * @param array $appstack [optional: custom appstack]
      * @return \codename\core\config
      */
-    public function __CONSTRUCT(string $file, bool $appstack = false, bool $inherit = false, array $useAppstack = null) {
+    public function __CONSTRUCT(string $file, bool $appstack = false, bool $inherit = false, ?array $useAppstack = null) {
 
         // do NOT start with an empty array
         // $config = array();
