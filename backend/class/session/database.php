@@ -98,7 +98,6 @@ class database extends \codename\core\session implements \codename\core\session\
         // which is ok, because this is the database session driver
         session_write_close();
 
-        $data['session_data'] = $data['session_data'];
         $this->myModel()->save($data);
 
         // use identify() to fill datacontainers
