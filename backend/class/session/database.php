@@ -235,4 +235,26 @@ class database extends \codename\core\session implements \codename\core\session\
         return $this->sessionModel;
     }
 
+    /**
+     * @inheritDoc
+     */
+    public function invalidate($sessionId)
+    {
+      if($sessionId) {
+        $sessions = $this->myModel()
+          ->addFilter('session_sessionid', $sessionId)
+          ->addFilter('session_valid', true)
+          ->search()->getResult();
+
+        foreach($sessions as $session) {
+          $this->myModel()
+            ->entryLoad($session[$this->myModel()->getPrimarykey()])
+            ->entryUpdate( ['session_valid' => false ] )
+            ->entrySave();
+        }
+      } else {
+        throw new exception('EXCEPTION_SESSION_INVALIDATE_NO_SESSIONID_PROVIDED', exception::$ERRORLEVEL_ERROR);
+      }
+    }
+
 }

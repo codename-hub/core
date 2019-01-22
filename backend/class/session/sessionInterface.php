@@ -21,4 +21,11 @@ interface sessionInterface {
      */
     public function destroy();
 
+    /**
+     * invalidates a session
+     * @param  string|int $sessionId [some kind of session id this driver uses]
+     * @return void
+     */
+    public function invalidate($sessionId);
+
 }

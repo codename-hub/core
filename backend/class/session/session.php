@@ -94,4 +94,13 @@ class session extends \codename\core\session implements \codename\core\session\s
         return isset($_SESSION[$key]);
     }
 
+    /**
+     * @inheritDoc
+     */
+    public function invalidate($sessionId)
+    {
+      // TODO: we might kill sessions via file deletion?
+      throw new \LogicException('This session driver does not support Session Invalidation for foreign sessions (at the moment)');
+    }
+
 }

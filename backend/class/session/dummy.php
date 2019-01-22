@@ -59,5 +59,12 @@ class dummy extends \codename\core\session implements \codename\core\session\ses
     public function identify() : bool {
         return false;
     }
-    
+
+    /**
+     * @inheritDoc
+     */
+    public function invalidate($sessionId)
+    {
+    }
+
 }

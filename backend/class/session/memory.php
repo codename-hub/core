@@ -76,4 +76,13 @@ class memory extends \codename\core\session implements \codename\core\session\se
         return count($this->datacontainer->getData()) > 0;
     }
 
+    /**
+     * @inheritDoc
+     */
+    public function invalidate($sessionId)
+    {
+      // simply create a new datacontainer
+      $this->datacontainer = new \codename\core\datacontainer([]);
+    }
+
 }
