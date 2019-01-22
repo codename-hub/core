@@ -81,8 +81,7 @@ class memory extends \codename\core\session implements \codename\core\session\se
      */
     public function invalidate($sessionId)
     {
-      // simply create a new datacontainer
-      $this->datacontainer = new \codename\core\datacontainer([]);
+      throw new \LogicException('This session driver does not support Session Invalidation for foreign sessions');
     }
 
 }
