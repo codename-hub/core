@@ -1552,7 +1552,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
           // collect data for a single filter
           $filterQuery = [
-            'conjunction' => $filter->conjunction ?? $this->filterOperator,
+            'conjunction' => $flagfilter->conjunction ?? $this->filterOperator,
             'query' => null
           ];
 
