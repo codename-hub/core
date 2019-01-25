@@ -296,14 +296,23 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         $this->getHook()->add(\codename\core\hook::EVENT_APP_RUN_START, function() {
           $_REQUEST['start'] = microtime(true);
         })->add(\codename\core\hook::EVENT_APP_RUN_END, function() {
-          if(self::getRequest()->getData('template') !== 'json' && self::getRequest()->getData('template') !== 'blank') {
-            echo '<pre style="position: fixed; bottom: 0; right: 0; opacity:0.5;">Generated in '.round(abs(($_REQUEST['start'] - microtime(true)) * 1000),2).'ms
-            '.\codename\core\observer\database::$query_count . ' Queries
-            '. \codename\core\observer\cache::$set . ' Cache SETs
-            '. \codename\core\observer\cache::$get . ' Cache GETs
-            '. \codename\core\observer\cache::$hit . ' Cache HITs
-            '. \codename\core\observer\cache::$miss . ' Cache MISSes
-            </pre>';
+          if($this->getRequest() instanceof \codename\core\request\cli) {
+            echo 'Generated in '.round(abs(($_REQUEST['start'] - microtime(true)) * 1000),2).'ms'.chr(10)
+            . '  ' . \codename\core\observer\database::$query_count . ' Queries'.chr(10)
+            . '  ' . \codename\core\observer\cache::$set . ' Cache SETs'.chr(10)
+            . '  ' . \codename\core\observer\cache::$get . ' Cache GETs'.chr(10)
+            . '  ' . \codename\core\observer\cache::$hit . ' Cache HITs'.chr(10)
+            . '  ' . \codename\core\observer\cache::$miss . ' Cache MISSes'.chr(10);
+          } else {
+            if(self::getRequest()->getData('template') !== 'json' && self::getRequest()->getData('template') !== 'blank') {
+              echo '<pre style="position: fixed; bottom: 0; right: 0; opacity:0.5;">Generated in '.round(abs(($_REQUEST['start'] - microtime(true)) * 1000),2).'ms
+              '.\codename\core\observer\database::$query_count . ' Queries
+              '. \codename\core\observer\cache::$set . ' Cache SETs
+              '. \codename\core\observer\cache::$get . ' Cache GETs
+              '. \codename\core\observer\cache::$hit . ' Cache HITs
+              '. \codename\core\observer\cache::$miss . ' Cache MISSes
+              </pre>';
+            }
           }
         });
       }
