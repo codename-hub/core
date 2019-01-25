@@ -11,8 +11,8 @@ class mysql extends \codename\core\model\plugin\filter implements \codename\core
   /**
    * @inheritDoc
    */
-  public function __CONSTRUCT(\codename\core\value\text\modelfield $field, $value = null, string $operator) {
-    parent::__CONSTRUCT($field, $value, $operator);
+  public function __CONSTRUCT(\codename\core\value\text\modelfield $field, $value = null, string $operator, string $conjunction = null) {
+    parent::__CONSTRUCT($field, $value, $operator, $conjunction);
     if($this->operator == 'ILIKE') {
       $this->operator = 'LIKE';
     }
