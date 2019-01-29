@@ -31,7 +31,7 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    * I contain the prefix of the model to use
    * @var string $prefix
    */
-  protected $prefix = '';
+  public $prefix = '';
 
   /**
    * Creates an instance
@@ -85,15 +85,8 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    */
   public function search() : model
   {
+    $this->doQuery('');
     return $this;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  protected function internalQuery(string $query, array $params = array())
-  {
-    return;
   }
 
   /**
@@ -125,19 +118,47 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    */
   protected function internalGetResult(): array
   {
-    return $this->doQuery('');
+    return $this->result;
   }
+
+  /**
+   * [protected description]
+   * @var array
+   */
+  protected static $t_data = [];
 
   /**
    * @inheritDoc
    */
-  protected function doQuery(string $query, array $params = array())
+  protected function internalQuery(string $query, array $params = array())
   {
-    if($this->modeldata->exists('appstack')) {
-      // traverse (custom) appstack, if we defined it
-      $data = (new \codename\core\config\json($this->file, true, false, $this->modeldata->get('appstack')))->get();
-    } else {
-      $data = (new \codename\core\config\json($this->file))->get();
+    $identifier = $this->file . '_' . ($this->modeldata->exists('appstack') ? '1' : '0');
+    if(!isset(self::$t_data[$identifier])) {
+      if($this->modeldata->exists('appstack')) {
+        $inherit = $this->modeldata->get('inherit') ?? false;
+        // traverse (custom) appstack, if we defined it
+        self::$t_data[$identifier] = (new \codename\core\config\json($this->file, true, $inherit, $this->modeldata->get('appstack')))->get();
+      } else {
+        self::$t_data[$identifier] = (new \codename\core\config\json($this->file))->get();
+      }
+
+      // map PKEY (index) to a real field
+      $pkey = $this->getPrimaryKey();
+      array_walk(self::$t_data[$identifier], function(&$item, $key) use ($pkey) {
+        if(!isset($item[$pkey])) {
+          $item[$pkey] = $key;
+        }
+      });
+    }
+
+    $data = self::$t_data[$identifier];
+
+    if(count($this->virtualFields) > 0) {
+      foreach($data as &$d) {
+        foreach($this->virtualFields as $field => $function) {
+          $d[$field] = $function($d);
+        }
+      }
     }
 
     if(count($this->filter) > 0) {
@@ -153,30 +174,56 @@ abstract class json extends \codename\core\model\schemeless implements \codename
    * @return array       [description]
    */
   protected function filterResults(array $data) : array {
-      $filteredData = array();
-      foreach($data as $entry) {
-          $pass = true;
+      //
+      // special hack
+      // to highly speed up filtering for json/array key filtering
+      //
+      if(count($this->filter) === 1) {
+        foreach($this->filter as $filter) {
+          if($filter->field->get() == $this->getPrimarykey() && $filter->operator == '=') {
+            $data = isset($data[$filter->value]) ? [$data[$filter->value]] : [];
+          }
+        }
+      }
+      if(count($this->filter) >= 1) {
+        $filteredData = array_filter($data, function($entry) {
+          $pass = null;
           foreach($this->filter as $filter) {
-              if(!$pass) {
+              if($pass === false && $filter->conjunction === 'AND') {
                   continue;
               }
 
               if($filter instanceof \codename\core\model\plugin\filter\executableFilterInterface) {
-                if(!$filter->matches($entry)) {
-                  $pass = false;
-                  continue;
+                if($pass === null) {
+                  $pass = $filter->matches($entry);
+                } else {
+                  if($filter->conjunction === 'OR') {
+                    $pass = $pass || $filter->matches($entry);
+                  } else {
+                    $pass = $pass && $filter->matches($entry);
+                  }
                 }
               } else {
                 // we may warn for incompatible filters?
               }
           }
-          if(!$pass) {
-              continue;
-          }
-          $filteredData[] = $entry;
+
+          //
+          // NOTE/TODO: What to do, when pass === null ?
+          //
+          return $pass;
+        });
       }
-      return $filteredData;
+      return array_values($filteredData);
   }
+
+  /**
+   * @inheritDoc
+   */
+   protected function compatibleJoin(\codename\core\model $model) : bool
+   {
+     return false;
+   }
 
   /**
    * [mapResults description]

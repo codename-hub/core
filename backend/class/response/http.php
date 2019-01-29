@@ -27,12 +27,30 @@ class http extends \codename\core\response {
      */
     protected function translateStatus()
     {
+      return $this->translateStatusToHttpStatus();
+      // $translate = array(
+      //   self::STATUS_SUCCESS => 200,
+      //   self::STATUS_INTERNAL_ERROR => 500,
+      //   self::STATUS_NOTFOUND => 404,
+      //   self::STATUS_FORBIDDEN => 403,
+      //   self::STATUS_UNAUTHENTICATED => 401
+      // );
+      // return $translate[$this->status];
+    }
+
+    /**
+     * [translateStatusToHttpStatus description]
+     * @return int [description]
+     */
+    protected function translateStatusToHttpStatus() : int {
       $translate = array(
         self::STATUS_SUCCESS => 200,
         self::STATUS_INTERNAL_ERROR => 500,
-        self::STATUS_NOTFOUND => 404
+        self::STATUS_NOTFOUND => 404,
+        self::STATUS_FORBIDDEN => 403,
+        self::STATUS_UNAUTHENTICATED => 401
       );
-      return $translate[$this->status];
+      return $translate[$this->status] ?? 418; // fallback: teapot
     }
 
     /**
@@ -41,6 +59,7 @@ class http extends \codename\core\response {
      */
     public function pushOutput()
     {
+      http_response_code($this->translateStatusToHttpStatus());
       echo $this->getOutput();
     }
 
@@ -50,6 +69,15 @@ class http extends \codename\core\response {
     public function setHeader(string $header)
     {
       header($header);
+    }
+
+    /**
+     * [reset description]
+     * @return \codename\core\response [description]
+     */
+    public function reset(): \codename\core\response {
+      $this->data = [];
+      return $this;
     }
 
     /**
@@ -86,12 +114,6 @@ class http extends \codename\core\response {
     }
 
     /**
-     * Contains data for redirecting the user after finishing the request
-     * @var array | string
-     */
-    private $redirect = null;
-
-    /**
      * CDN prefixes and matching rules
      */
     protected $cdnPrefixes = array();
@@ -101,6 +123,66 @@ class http extends \codename\core\response {
      */
     public function setCDNResourcePrefix($prefix, $target) {
       $this->cdnPrefixes[$prefix] = $target;
+    }
+
+    /**
+     * Contains data for redirecting the user after finishing the request
+     * @var array | string
+     */
+    protected $redirect = null;
+
+    /**
+     * Redirects the user at some point to the given destination.
+     * <br >Either pass a valid URL to the function (including protocol!) or pass the app/context/view/action data
+     * @param string $string (URL / app)
+     * @param string $context
+     * @param string $view
+     * @param string $action
+     * @param array $params
+     * @return void
+     */
+    public function setRedirect(string $string, string $context = null, string $view = null, string $action = null) {
+        if(strpos($string, '://') != false || strpos($string, '/') === 0) {
+            $this->redirect = $string;
+            return;
+        }
+        $this->redirect = array(
+            'app' => $string,
+            'context' => $context,
+            'view' => $view,
+            'action' => $action
+        );
+        return;
+    }
+
+    /**
+     * Sets parameters used for redirection
+     * @param array
+     */
+    public function setRedirectArray(array $param) {
+      $this->redirect = $param;
+      return;
+    }
+
+    /**
+     * This function performs the redirection by using a forward header ("Location: $url").
+     * @return void
+     * @todo make a makeUrl function for the parameters
+     */
+    public function doRedirect() {
+        if(is_null($this->redirect)) {
+            return;
+        }
+
+        if(is_string($this->redirect)) {
+            $this->setHeader("Location: " . $this->redirect);
+        }
+
+        if(is_array($this->redirect)) {
+            $url = '/?' . http_build_query($this->redirect);
+            $this->setHeader("Location: " . $url);
+        }
+        return;
     }
 
     /**
@@ -223,9 +305,12 @@ class http extends \codename\core\response {
      */
     public function displayException(\Exception $e)
     {
-      app::getResponse()->setStatuscode(500, "Internal Server Error");
+      $this->setStatuscode(500, "Internal Server Error");
 
-      if(defined('CORE_ENVIRONMENT') && CORE_ENVIRONMENT != 'production') {
+      if(
+        defined('CORE_ENVIRONMENT')
+        // && CORE_ENVIRONMENT != 'production'
+      ) {
         echo "<h3>Hicks!</h3>";
         echo "<h6>{$e->getMessage()} (Code: {$e->getCode()})</h6>";
 
@@ -243,7 +328,7 @@ class http extends \codename\core\response {
         die();
       }
 
-      app::getResponse()->pushOutput();
+      $this->pushOutput();
     }
 
 }

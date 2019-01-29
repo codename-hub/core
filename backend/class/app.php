@@ -1,6 +1,21 @@
 <?php
 namespace codename\core;
 
+class WarningException              extends \ErrorException {}
+class ParseException                extends \ErrorException {}
+class NoticeException               extends \ErrorException {}
+class CoreErrorException            extends \ErrorException {}
+class CoreWarningException          extends \ErrorException {}
+class CompileErrorException         extends \ErrorException {}
+class CompileWarningException       extends \ErrorException {}
+class UserErrorException            extends \ErrorException {}
+class UserWarningException          extends \ErrorException {}
+class UserNoticeException           extends \ErrorException {}
+class StrictException               extends \ErrorException {}
+class RecoverableErrorException     extends \ErrorException {}
+class DeprecatedException           extends \ErrorException {}
+class UserDeprecatedException       extends \ErrorException {}
+
 /**
  * This is the app base class.
  * It is ABSTRACT. You have to inherit from it.
@@ -225,10 +240,51 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return app
      */
     public function __CONSTRUCT() {
+
+        // Make Exceptions out of PHP Errors
+        set_error_handler(function ($err_severity, $err_msg, $err_file, $err_line, array $err_context) {
+          switch($err_severity)
+          {
+              case E_ERROR:               throw new ErrorException            ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_WARNING:             throw new WarningException          ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_PARSE:               throw new ParseException            ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_NOTICE:              throw new NoticeException           ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_CORE_ERROR:          throw new CoreErrorException        ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_CORE_WARNING:        throw new CoreWarningException      ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_COMPILE_ERROR:       throw new CompileErrorException     ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_COMPILE_WARNING:     throw new CoreWarningException      ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_USER_ERROR:          throw new UserErrorException        ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_USER_WARNING:        throw new UserWarningException      ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_USER_NOTICE:         throw new UserNoticeException       ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_STRICT:              throw new StrictException           ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_RECOVERABLE_ERROR:   throw new RecoverableErrorException ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_DEPRECATED:          throw new DeprecatedException       ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_USER_DEPRECATED:     throw new UserDeprecatedException   ($err_msg, 0, $err_severity, $err_file, $err_line);
+          }
+        });
+
+        // Core Exception Handler
+        set_exception_handler(function(\Throwable $t) {
+          if(self::shouldThrowException()) {
+            throw $t;
+          } else {
+            $code = is_int($t->getCode()) ? $t->getCode() : 0;
+            app::getResponse()->displayException(new \Exception($t->getMessage(), $code, $t));
+          }
+        });
+
         self::getHook()->fire(\codename\core\hook::EVENT_APP_INITIALIZING);
         self::$instance = $this;
         self::getHook()->fire(\codename\core\hook::EVENT_APP_INITIALIZED);
         return;
+    }
+
+    /**
+     * [shouldThrowException description]
+     * @return bool
+     */
+    protected static function shouldThrowException() : bool {
+      return self::getEnv() == 'dev' && extension_loaded('xdebug') && xdebug_is_enabled() && !isset($_REQUEST['XDEBUG_SESSION_STOP']) && (isset($_REQUEST['XDEBUG_SESSION_START']) || isset($_COOKIE['XDEBUG_SESSION']));
     }
 
     /**
@@ -240,14 +296,23 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         $this->getHook()->add(\codename\core\hook::EVENT_APP_RUN_START, function() {
           $_REQUEST['start'] = microtime(true);
         })->add(\codename\core\hook::EVENT_APP_RUN_END, function() {
-          if(self::getRequest()->getData('template') !== 'json' && self::getRequest()->getData('template') !== 'blank') {
-            echo '<pre style="position: fixed; bottom: 0; right: 0; opacity:0.5;">Generated in '.round(abs(($_REQUEST['start'] - microtime(true)) * 1000),2).'ms
-            '.\codename\core\observer\database::$query_count . ' Queries
-            '. \codename\core\observer\cache::$set . ' Cache SETs
-            '. \codename\core\observer\cache::$get . ' Cache GETs
-            '. \codename\core\observer\cache::$hit . ' Cache HITs
-            '. \codename\core\observer\cache::$miss . ' Cache MISSes
-            </pre>';
+          if($this->getRequest() instanceof \codename\core\request\cli) {
+            echo 'Generated in '.round(abs(($_REQUEST['start'] - microtime(true)) * 1000),2).'ms'.chr(10)
+            . '  ' . \codename\core\observer\database::$query_count . ' Queries'.chr(10)
+            . '  ' . \codename\core\observer\cache::$set . ' Cache SETs'.chr(10)
+            . '  ' . \codename\core\observer\cache::$get . ' Cache GETs'.chr(10)
+            . '  ' . \codename\core\observer\cache::$hit . ' Cache HITs'.chr(10)
+            . '  ' . \codename\core\observer\cache::$miss . ' Cache MISSes'.chr(10);
+          } else {
+            if(self::getRequest()->getData('template') !== 'json' && self::getRequest()->getData('template') !== 'blank') {
+              echo '<pre style="position: fixed; bottom: 0; right: 0; opacity:0.5;">Generated in '.round(abs(($_REQUEST['start'] - microtime(true)) * 1000),2).'ms
+              '.\codename\core\observer\database::$query_count . ' Queries
+              '. \codename\core\observer\cache::$set . ' Cache SETs
+              '. \codename\core\observer\cache::$get . ' Cache GETs
+              '. \codename\core\observer\cache::$hit . ' Cache HITs
+              '. \codename\core\observer\cache::$miss . ' Cache MISSes
+              </pre>';
+            }
           }
         });
       }
@@ -291,6 +356,21 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     }
 
     /**
+     * [handleAccess description]
+     * @return bool [description]
+     */
+    protected function handleAccess() : bool {
+      if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
+          self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
+          $this->getResponse()->setRedirect($this->getApp(), 'login');
+          $this->getResponse()->doRedirect();
+          return false;
+      } else {
+        return true;
+      }
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\app_interface::run()
@@ -311,24 +391,39 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         try {
           $this->makeRequest();
         } catch (\Exception $e) {
-          $this->getResponse()->displayException($e);
-        }
-
-        if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
-            self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
-            $this->getRequest()->setRedirect($this->getApp(), 'login');
-            $this->getRequest()->doRedirect();
-            return;
+          if(self::shouldThrowException()) {
+            throw $e;
+          } else {
+            $this->getResponse()->displayException($e);
+          }
         }
 
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_MAIN);
 
         try {
-          $this->doAction()->doView()->doShow()->doOutput();
+
+          // if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
+          //     self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
+          //     $this->getResponse()->setRedirect($this->getApp(), 'login');
+          //     $this->getResponse()->doRedirect();
+          //     return;
+          // }
+
+          if(!$this->handleAccess()) {
+            return;
+          }
+
+          // perform the main application lifecycle calls
+          $this->mainRun();
+
         } catch (\Exception $e) {
           // display exception using the current response class
           // which may be either http or even CLI !
-          $this->getResponse()->displayException($e);
+          if(self::shouldThrowException()) {
+            throw $e;
+          } else {
+            $this->getResponse()->displayException($e);
+          }
         }
 
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_END);
@@ -337,6 +432,14 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         exit(self::$exitCode);
 
         return;
+    }
+
+
+    /**
+     * the main run / main lifecycle (context, action, view, show - output)
+     */
+    protected function mainRun() {
+      $this->doAction()->doView()->doShow()->doOutput();
     }
 
     /**
@@ -367,6 +470,12 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     }
 
     /**
+     * Exception thrown if the context configuration is missing in the app.json
+     * @var string
+     */
+    const EXCEPTION_MAKEREQUEST_CONTEXT_CONFIGURATION_MISSING = 'EXCEPTION_MAKEREQUEST_CONTEXT_CONFIGURATION_MISSING';
+
+    /**
      * Sets the request arguments
      * @throws \codename\core\exception
      */
@@ -374,6 +483,10 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         self::getRequest()->setData('context', self::getRequest()->isDefined('context') ? self::getRequest()->getData('context') : self::getConfig()->get('defaultcontext'));
         self::getRequest()->setData('view', self::getRequest()->isDefined('view') ? self::getRequest()->getData('view') : self::getConfig()->get('context>' . self::getRequest()->getData('context') . '>defaultview'));
         self::getRequest()->setData('action', self::getRequest()->isDefined('action') ? self::getRequest()->getData('action') : null);
+
+        if(self::getConfig()->get('context>' . self::getRequest()->getData('context')) == null) {
+            throw new \codename\core\exception(self::EXCEPTION_MAKEREQUEST_CONTEXT_CONFIGURATION_MISSING, \codename\core\exception::$ERRORLEVEL_ERROR, self::getRequest()->getData('context'));
+        }
 
         if (!$this->viewExists(new \codename\core\value\text\contextname(self::getRequest()->getData('context')), new \codename\core\value\text\viewname(self::getRequest()->getData('view')))) {
             throw new \codename\core\exception(self::EXCEPTION_MAKEREQUEST_REQUESTEDVIEWNOTINCONTEXT, \codename\core\exception::$ERRORLEVEL_ERROR, self::getRequest()->getData('view'));
@@ -401,12 +514,12 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return array
      */
     public static function object2array($object) : array {
-        $array = array();
-        if(is_null($object)) {
+        if($object === null) {
             return array();
         }
+        $array = array();
         foreach ($object as $key => $value) {
-            if(is_object($value) || ( (array) $value === $value ) ) { // TESTING high-performance is_array checking
+            if(( (array) $value === $value ) || is_object($value)) {
                 $array[$key] = self::object2array($value);
             } else {
                 $array[$key] = $value;
@@ -534,7 +647,6 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         if (!self::getInstance('filesystem_local')->dirAvailable(self::getHomedir())) {
             throw new \codename\core\exception(self::EXCEPTION_GETAPP_APPFOLDERNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, self::getHomedir());
         }
-        self::getRequest()->setData('app', $appdata[1]);
         return self::$app->get();
     }
 
@@ -545,26 +657,14 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      */
     final public static function getEnv() : string {
         if(!defined("CORE_ENVIRONMENT")) {
-            $env = null;
-            if(
-                isset($_SERVER['HTTP_HOST'])
-                && (strpos($_SERVER['HTTP_HOST'], '.localhost') !== false
-                || strpos($_SERVER['HTTP_HOST'], 'kdargel.com') !== false)
-            ) {
-                $env = 'dev';
-            }
-            if(is_null($env) &&
-                isset($_SERVER['HTTP_HOST'])
-                && strpos($_SERVER['HTTP_HOST'], 'beta.') !== false) {
-                $env = 'beta';
-            }
-            if(is_null($env) &&
-                isset($_SERVER['HTTP_HOST'])
-                && strpos($_SERVER['HTTP_HOST'], 'alpha.') !== false) {
-                $env = 'alpha';
-            }
-            if(is_null($env)) {
-                $env = 'production';
+            $env = getenv('CORE_ENVIRONMENT');
+            if(!$env) {
+              //
+              // We have to die() here
+              // as Exception Throwing+Displaying needs the environment to be defined.
+              //
+              echo("CORE_ENVIRONMENT not defined.");
+              die();
             }
             define('CORE_ENVIRONMENT', $env);
         }
@@ -588,11 +688,38 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      */
     final public static function getConfig() : \codename\core\config {
         if(is_null(self::$config)) {
+
+            // Pre-construct cachegroup
+            $cacheGroup = 'APPCONFIG';
+            $cacheKey = self::getVendor().'_'.self::getApp();
+
+            if($finalConfig = self::getCache()->get($cacheGroup, $cacheKey)) {
+              self::$config = new \codename\core\config($finalConfig);
+              return self::$config;
+            }
+
             $config = (new \codename\core\config\json(self::$json_config))->get();
 
             if(!array_key_exists('context', $config)) {
-                throw new \codename\core\exception(self::EXCEPTION_GETCONFIG_APPCONFIGCONTAINSNOCONTEXT, \codename\core\exception::$ERRORLEVEL_FATAL, $file);
+                throw new \codename\core\exception(self::EXCEPTION_GETCONFIG_APPCONFIGCONTAINSNOCONTEXT, \codename\core\exception::$ERRORLEVEL_FATAL, self::$json_config);
             }
+
+            //
+            // NOTE: Extension injection moved to appstack building
+            //
+            // if(array_key_exists('extensions', $config)) {
+            //   foreach($config['extensions'] as $ext) {
+            //     $class = '\\' . str_replace('_', '\\', $ext) . '\\extension';
+            //     if(class_exists($class) && (new \ReflectionClass($class))->isSubclassOf('\\codename\\core\\extension')) {
+            //       $extension = new $class();
+            //       self::injectApp($extension->getInjectParameters());
+            //     } else {
+            //       throw new exception('CORE_APP_EXTENSION_COULD_NOT_BE_LOADED', exception::$ERRORLEVEL_FATAL, $ext);
+            //     }
+            //   }
+            //   // re-build appstack?
+            //   self::makeCurrentAppstack();
+            // }
 
             // Testing: Adding the default (install) context
             // TODO: Filepath-beautify
@@ -623,6 +750,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             }
 
             self::$config = new \codename\core\config($config);
+
+            self::getCache()->set($cacheGroup, $cacheKey, self::$config->get());
         }
         return self::$config;
     }
@@ -656,11 +785,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * {@inheritDoc}
      * @see \codename\core\app_interface::getData($type, $key)
      */
-    final public static function getData(\codename\core\value\text\objecttype $type, \codename\core\value\text\objectidentifier $identifier) {
+    final public static function getData(string $type, string $identifier) {
         $env = self::getenv();
 
         // Get the value first, regardless of success.
-        $value = self::getEnvironment()->get("$env>".$type->get().">".$identifier->get());
+        $value = self::getEnvironment()->get("$env>".$type.">".$identifier);
 
         // If we detect something irregular, dig deeper:
         if($value == NULL) {
@@ -668,11 +797,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
               throw new \codename\core\exception(self::EXCEPTION_GETDATA_CURRENTENVIRONMENTNOTFOUND, \codename\core\exception::$ERRORLEVEL_ERROR, $type);
           }
 
-          if (!self::getEnvironment()->exists("$env>".$type->get())) {
+          if (!self::getEnvironment()->exists("$env>".$type)) {
               throw new \codename\core\exception(self::EXCEPTION_GETDATA_REQUESTEDTYPENOTFOUND, \codename\core\exception::$ERRORLEVEL_ERROR, $type);
           }
 
-          if (!self::getEnvironment()->exists("$env>".$type->get().">".$identifier->get())) {
+          if (!self::getEnvironment()->exists("$env>".$type.">".$identifier)) {
               throw new \codename\core\exception(self::EXCEPTION_GETDATA_REQUESTEDKEYINTYPENOTFOUND, \codename\core\exception::$ERRORLEVEL_ERROR, array('type' => $type, 'key' => $identifier));
           }
         } else {
@@ -735,17 +864,12 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
     /**
      * Returns an the db instance that is configured as $identifier
-     * @param string $identifier
+     * @param string  $identifier
+     * @param bool    $store      [store the database connection]
      * @return \codename\core\database
      */
-    final public static function getDb(string $identifier = 'default') : \codename\core\database {
-        if(self::$dbValueObjecttype == NULL) {
-          self::$dbValueObjecttype = new \codename\core\value\text\objecttype('database');
-        }
-        if(!array_key_exists($identifier, self::$dbValueObjectidentifierArray)) {
-          self::$dbValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
-        }
-        return self::getClient(self::$dbValueObjecttype, self::$dbValueObjectidentifierArray[$identifier]);
+    final public static function getDb(string $identifier = 'default', bool $store = true) : \codename\core\database {
+        return self::getClient('database', $identifier, $store);
     }
 
     /**
@@ -764,7 +888,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\auth
      */
     final public static function getAuth(string $identifier = 'default') : \codename\core\auth {
-        return self::getClient(new \codename\core\value\text\objecttype('auth'), new \codename\core\value\text\objectidentifier($identifier));
+        return self::getClient('auth', $identifier);
     }
 
     /**
@@ -773,13 +897,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\translate
      */
     final public static function getTranslate(string $identifier = 'default') : \codename\core\translate {
-        if(self::$translateValueObjecttype == NULL) {
-          self::$translateValueObjecttype = new \codename\core\value\text\objecttype('translate');
-        }
-        if(!array_key_exists($identifier, self::$translateValueObjectidentifierArray)) {
-          self::$translateValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
-        }
-        return self::getClient(self::$translateValueObjecttype, self::$translateValueObjectidentifierArray[$identifier]);
+        return self::getClient('translate', $identifier);
     }
 
     /**
@@ -798,13 +916,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\cache
      */
     final public static function getCache(string $identifier = 'default') : \codename\core\cache {
-        if(self::$cacheValueObjecttype == NULL) {
-          self::$cacheValueObjecttype = new \codename\core\value\text\objecttype('cache');
-        }
-        if(!array_key_exists($identifier, self::$cacheValueObjectidentifierArray)) {
-          self::$cacheValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
-        }
-        return self::getClient(self::$cacheValueObjecttype, self::$cacheValueObjectidentifierArray[$identifier]);
+        return self::getClient('cache', $identifier);
     }
 
     /**
@@ -823,13 +935,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\session
      */
     final public static function getSession(string $identifier = 'default') : \codename\core\session {
-        if(self::$sessionValueObjecttype == NULL) {
-          self::$sessionValueObjecttype = new \codename\core\value\text\objecttype('session');
-        }
-        if(!array_key_exists($identifier, self::$sessionValueObjectidentifierArray)) {
-          self::$sessionValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
-        }
-        return self::getClient(self::$sessionValueObjecttype, self::$sessionValueObjectidentifierArray[$identifier]);
+        return self::getClient('session', $identifier);
     }
 
     /**
@@ -848,15 +954,14 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\log
      */
    final public static function getLog(string $identifier = 'default') : \codename\core\log {
-       if(self::$logValueObjecttype == NULL) {
-         self::$logValueObjecttype = new \codename\core\value\text\objecttype('log');
-       }
-       if(!array_key_exists($identifier, self::$logValueObjectidentifierArray)) {
-         self::$logValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
-       }
-       return self::getSingletonClient(self::$logValueObjecttype, self::$logValueObjectidentifierArray[$identifier]);
+      return self::getSingletonClient('log', $identifier);
     }
 
+    /**
+     * [protected description]
+     * @var \codename\core\log[]
+     */
+    protected static $logInstance = [];
 
     /**
      * @var \codename\core\value\text\objectidentifier[]]
@@ -875,7 +980,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\filesystem
      */
     final public static function getFilesystem(string $identifier = 'local') : \codename\core\filesystem {
-        return self::getClient(new \codename\core\value\text\objecttype('filesystem'), new \codename\core\value\text\objectidentifier($identifier));
+        return self::getClient('filesystem', $identifier);
     }
 
     /**
@@ -884,7 +989,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\mail
      */
     final public static function getMailer(string $identifier = 'default') : \codename\core\mail {
-        return self::getClient(new \codename\core\value\text\objecttype('mail'), new \codename\core\value\text\objectidentifier($identifier), false);
+        return self::getClient('mail', $identifier, false);
     }
 
     /**
@@ -892,7 +997,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\hook
      */
     final public static function getHook() : \codename\core\hook {
-        if(is_null(self::$hook)) {
+        if(self::$hook === null) {
             self::$hook = \codename\core\hook::getInstance();
         }
         return self::$hook;
@@ -904,7 +1009,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\bucket
      */
     final public static function getBucket(string $identifier) : \codename\core\bucket {
-        return self::getClient(new \codename\core\value\text\objecttype('bucket'), new \codename\core\value\text\objectidentifier($identifier));
+        return self::getClient('bucket', $identifier);
     }
 
     /**
@@ -913,7 +1018,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\queue
      */
     final public static function getQueue(string $identifier = 'default') : \codename\core\queue {
-        return self::getClient(new \codename\core\value\text\objecttype('queue'), new \codename\core\value\text\objectidentifier($identifier));
+        return self::getClient('queue', $identifier);
     }
 
     /**
@@ -972,7 +1077,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @throws \codename\core\exception
      * @return string
      */
-    protected final static function getInheritedClass(string $classname) : string {
+    public final static function getInheritedClass(string $classname) : string {
         $classname = str_replace('_', '\\', $classname);
 
         if(is_null(self::$appstack)) {
@@ -1176,14 +1281,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return \codename\core\templateengine
      */
     final public static function getTemplateEngine(string $identifier = 'default') : \codename\core\templateengine {
-        if(self::$templateengineValueObjecttype == NULL) {
-          self::$templateengineValueObjecttype = new \codename\core\value\text\objecttype('templateengine');
-        }
-        if(!array_key_exists($identifier, self::$templateengineValueObjectidentifierArray)) {
-          self::$templateengineValueObjectidentifierArray[$identifier] = new \codename\core\value\text\objectidentifier($identifier);
-        }
-
-        return self::getClient(self::$templateengineValueObjecttype, self::$templateengineValueObjectidentifierArray[$identifier]);
+        return self::getClient('templateengine', $identifier);
     }
 
     /**
@@ -1200,19 +1298,18 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * Returns the (maybe cached) client that is stored as "driver" in $identifier (app.json) for the given $type.
      * @param string $type
      * @param string $identifier
+     * @param bool   $store
      * @return object
      * @todo refactor
      */
-    final protected static function getClient(\codename\core\value\text\objecttype $type, \codename\core\value\text\objectidentifier $identifier, bool $store = true) {
-        $config = self::getData($type, $identifier);
-        $type = $type->get();
-        $identifier = $identifier->get();
+    final public static function getClient(string $type, string $identifier, bool $store = true) {
         $simplename = $type . $identifier;
 
         if ($store && array_key_exists($simplename, $_REQUEST['instances'])) {
             return $_REQUEST['instances'][$simplename];
         }
 
+        $config = self::getData($type, $identifier);
 
         $app = array_key_exists('app', $config) ? $config['app'] : self::getApp();
         $vendor = self::getVendor();
@@ -1255,7 +1352,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
           $instance->setClientName($simplename);
         }
 
-        return $_REQUEST['instances'][$simplename] = $instance;
+        if($store) {
+          return $_REQUEST['instances'][$simplename] = $instance;
+        } else {
+          return $instance;
+        }
     }
 
     /**
@@ -1265,10 +1366,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return object
      * @todo refactor
      */
-    final protected static function getSingletonClient(\codename\core\value\text\objecttype $type, \codename\core\value\text\objectidentifier $identifier, bool $store = true) {
-        $config = self::getData($type, $identifier);
-        $type = $type->get();
-        $identifier = $identifier->get();
+    final protected static function getSingletonClient(string $type, string $identifier, bool $store = true) {
+
         // make simplename for storing instance
         $simplename = $type . $identifier;
 
@@ -1276,6 +1375,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         if ($store && array_key_exists($simplename, $_REQUEST['instances'])) {
             return $_REQUEST['instances'][$simplename];
         }
+
+        $config = self::getData($type, $identifier);
 
         // Load client information
 
@@ -1304,7 +1405,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         }
 
         // instanciate
-        return $classname::getInstance($config);
+        $_REQUEST['instances'][$simplename] = $classname::getInstance($config);
+        return $_REQUEST['instances'][$simplename];
     }
 
     /**
@@ -1341,23 +1443,41 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         $current_vendor = '';
         $current_app = '';
 
-        do {
-            $parentapp = app::getParentapp($current_vendor, $current_app);
+        while (self::getInstance('filesystem_local')->fileAvailable($parentfile)) {
+          $parentapp = app::getParentapp($current_vendor, $current_app);
 
-            if(strlen($parentapp) == 0) {
-                break;
-            }
+          if(strlen($parentapp) == 0) {
+             break;
+          }
 
-            $parentapp_data = explode('_', $parentapp);
-            $current_vendor = $parentapp_data[0];
-            $current_app = $parentapp_data[1];
-            $stack[] = array('vendor' => $parentapp_data[0],'app' => $parentapp_data[1]);
+          $parentapp_data = explode('_', $parentapp);
+          $current_vendor = $parentapp_data[0];
+          $current_app = $parentapp_data[1];
+          $stack[] = array(
+           'vendor' => $parentapp_data[0],
+           'app' => $parentapp_data[1]
+          );
 
-            self::getHook()->fire(\codename\core\hook::EVENT_APP_MAKEAPPSTACK_ADDED_APP);
+          self::getHook()->fire(\codename\core\hook::EVENT_APP_MAKEAPPSTACK_ADDED_APP);
 
-            $parentfile = self::getHomedir($parentapp_data[0], $parentapp_data[1]) . 'config/parent.app';
+          $parentfile = self::getHomedir($parentapp_data[0], $parentapp_data[1]) . 'config/parent.app';
+        }
 
-        } while (self::getInstance('filesystem_local')->fileAvailable($parentfile));
+        // one more step to execute - core app itself
+        $parentapp = app::getParentapp($current_vendor, $current_app);
+
+        if(strlen($parentapp) > 0) {
+          $parentapp_data = explode('_', $parentapp);
+          $current_vendor = $parentapp_data[0];
+          $current_app = $parentapp_data[1];
+
+          $stack[] = array(
+           'vendor' => $parentapp_data[0],
+           'app' => $parentapp_data[1],
+          );
+
+          self::getHook()->fire(\codename\core\hook::EVENT_APP_MAKEAPPSTACK_ADDED_APP);
+        }
 
         // we don't need to add the core framework explicitly
         // as an 'app', as it is returned by app::getParentapp
@@ -1365,6 +1485,10 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
         // inject apps, if available
         foreach(self::$injectedApps as $injectApp) {
+          array_splice($stack, -1, 0, array($injectApp));
+        }
+
+        foreach(self::getExtensions($vendor, $app) as $injectApp) {
           array_splice($stack, -1, 0, array($injectApp));
         }
 
@@ -1382,18 +1506,57 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     }
 
     /**
-     * array of injected or to-be-injected apps during makeAppstack
-     * @var array
+     * get extensions for a given vendor/app
+     * @param  string $vendor [description]
+     * @param  string $app    [description]
+     * @return array
      */
-    protected static $injectedApps = array();
+    protected static function getExtensions($vendor, $app) {
+      $appJson = self::getHomedir($vendor, $app) . 'config/app.json';
+      if(self::getInstance('filesystem_local')->fileAvailable($appJson)) {
+        $json = new \codename\core\config\json($appJson, false, false);
+        $extensions = $json->get('extensions');
+        if($extensions !== null) {
+          $extensionParameters = [];
+          foreach($extensions as $ext) {
+            $class = '\\' . str_replace('_', '\\', $ext) . '\\extension';
+            if(class_exists($class) && (new \ReflectionClass($class))->isSubclassOf('\\codename\\core\\extension')) {
+              $extension = new $class();
+              $extensionParameters[] = $extension->getInjectParameters();
+            } else {
+              throw new exception('CORE_APP_EXTENSION_COULD_NOT_BE_LOADED', exception::$ERRORLEVEL_FATAL, $ext);
+            }
+          }
+          return $extensionParameters;
+        }
+      }
+      return [];
+    }
+
+    /**
+     * array of injected or to-be-injected apps during makeAppstack
+     * @var array[]
+     */
+    protected static $injectedApps = [];
+
+    /**
+     * [protected description]
+     * @var string[]
+     */
+    protected static $injectedAppIdentifiers = [];
 
     /**
      * [final description]
-     * @var [type]
+     * @param array $injectApp [app injection parameters]
      */
     final protected static function injectApp(array $injectApp) {
       if(isset($injectApp['vendor']) && isset($injectApp['app']) && isset($injectApp['namespace'])) {
-        self::$injectedApps[] = $injectApp;
+        $identifier = $injectApp['vendor'].'#'.$injectApp['app'].'#'.$injectApp['namespace'];
+        // Prevent double-injecting the apps
+        if(!in_array($identifier, self::$injectedAppIdentifiers)) {
+          self::$injectedApps[] = $injectApp;
+          self::$injectedAppIdentifiers[] = $identifier;
+        }
       } else {
         throw new exception("EXCEPTION_APP_INJECTAPP_CANNOT_INJECT_APP", exception::$ERRORLEVEL_FATAL, $injectApp);
       }

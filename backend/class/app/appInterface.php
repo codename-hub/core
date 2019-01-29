@@ -15,7 +15,7 @@ interface appInterface {
      * @access public
      */
     public function contextExists(\codename\core\value\text\contextname $context) : bool;
-    
+
     /**
      * Return true if the $view exists in the $context of the current app.
      * @param string $context
@@ -40,7 +40,7 @@ interface appInterface {
      * @access public
      */
     public function run();
-    
+
     /**
      * Returns the array of data stored in the app configuration identified by it's $type and the $key.
      * APPJSON[$type][$key]
@@ -48,6 +48,6 @@ interface appInterface {
      * @param string $key
      * @access public
      */
-    public static function getData(\codename\core\value\text\objecttype $type, \codename\core\value\text\objectidentifier $key);
+    public static function getData(string $type, string $key);
 
 }

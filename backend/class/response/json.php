@@ -13,6 +13,7 @@ class json extends \codename\core\response\http {
    */
   public function pushOutput()
   {
+    http_response_code($this->translateStatusToHttpStatus());
     echo(json_encode($this->getData()));
   }
 
@@ -21,6 +22,8 @@ class json extends \codename\core\response\http {
    */
   public function displayException(\Exception $e)
   {
+    $this->getResponse()->setStatuscode(500, "Internal Server Error");
+
     if(defined('CORE_ENVIRONMENT') && CORE_ENVIRONMENT != 'production') {
       // TODO: optimize / check output?
       print_r(json_encode($e));
@@ -29,6 +32,7 @@ class json extends \codename\core\response\http {
       // TODO: show exception ?
     }
 
+    $this->pushOutput();
   }
 
 }

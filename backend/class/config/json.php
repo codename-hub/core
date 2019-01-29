@@ -39,6 +39,13 @@ class json extends \codename\core\config {
     CONST EXCEPTION_CONSTRUCT_INVALIDBEHAVIOR = 'EXCEPTION_CONSTRUCT_INVALIDBEHAVIOR';
 
     /**
+     * Exception thrown when no files could be found to construct a config
+     * based on inheritance
+     * @var string
+     */
+    CONST EXCEPTION_CONFIG_JSON_CONSTRUCT_HIERARCHY_NOT_FOUND = 'EXCEPTION_CONFIG_JSON_CONSTRUCT_HIERARCHY_NOT_FOUND';
+
+    /**
      * Creates a config instance and loads the given JSON configuration file as content
      * <br />If $appstack is true, I will try loading the configuration from a parent app, if it does not exist in the curreent app
      * <br />If $inherit is true, I will load all the configurations from parents, and the lower children will always overwrite the parents
@@ -48,8 +55,12 @@ class json extends \codename\core\config {
      * @param array $appstack [optional: custom appstack]
      * @return \codename\core\config
      */
-    public function __CONSTRUCT(string $file, bool $appstack = false, bool $inherit = false, array $useAppstack = null) {
-        $config = array();
+    public function __CONSTRUCT(string $file, bool $appstack = false, bool $inherit = false, ?array $useAppstack = null) {
+
+        // do NOT start with an empty array
+        // $config = array();
+        $config = null;
+
         if(!$inherit && !$appstack) {
             $config = $this->decodeFile($this->getFullpath($file, $appstack));
             $this->data = $config;
@@ -65,10 +76,21 @@ class json extends \codename\core\config {
         }
 
         foreach(array_reverse($useAppstack) as $app) {
-            $fullpath = app::getHomedir($app['vendor'], $app['app']) . $file;
+            if(realpath($file) !== false) {
+              $fullpath = $file;
+            } else {
+              $fullpath = app::getHomedir($app['vendor'], $app['app']) . $file;
+            }
             if(!app::getInstance('filesystem_local')->fileAvailable($fullpath)) {
                 continue;
             }
+
+            // initialize config as empty array here
+            // as this is the first found file in the hierarchy
+            if($config === null) {
+              $config = array();
+            }
+
             $thisConf = $this->decodeFile($fullpath);
             $this->inheritance[] = $fullpath;
             if($inherit) {
@@ -79,9 +101,16 @@ class json extends \codename\core\config {
             }
         }
 
+        if($config === null) {
+          // config was not initialized during hierarchy traversal
+          throw new \codename\core\exception(self::EXCEPTION_CONFIG_JSON_CONSTRUCT_HIERARCHY_NOT_FOUND, \codename\core\exception::$ERRORLEVEL_FATAL, array('file' => $file, 'appstack' => $useAppstack));
+        }
+
         $this->data = $config;
         return $this;
     }
+
+
 
     /**
      * contains a list of elements (file paths) this config is composed of
@@ -111,7 +140,7 @@ class json extends \codename\core\config {
      */
     protected function getFullpath(string $file, bool $appstack) : string {
         // direct absolute file path
-        if(!$appstack && realpath($file) == $file) {
+        if(!$appstack && realpath($file) !== false) {
           return $file;
         }
 

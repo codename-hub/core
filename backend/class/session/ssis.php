@@ -130,5 +130,13 @@ class ssis extends \codename\core\session implements \codename\core\session\sess
         }
         return $this->apiInst;
     }
-    
+
+    /**
+     * @inheritDoc
+     */
+    public function invalidate($sessionId)
+    {
+      throw new \LogicException('Not implemented'); // TODO
+    }
+
 }

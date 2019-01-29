@@ -33,7 +33,22 @@ class datacontainer {
         if(strlen($key) == 0) {
             return;
         }
-        $this->data[$key] = $data;
+        if(strpos($key, '>') !== false) {
+            if($this->isDefined($key)) {
+                $this->data[$key] = $data;
+            } else {
+              $myConfig = &$this->data;
+              foreach(explode('>', $key) as $myKey) {
+                  if($myConfig !== null && !array_key_exists($myKey, $myConfig)) {
+                      $myConfig[$myKey] = null;
+                  }
+                  $myConfig = &$myConfig[$myKey];
+              }
+              $myConfig = $data;
+            }
+        } else {
+            $this->data[$key] = $data;
+        }
         return;
     }
 
@@ -83,7 +98,18 @@ class datacontainer {
      * @param string $key
      */
     public function isDefined(string $key) : bool {
-        return array_key_exists($key, $this->data);
+        if(strpos($key, '>') === false) {
+          return array_key_exists($key, $this->data);
+        } else {
+          $myConfig = $this->data;
+          foreach(explode('>', $key) as $myKey) {
+              if(!array_key_exists($myKey, $myConfig)) {
+                  return false;
+              }
+              $myConfig = $myConfig[$myKey];
+          }
+          return true;
+        }
     }
 
     /**

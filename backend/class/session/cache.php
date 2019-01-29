@@ -128,5 +128,14 @@ class cache extends \codename\core\session {
     protected function getCachegroup() : string{
         return "SESSION_" . app::getApp() . "_" . $_COOKIE['PHPSESSID'];
     }
-    
+
+    /**
+     * @inheritDoc
+     */
+    public function invalidate($sessionId)
+    {
+      throw new \LogicException('Not implemented'); // TODO
+      // TODO/CHECK: app::getCache()->clearKey($this->getCachegroup(), "SESSION");
+    }
+
 }

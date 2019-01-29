@@ -31,11 +31,18 @@ class modelfield extends \codename\core\value\text {
       return $this;
     }
 
-    public static function getInstance(string $field) {
-      if(!array_key_exists($field, self::$cached)) {
+    /**
+     * creates a new text_modelfield_virtual value object
+     * @param  string                                 $field [description]
+     * @return \codename\core\value\text\modelfield          [description]
+     */
+    public static function getInstance(string $field) : \codename\core\value\text\modelfield {
+      if(isset(self::$cached[$field])) {
+        return self::$cached[$field];
+      } else {
         self::$cached[$field] = new self($field);
+        return self::$cached[$field];
       }
-      return self::$cached[$field];
     }
 
     /**

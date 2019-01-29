@@ -6,6 +6,6 @@ namespace codename\core;
  * @package core
  * @since 2016-02-01
  */
-abstract class auth implements \codename\core\auth\authInterface {
-    
+abstract class auth implements \codename\core\auth\credentialAuthInterface, \codename\core\auth\groupInterface {
+
 }

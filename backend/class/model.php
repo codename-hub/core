@@ -176,7 +176,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * Contains instances of the filters for the model request
-     * @var array $filter
+     * @var \codename\core\model\plugin\filter[] $filter
      */
     protected $filter = array();
 
@@ -185,6 +185,18 @@ abstract class model implements \codename\core\model\modelInterface {
      * @var array $filter
      */
     protected $defaultfilter = array();
+
+    /**
+     * Contains instances of aggregate filters for the model request
+     * @var \codename\core\model\plugin\aggregatefilter[] $aggregateFilter
+     */
+    protected $aggregateFilter = array();
+
+    /**
+     * Contains instances of default (reused) aggregate filters for the model request
+     * @var \codename\core\model\plugin\aggregatefilter[] $defaultAggregateFilter
+     */
+    protected $defaultAggregateFilter = array();
 
     /**
      * Contains an array of integer values for binary checks against the flag field
@@ -229,8 +241,14 @@ abstract class model implements \codename\core\model\modelInterface {
     protected $offset = null;
 
     /**
+     * Duplicate filtering state
+     * @var bool
+     */
+    protected $filterDuplicates = false;
+
+    /**
      * Contains the database connection
-     * @var db
+     * @var \codename\core\database
      */
     protected $db = null;
 
@@ -266,6 +284,14 @@ abstract class model implements \codename\core\model\modelInterface {
     public $config = null;
 
     /**
+     * returns the config object
+     * @return \codename\core\config [description]
+     */
+    public function getConfig() : \codename\core\config {
+      return $this->config;
+    }
+
+    /**
      * loads a new config file (uncached)
      * implement me!
      * @return \codename\core\config
@@ -274,10 +300,26 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * [getNestedJoins description]
-     * @return \codename\core\model\plugin\join[]
+     * @param  string|null  $model                  name of a model to look for
+     * @param  string|null  $modelField             name of a field the model is joined upon
+     * @return \codename\core\model\plugin\join[]   [array of joins, may be empty]
      */
-    public function getNestedJoins() : array {
+    public function getNestedJoins(string $model = null, string $modelField = null) : array {
+      if($model || $modelField) {
+        return array_values(array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($model, $modelField){
+          return ($model === null || $join->model->getIdentifier() === $model) && ($modelField === null || $join->modelField === $modelField);
+        }));
+      } else {
         return $this->nestedModels;
+      }
+    }
+
+    /**
+     * [getNestedCollections description]
+     * @return \codename\core\model\plugin\collection[] [description]
+     */
+    public function getNestedCollections() : array {
+      return $this->collectionPlugins;
     }
 
     /**
@@ -375,12 +417,93 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [getData description]
+     * @return array [description]
+     */
+    public function getData() : array {
+      return $this->data->getData();
+    }
+
+    /**
+     * [protected description]
+     * @var \codename\core\model\plugin\collection[]
+     */
+    protected $collectionPlugins = [];
+
+    /**
+     * [addCollectionModel description]
+     * @param \codename\core\model $model      [description]
+     * @param string|null          $modelField [description]
+     */
+    public function addCollectionModel(\codename\core\model $model, string $modelField = null) {
+      if($this->config->exists('collection')) {
+
+        $collectionConfig = null;
+
+        //
+        // try to determine modelfield by the best-matching collection
+        //
+        if(!$modelField) {
+          if($this->config->exists('collection')) {
+            foreach($this->config->get('collection') as $collectionFieldName => $config) {
+              if($config['model'] === $model->getIdentifier()) {
+                $modelField = $collectionFieldName;
+                $collectionConfig = $config;
+              }
+            }
+          }
+        }
+
+        //
+        // Still no modelfield
+        //
+        if(!$modelField) {
+          throw new exception('EXCEPTION_UNKNOWN_COLLECTION_MODEL', exception::$ERRORLEVEL_ERROR, [$this->getIdentifier(), $model->getIdentifier()]);
+        }
+
+        //
+        // Case where we haven't retrieved the collection config yet
+        //
+        if(!$collectionConfig) {
+          $collectionConfig = $this->config->get('collection>'.$modelField);
+        }
+
+        //
+        // Still no collection config
+        //
+        if(!$collectionConfig) {
+          throw new exception('EXCEPTION_NO_COLLECTION_CONFIG', exception::$ERRORLEVEL_ERROR, $modelField);
+        }
+
+        if($collectionConfig['model'] != $model->getIdentifier()) {
+          throw new exception('EXCEPTION_MODEL_ADDCOLLECTIONMODEL_INCOMPATIBLE', exception::$ERRORLEVEL_ERROR, [$collectionConfig['model'], $model->getIdentifier()]);
+        }
+
+        $modelFieldInstance = \codename\core\value\text\modelfield::getInstance($modelField);
+
+        // Finally, add model
+        $this->collectionPlugins[$modelFieldInstance->get()] = new \codename\core\model\plugin\collection(
+          $modelFieldInstance,
+          $this,
+          $model
+        );
+
+      } else {
+        throw new exception('EXCEPTION_NO_COLLECTION_KEY', exception::$ERRORLEVEL_ERROR, $this->getIdentifier());
+      }
+
+      return $this;
+    }
+
+    /**
      * @todo DOCUMENTATION
      */
     public function addModel(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT, string $modelField = null, string $referenceField = null) : \codename\core\model {
 
         $thisKey = null;
         $joinKey = null;
+
+        $conditions = [];
 
         // model field provided
         //
@@ -394,6 +517,7 @@ abstract class model implements \codename\core\model\modelInterface {
           if($fkeyConfig != null) {
             if($referenceField == null || $referenceField == $fkeyConfig['key']) {
               $joinKey = $fkeyConfig['key'];
+              $conditions = $fkeyConfig['condition'] ?? [];
             } else {
               // reference field is not equal
               // e.g. you're trying to join on unjoinable fields
@@ -409,10 +533,16 @@ abstract class model implements \codename\core\model\modelInterface {
             foreach($this->config->get('foreign') as $fkeyName => $fkeyConfig) {
               // if we found compatible models
               if($fkeyConfig['model'] == $model->getIdentifier()) {
-                $thisKey = $fkeyName;
-                if($referenceField == null || $referenceField == $fkeyConfig['key']) {
-                  $joinKey = $fkeyConfig['key'];
+                if(is_array($fkeyConfig['key'])) {
+                  $thisKey = array_keys($fkeyConfig['key']);    // current keys
+                  $joinKey = array_values($fkeyConfig['key']);  // keys of foreign model
+                } else {
+                  $thisKey = $fkeyName;
+                  if($referenceField == null || $referenceField == $fkeyConfig['key']) {
+                    $joinKey = $fkeyConfig['key'];
+                  }
                 }
+                $conditions = $fkeyConfig['condition'] ?? [];
                 break;
               }
             }
@@ -430,6 +560,7 @@ abstract class model implements \codename\core\model\modelInterface {
                 if($joinKey == null || $joinKey == $fkeyName) {
                   $thisKey = $fkeyConfig['key'];
                 }
+                $conditions = $fkeyConfig['condition'] ?? [];
                 // $thisKey = $fkeyConfig['key'];
                 // $joinKey = $fkeyName;
                 break;
@@ -446,7 +577,7 @@ abstract class model implements \codename\core\model\modelInterface {
         $pluginDriver = $this->compatibleJoin($model) ? $this->getType() : 'bare';
 
         $class = '\\codename\\core\\model\\plugin\\join\\' . $pluginDriver;
-        array_push($this->nestedModels, new $class($model, $type, $thisKey, $joinKey));
+        array_push($this->nestedModels, new $class($model, $type, $thisKey, $joinKey, $conditions));
         // check for already-added ?
 
         return $this;
@@ -590,7 +721,7 @@ abstract class model implements \codename\core\model\modelInterface {
             throw new \codename\core\exception(self::EXCEPTION_ENTRYSAVE_NOOBJECTLOADED, \codename\core\exception::$ERRORLEVEL_FATAL);
         }
 
-        $this->save($this->data->getData());
+        $this->saveWithChildren($this->data->getData());
         return $this;
     }
 
@@ -731,16 +862,50 @@ abstract class model implements \codename\core\model\modelInterface {
      * {@inheritDoc}
      * @see \codename\core\model_interface::addFilter($field, $value, $operator)
      */
-    public function addFilter(string $field, $value = null, string $operator = '=') : model {
+    public function addFilter(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
         if(is_array($value)) {
             if(count($value) == 0) {
                 return $this;
             }
-            array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator));
+            array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
         } else {
-            array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator));
+            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            array_push($this->filter, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $conjunction));
         }
+        return $this;
+    }
+
+    /**
+     * [addAggregateFilter description]
+     * @param  string               $field       [description]
+     * @param  string|int|bool|null $value       [description]
+     * @param  string $operator    [description]
+     * @param  string|null          $conjunction [description]
+     * @return model               [description]
+     */
+    public function addAggregateFilter(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
+      $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
+      if(is_array($value)) {
+          if(count($value) == 0) {
+              return $this;
+          }
+          array_push($this->aggregateFilter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
+      } else {
+          $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+          array_push($this->aggregateFilter, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $conjunction));
+      }
+      return $this;
+    }
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see \codename\core\model_interface::addFilter($field, $value, $operator)
+     */
+    public function addFieldFilter(string $field, string $otherField, string $operator = '=', string $conjuction = null) : model {
+        $class = '\\codename\\core\\model\\plugin\\fieldfilter\\' . $this->getType();
+        array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), \codename\core\value\text\modelfield::getInstance($otherField), $operator, $conjuction));
         return $this;
     }
 
@@ -772,61 +937,62 @@ abstract class model implements \codename\core\model\modelInterface {
      * @param array $filters [array of array( 'field' => ..., 'value' => ... )-elements]
      * @param string $groupOperator [e.g. 'AND' or 'OR']
      */
-    public function addFilterCollection(array $filters, string $groupOperator = null) : model {
+    public function addFilterCollection(array $filters, string $groupOperator = 'AND', string $groupName = 'default', string $conjunction = null) : model {
       $filterCollection = array();
       foreach($filters as $filter) {
         $field = $filter['field'];
         $value = $filter['value'];
         $operator = $filter['operator'];
+        $filter_conjunction = $filter['conjunction'] ?? null;
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
         if(is_array($value)) {
             if(count($value) == 0) {
                 continue;
             }
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator));
+            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $filter_conjunction));
         } else {
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator));
+            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            array_push($filterCollection, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $filter_conjunction));
         }
       }
-      if(sizeof($filterCollection) > 0) {
-        array_push($this->filterCollections,
-          array(
+      if(count($filterCollection) > 0) {
+        $this->filterCollections[$groupName][] = array(
               'operator' => $groupOperator,
-              'filters' => $filterCollection
-          )
+              'filters' => $filterCollection,
+              'conjunction' => $conjunction
         );
       }
       return $this;
     }
 
-    public function addDefaultFilterCollection(array $filters, string $groupOperator = null) : model {
+    public function addDefaultFilterCollection(array $filters, string $groupOperator = null, string $groupName = 'default', string $conjunction = null) : model {
       $filterCollection = array();
       foreach($filters as $filter) {
         $field = $filter['field'];
         $value = $filter['value'];
         $operator = $filter['operator'];
+        $filter_conjunction = $filter['conjunction'] ?? null;
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
         if(is_array($value)) {
             if(count($value) == 0) {
                 continue;
             }
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator));
+            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $filter_conjunction));
         } else {
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $this->delimit(new \codename\core\value\text\modelfield($field), $value), $operator));
+            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            array_push($filterCollection, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $filter_conjunction));
         }
       }
       if(sizeof($filterCollection) > 0) {
-        array_push($this->defaultfilterCollections,
-          array(
+        $this->defaultfilterCollections[$groupName][] = array(
               'operator' => $groupOperator,
-              'filters' => $filterCollection
-          )
+              'filters' => $filterCollection,
+              'conjunction' => $conjunction
         );
-        array_push($this->filterCollections,
-          array(
+        $this->filterCollections[$groupName][] = array(
               'operator' => $groupOperator,
-              'filters' => $filterCollection
-          )
+              'filters' => $filterCollection,
+              'conjunction' => $conjunction
         );
       }
       return $this;
@@ -837,14 +1003,23 @@ abstract class model implements \codename\core\model\modelInterface {
      * {@inheritDoc}
      * @see \codename\core\model_interface::addDefaultfilter($field, $value, $operator)
      */
-    public function addDefaultfilter(string $field, $value = null, string $operator = '=') : model {
+    public function addDefaultfilter(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
         $field = \codename\core\value\text\modelfield::getInstance($field);
-        if(!$this->fieldExists($field)) {
-            throw new \codename\core\exception(self::EXCEPTION_ADDDEFAULTFILTER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
-        }
+        // if(!$this->fieldExists($field)) {
+        //     throw new \codename\core\exception(self::EXCEPTION_ADDDEFAULTFILTER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
+        // }
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
-        array_push($this->defaultfilter, new $class($field, $this->delimit($field, $value), $operator));
-        array_push($this->filter, new $class($field, $this->delimit($field, $value), $operator));
+
+        if(is_array($value)) {
+            if(count($value) == 0) {
+                return $this;
+            }
+            array_push($this->defaultfilter, new $class($field, $value, $operator, $conjunction));
+            array_push($this->filter, new $class($field, $value, $operator, $conjunction));
+        } else {
+            array_push($this->defaultfilter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
+            array_push($this->filter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
+        }
         return $this;
     }
 
@@ -856,7 +1031,18 @@ abstract class model implements \codename\core\model\modelInterface {
     public function addOrder(string $field, string $order = 'ASC') : model {
         $field = \codename\core\value\text\modelfield::getInstance($field);
         if(!$this->fieldExists($field)) {
-            throw new \codename\core\exception(self::EXCEPTION_ADDORDER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
+            // check for existance of a calculated field!
+            $found = false;
+            foreach($this->fieldlist as $f) {
+              if($f->field == $field) {
+                $found = true;
+                break;
+              }
+            }
+
+            if(!$found) {
+              throw new \codename\core\exception(self::EXCEPTION_ADDORDER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
+            }
         }
         $class = '\\codename\\core\\model\\plugin\\order\\' . $this->getType();
         array_push($this->order, new $class($field, $order));
@@ -868,7 +1054,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * {@inheritDoc}
      * @see \codename\core\model_interface::addField($field)
      */
-    public function addField(string $field) : model {
+    public function addField(string $field, string $alias = null) : model {
         if(strpos($field, ',') !== false) {
             foreach(explode(',', $field) as $myField) {
                 $this->addField(trim($myField));
@@ -882,10 +1068,39 @@ abstract class model implements \codename\core\model\modelInterface {
         }
 
         $class = '\\codename\\core\\model\\plugin\\field\\' . $this->getType();
-        $this->fieldlist[] = new $class($field);
+        $alias = $alias ? \codename\core\value\text\modelfield::getInstance($alias) : null;
+        $this->fieldlist[] = new $class($field, $alias);
         return $this;
     }
 
+    /**
+     * virtual field functions
+     * @var callable[]
+     */
+    protected $virtualFields = [];
+
+    /**
+     * [addVirtualField description]
+     * @param string   $field         [description]
+     * @param callable $fieldFunction [description]
+     * @return model [this instance]
+     */
+    public function addVirtualField(string $field, callable $fieldFunction) : model {
+      $this->virtualFields[$field] = $fieldFunction;
+      return $this;
+    }
+
+    /**
+     * [handleVirtualFields description]
+     * @param  array $dataset [description]
+     * @return array          [description]
+     */
+    public function handleVirtualFields(array $dataset) : array {
+      foreach($this->virtualFields as $field => $function) {
+        $dataset[$field] = $function($dataset);
+      }
+      return $dataset;
+    }
 
     /**
      *
@@ -952,6 +1167,50 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [removeCalculatedField description]
+     * @param  string $field [description]
+     * @return model         [description]
+     */
+    public function removeCalculatedField(string $field) : model {
+      $field = \codename\core\value\text\modelfield::getInstance($field);
+      $this->fieldlist = array_filter($this->fieldlist, function($item) use ($field) {
+        if($item instanceof \codename\core\model\plugin\calculatedfield) {
+          if($item->field->get() == $field->get()) {
+            return false;
+          }
+        }
+        return true;
+      });
+      return $this;
+    }
+
+    /**
+     * adds a field that uses aggregate functions to be calculated
+     *
+     * @param  string $field           [description]
+     * @param  string $calculationType [description]
+     * @param  string $fieldBase       [description]
+     * @return model                   [description]
+     */
+    public function addAggregateField(string $field, string $calculationType, string $fieldBase) : model {
+      $field = \codename\core\value\text\modelfield::getInstance($field);
+      $fieldBase = \codename\core\value\text\modelfield::getInstance($fieldBase);
+      // only check for EXISTANCE of the fieldname, cancel if so - we don't want duplicates!
+      if($this->fieldExists($field)) {
+        throw new \codename\core\exception(self::EXCEPTION_ADDAGGREGATEFIELD_FIELDALREADYEXISTS, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
+      }
+      $class = '\\codename\\core\\model\\plugin\\aggregate\\' . $this->getType();
+      $this->fieldlist[] = new $class($field, $calculationType, $fieldBase);
+      return $this;
+    }
+
+    /**
+     * exception thrown on duplicate field existance (during addition of an aggregated field)
+     * @var string
+     */
+    const EXCEPTION_ADDAGGREGATEFIELD_FIELDALREADYEXISTS = 'EXCEPTION_ADDAGGREGATEFIELD_FIELDALREADYEXISTS';
+
+    /**
      * exception thrown if we try to add a calculated field which already exists (either as db field or another calculated one)
      * @var string
      */
@@ -980,6 +1239,14 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public function setFilterDuplicates(bool $state) : \codename\core\model {
+        $this->filterDuplicates = $state;
+        return $this;
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\model_interface::setCache($cache)
@@ -997,25 +1264,41 @@ abstract class model implements \codename\core\model\modelInterface {
     public function loadByUnique(string $field, string $value) : array {
         $data = $this->addFilter($field, $value, '=')->setLimit(1);
 
-        if($field == $this->getPrimarykey()) {
-            $cacheObj = app::getCache();
-            $cacheGroup = $this->getCachegroup();
-            $cacheKey = "PRIMARY_" . $value;
+        //
+        // TODO: we should also check for siblingJoins
+        //
+        // the primary key based cache should ONLY be active, if we're querying only this model
+        // without joins and only with a filter on the primary key
+        //
+        // if($field == $this->getPrimarykey() && count($this->filter) === 1 && count($this->filterCollections) === 0 && count($this->getNestedJoins()) === 0) {
+        //     $cacheObj = app::getCache();
+        //     $cacheGroup = $this->getCachegroup();
+        //     $cacheKey = "PRIMARY_" . $value;
+        //
+        //     $myData = $cacheObj->get($cacheGroup, $cacheKey);
+        //
+        //     if(!is_array($myData) || count($myData) === 0) {
+        //         $myData = $data->search()->getResult();
+        //         if(count($myData) == 1) {
+        //             $cacheObj->set($cacheGroup, $cacheKey, $myData);
+        //         }
+        //     } else {
+        //       // REVIEW:
+        //       // We reset() the model here, as the filter created previously
+        //       // may be passed to the next query...
+        //       $data->reset();
+        //     }
+        //
+        //     if(count($myData) === 1) {
+        //         return $myData[0];
+        //     } else if(count($myData) > 1) {
+        //         throw new \codename\core\exception('EXCEPTION_MODEL_LOADBYUNIQUE_MULTIPLE_RESULTS', exception::$ERRORLEVEL_FATAL, $myData);
+        //     }
+        //     return array();
+        // }
+        //
+        // $data->useCache();
 
-            $myData = $cacheObj->get($cacheGroup, $cacheKey);
-            if(!is_array($myData) || count($myData) == 0) {
-                $myData = $data->search()->getResult();
-                if(count($myData) == 1) {
-                    $cacheObj->set($cacheGroup, $cacheKey, $myData);
-                }
-            }
-            if(count($myData) > 0) {
-                return $myData[0];
-            }
-            return array();
-        }
-
-        $data->useCache();
         $data = $data->search()->getResult();
         if(count($data) == 0) {
             return array();
@@ -1028,18 +1311,29 @@ abstract class model implements \codename\core\model\modelInterface {
      * @param \codename\core\value\text\modelfield $field
      * @return string
      */
-    public function getFieldtype(\codename\core\value\text\modelfield $field) : string {
+    public function getFieldtype(\codename\core\value\text\modelfield $field) {
       $specifier = $field->get();
-      if(array_key_exists($specifier, $this->cachedFieldtype)) {
+      if(isset($this->cachedFieldtype[$specifier])) {
         return $this->cachedFieldtype[$specifier];
       } else {
 
+        // // DEBUG
+        // \codename\core\app::getResponse()->setData('getFieldtypeCounter', \codename\core\app::getResponse()->getData('getFieldtypeCounter') +1 );
+
         // fieldtype not in current model config
-        if(!$this->config->exists("datatype>" . $specifier)) {
+        if(($fieldtype = $this->config->get("datatype>" . $specifier))) {
+
+          // field in this model
+          $this->cachedFieldtype[$specifier] = $fieldtype;
+          return $this->cachedFieldtype[$specifier];
+
+        } else {
+
           // check nested model configs
           foreach($this->nestedModels as $joinPlugin) {
             $fieldtype = $joinPlugin->model->getFieldtype($field);
-            if($fieldtype != 'text') {
+            if($fieldtype !== null) {
+              $this->cachedFieldtype[$specifier] = $fieldtype;
               return $fieldtype;
             }
           }
@@ -1047,16 +1341,22 @@ abstract class model implements \codename\core\model\modelInterface {
           // check sibling model configs
           foreach($this->siblingModels as $joinPlugin) {
             $fieldtype = $joinPlugin->model->getFieldtype($field);
-            if($fieldtype != 'text') {
+            if($fieldtype !== null) {
+              $this->cachedFieldtype[$specifier] = $fieldtype;
               return $fieldtype;
             }
           }
-          return 'text';
+
+          // cache error value, too
+          $fieldtype = null;
+
+          // // DEBUG
+          // \codename\core\app::getResponse()->setData('fieldtype_errors', array_merge(\codename\core\app::getResponse()->getData('fieldtype_errors') ?? [], [ $this->getIdentifier().':'.$specifier ]) );
+
+          $this->cachedFieldtype[$specifier] = $fieldtype;
+          return $this->cachedFieldtype[$specifier];
         }
 
-        // use cached value
-        $this->cachedFieldtype[$specifier] = $this->config->get("datatype>".$specifier);
-        return $this->cachedFieldtype[$specifier];
       }
     }
 
@@ -1065,7 +1365,6 @@ abstract class model implements \codename\core\model\modelInterface {
      * @var array
      */
     protected $cachedFieldtype = array();
-
 
     /**
      * Returns array of fields that exist in the model
@@ -1076,14 +1375,31 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * returns an array of virtual fields (names) currently configured
+     * @return array [description]
+     */
+    public function getVirtualFields() : array {
+        return array_keys($this->virtualFields);
+    }
+
+    /**
+     * primarykey cache field
+     * @var string
+     */
+    protected $primarykey = null;
+
+    /**
      * Returns the primary key that was configured in the model's JSON config
      * @return string
      */
     public function getPrimarykey() : string {
-        if(!$this->config->exists("primary")) {
-            throw new \codename\core\exception(self::EXCEPTION_GETPRIMARYKEY_NOPRIMARYKEYINCONFIG, \codename\core\exception::$ERRORLEVEL_FATAL, $this->config->get());
+        if($this->primarykey === null) {
+          if(!$this->config->exists("primary")) {
+              throw new \codename\core\exception(self::EXCEPTION_GETPRIMARYKEY_NOPRIMARYKEYINCONFIG, \codename\core\exception::$ERRORLEVEL_FATAL, $this->config->get());
+          }
+          $this->primarykey = $this->config->get('primary')[0];
         }
-        return $this->config->get('primary')[0];
+        return $this->primarykey;
     }
 
     /**
@@ -1123,40 +1439,113 @@ abstract class model implements \codename\core\model\modelInterface {
                 continue;
             }
 
+            if($this->config->exists('children') && $this->config->exists('children>'.$field)) {
+              // validate child using child/nested model
+              $childConfig = $this->config->get('children>'.$field);
+
+              if($childConfig['type'] === 'foreign') {
+                //
+                // Normal Foreign-Key based child (1:1)
+                //
+                $foreignConfig = $this->config->get('foreign>'.$childConfig['field']);
+                $foreignKeyField = $childConfig['field'];
+
+                // get the join plugin valid for the child reference field
+                $res = array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($foreignKeyField) {
+                  return $join->modelField == $foreignKeyField;
+                });
+
+                if(count($res) === 1) {
+                  $join = reset($res);
+                  $join->model->validate($data[$field]);
+                  if(count($errors = $join->model->getErrors()) > 0) {
+                    $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
+                  }
+                } else {
+                  continue;
+                }
+              } else if($childConfig['type'] === 'collection') {
+                //
+                // Collections in a virtual field
+                //
+                $collectionConfig = $this->config->get('collection>'.$field);
+
+                // TODO: get the corresponding model
+                // we might introduce a new "addCollectionModel" method or so
+
+                if(isset($this->collectionPlugins[$field])) {
+                  if(is_array($data[$field])) {
+                    foreach($data[$field] as $collectionItem) {
+                      $this->collectionPlugins[$field]->collectionModel->validate($collectionItem);
+                      if(count($errors = $this->collectionPlugins[$field]->collectionModel->getErrors()) > 0) {
+                        $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
+                      }
+                    }
+                  }
+                } else {
+                  continue;
+                }
+              }
+            }
+
             if (count($errors = app::getValidator($this->getFieldtype(\codename\core\value\text\modelfield::getInstance($field)))->reset()->validate($data[$field])) > 0) {
                 $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
             }
         }
-        $dataob = $this->data;
-        if(is_array($this->config->get("unique"))) {
-            foreach($this->config->get("unique") as $key => $fields) {
-                if(!is_array($fields)) {
-                    continue;
-                }
-                $filtersApplied = 0;
 
-                // exclude my own dataset if UPDATE is in progress
-                if(array_key_exists($this->getPrimarykey(), $data) && strlen($data[$this->getPrimarykey()]) > 0) {
-                    $this->addFilter($this->getPrimarykey(), $data[$this->getPrimarykey()], '!=');
-                }
-
-                foreach($fields as $field) {
-                    if(!array_key_exists($field, $data) || strlen($data[$field]) == 0) {
-                        continue;
-                    }
-                    $this->addFilter($field, $data[$field], '=');
-                    $filtersApplied++;
-                }
-                if($filtersApplied == 0) {
-                    continue;
-                }
-
-                if(count($this->search()->getResult()) > 0) {
-                    $this->errorstack->addError($field, 'FIELD_DUPLICATE', $data[$field]);
-                }
+        // model validator
+        if($this->config->exists('validators')) {
+          $validators = $this->config->get('validators');
+          foreach($validators as $validator) {
+            if(count($errors = app::getValidator($validator)->validate($data)) > 0) {
+              $this->errorstack->addError('DATA', 'INVALID', $errors);
             }
+          }
         }
-        $this->data = $dataob;
+
+        // $dataob = $this->data;
+        // if(is_array($this->config->get("unique"))) {
+        //     foreach($this->config->get("unique") as $key => $fields) {
+        //         if(!is_array($fields)) {
+        //             continue;
+        //         }
+        //         $filtersApplied = 0;
+        //
+        //         // exclude my own dataset if UPDATE is in progress
+        //         if(array_key_exists($this->getPrimarykey(), $data) && strlen($data[$this->getPrimarykey()]) > 0) {
+        //             $this->addFilter($this->getPrimarykey(), $data[$this->getPrimarykey()], '!=');
+        //         }
+        //
+        //         foreach($fields as $field) {
+        //             // if(!array_key_exists($field, $data) || strlen($data[$field]) == 0) {
+        //             //     continue;
+        //             // }
+        //             if(is_array($field)) {
+        //               // $this->addFilter($field, $data[$field] ?? null, '=');
+        //               $uniqueFilters = [];
+        //               foreach($field as $uniqueFieldComponent) {
+        //                 $uniqueFilters[] = [ 'field' => $uniqueFieldComponent, 'value' => $data[$uniqueFieldComponent], 'operator' => '='];
+        //                 if($data[$uniqueFieldComponent] === null) {
+        //                   break;
+        //                 }
+        //               }
+        //               $this->addFilterCollection($uniqueFilters, 'AND');
+        //             } else {
+        //               $this->addFilter($field, $data[$field] ?? null, '=');
+        //             }
+        //             $filtersApplied++;
+        //         }
+        //
+        //         if($filtersApplied === 0) {
+        //             continue;
+        //         }
+        //
+        //         if(count($this->search()->getResult()) > 0) {
+        //             $this->errorstack->addError($field, 'FIELD_DUPLICATE', $data[$field]);
+        //         }
+        //     }
+        // }
+        // $this->data = $dataob;
 
         return $this;
     }
@@ -1171,6 +1560,9 @@ abstract class model implements \codename\core\model\modelInterface {
         $myData = array();
         foreach($this->config->get('field') as $field) {
             // if field has object identified
+            //
+            // OBSOLETE, possibly. From the old days.
+            //
             if(array_key_exists($field.'_', $data)) {
                 $object = array();
                 foreach($data as $key => $value) {
@@ -1190,7 +1582,7 @@ abstract class model implements \codename\core\model\modelInterface {
                     $flagval = 0;
                     foreach($data[$this->table . '_flag'] as $flagname => $status) {
                         $currflag = $this->config->get("flag>$flagname");
-                        if(is_null($currflag)) {
+                        if(is_null($currflag) || !$status) {
                             continue;
                         }
                         $flagval |= $currflag;
@@ -1220,7 +1612,7 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function getFlag(string $flagname) {
         if(!$this->config->exists("flag>$flagname")) {
-            throw new \codename\core\exception(self::EXCEPTION_GETFLAG_FLAGNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $flag);
+            throw new \codename\core\exception(self::EXCEPTION_GETFLAG_FLAGNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $flagname);
             return null;
         }
         return $this->config->get("flag>$flagname");
@@ -1255,13 +1647,13 @@ abstract class model implements \codename\core\model\modelInterface {
 
         switch($this->getFieldtype($field)) {
             case 'boolean' :
-                return $value ? 'true' : 'false';
+                return $value === null ? null : ($value ? true : false); //  ? 'true' : 'false';
                 break;
             case 'text_date':
-                return date('d.m.Y', strtotime($value));
+                return date('Y-m-d', strtotime($value));
                 break;
             case 'text' :
-                return str_replace('#__DELIMITER__#', $this->delimiter, $value);
+                return $value; // str_replace('#__DELIMITER__#', $this->delimiter, $value);
                 break;
         }
 
@@ -1328,13 +1720,13 @@ abstract class model implements \codename\core\model\modelInterface {
         if($field->getTable() == $this->table) {
           return in_array($field->get(), $this->getFields());
         } else {
-          foreach($this->getNestedmodels() as $m) {
-            if($m->fieldExists($field)) {
+          foreach($this->getNestedJoins() as $join) {
+            if($join->model->fieldExists($field)) {
               return true;
             }
           }
-          foreach($this->getSiblingModels() as $m) {
-            if($m->fieldExists($field)) {
+          foreach($this->getSiblingJoins() as $join) {
+            if($join->model->fieldExists($field)) {
               return true;
             }
           }
@@ -1351,6 +1743,23 @@ abstract class model implements \codename\core\model\modelInterface {
         return app::getCache();
     }
 
+    /**
+     * [getCurrentCacheIdentifierParameters description]
+     * @return array [description]
+     */
+    protected function getCurrentCacheIdentifierParameters() : array {
+      $params = [];
+      // $params[$this->getIdentifier()] = array_merge($this->filter, $this->filterCollections);
+      $params['filter'] = $this->filter;
+      $params['filtercollections'] = $this->filterCollections;
+      foreach($this->getNestedJoins() as $join) {
+        $params['nest'][$join->model->getIdentifier()] = $join->model->getCurrentCacheIdentifierParameters();
+      }
+      foreach($this->getSiblingJoins() as $join) {
+        $params['sibling'][$join->model->getIdentifier()] = $join->model->getCurrentCacheIdentifierParameters();
+      }
+      return $params;
+    }
 
     /**
      * Perform the given query and save the result in the instance
@@ -1366,11 +1775,20 @@ abstract class model implements \codename\core\model\modelInterface {
               array(
                 get_class($this),
                 $query,
-                array_merge($this->filter, $this->filterCollections),
+                $this->getCurrentCacheIdentifierParameters(),
                 $params
               )
             ));
+
+            // \codename\core\app::getResponse()->setData('cache_params', array(
+            //   get_class($this),
+            //   $query,
+            //   $this->getCurrentCacheIdentifierParameters(),
+            //   $params
+            // ));
+
             $this->result = $cacheObj->get($cacheGroup, $cacheKey);
+
             if (!is_null($this->result) && is_array($this->result)) {
                 $this->reset();
                 return $this;
@@ -1388,7 +1806,7 @@ abstract class model implements \codename\core\model\modelInterface {
         if ($this->cache && count($this->getResult()) > 0) {
             $result = $this->getResult();
 
-            $cacheObj->set($cacheGroup, $cacheKey, array($this->getResult()));
+            $cacheObj->set($cacheGroup, $cacheKey, $this->getResult());
         }
         $this->reset();
         return;
@@ -1415,30 +1833,103 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * perform a shim / bare metal join
+     * @param array $result [the resultset]
      * @return array
      */
     protected function performBareJoin(array $result) : array {
       if(count($this->getNestedJoins()) == 0 && count($this->getSiblingJoins()) == 0) {
         return $result;
       }
-      foreach($this->getNestedJoins() as $join) {
+
+      //
+      // Loop through Joins
+      // nested first
+      // siblings second
+      //
+      foreach(array_merge($this->getNestedJoins(), $this->getSiblingJoins()) as $join) {
         $nest = $join->model;
 
-        // check model joining compatible
-        // we explicitly join incompatible models using a bare-data here!
-        if(!$this->compatibleJoin($nest) && ($join instanceof \codename\core\model\plugin\join\executableJoinInterface)) {
-          $subresult = $nest->search()->getResult();
-          $result = $join->join($result, $subresult);
+        $vKey = null;
+        if($this instanceof \codename\core\model\virtualFieldResultInterface && $this->virtualFieldResult) {
+          // pick only parts of the arrays
+          if(($children = $this->config->get('children')) !== null) {
+            foreach($children as $vField => $config) {
+              if($config['type'] === 'foreign' && $config['field'] === $join->modelField) {
+                $vKey = $vField;
+              }
+            }
+          }
         }
-      }
-      foreach($this->getSiblingJoins() as $join) {
-        $nest = $join->model;
 
-        // check model joining compatible
-        // we explicitly join incompatible models using a bare-data join here!
+        // virtual field?
+        if($vKey) {
+
+          //
+          // Skip recursive performBareJoin
+          // if we have none coming up next
+          //
+          if(count($nest->getNestedJoins()) == 0 && count($nest->getSiblingJoins()) == 0) {
+            continue;
+          }
+
+          //
+          // Unwind resultset
+          // [ item, item, item ] -> [ item[key], item[key], item[key] ]
+          //
+          $tResult = array_map(function($r) use ($vKey) {
+            return $r[$vKey];
+          }, $result);
+
+          //
+          // Recursively check for bareJoinable models
+          // with a subset of the current result
+          //
+          $tResult = $nest->performBareJoin($tResult);
+
+          //
+          // Re-wind resultset
+          // [ item[key], item[key], item[key] ] -> merge into [ item, item, item ]
+          //
+          foreach($result as $index => &$r) {
+            $r[$vKey] = array_merge( $r[$vKey], $tResult[$index]);
+          }
+        } else {
+          $result = $nest->performBareJoin($result);
+        }
+
+        //
+        // check if model is joining compatible
+        // we explicitly join incompatible models using a bare-data here!
+        //
         if(!$this->compatibleJoin($nest) && ($join instanceof \codename\core\model\plugin\join\executableJoinInterface)) {
+
           $subresult = $nest->search()->getResult();
-          $result = $join->join($result, $subresult);
+
+          if($vKey) {
+            //
+            // Unwind resultset
+            // [ item, item, item ] -> [ item[key], item[key], item[key] ]
+            //
+            $tResult = array_map(function($r) use ($vKey) {
+              return $r[$vKey];
+            }, $result);
+
+            //
+            // Recursively perform the
+            // with a subset of the current result
+            //
+            $tResult = $join->join($tResult, $subresult);
+
+            //
+            // Re-wind resultset
+            // [ item[key], item[key], item[key] ] -> merge into [ item, item, item ]
+            //
+            foreach($result as $index => &$r) {
+              $r[$vKey] = array_merge( $tResult[$index] );
+            }
+          } else {
+            $result = $join->join($result, $subresult);
+          }
         }
       }
       return $result;
@@ -1497,7 +1988,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
         // Normalize single row
         if(count($result) == 1) {
-            $result = $result[0];
+            $result = reset($result);
             return array($this->normalizeRow($result));
         }
 
@@ -1525,33 +2016,80 @@ abstract class model implements \codename\core\model\modelInterface {
     protected $normalizeModelFieldTypeCache = array();
 
     /**
+     * [protected description]
+     * @var bool[]
+     */
+    protected $normalizeModelFieldTypeStructureCache = array();
+
+    /**
+     * [protected description]
+     * @var bool[]
+     */
+    protected $normalizeModelFieldTypeVirtualCache = array();
+
+    /**
      * Normalizes a single row of a dataset
      * @param array $dataset
      */
     protected function normalizeRow(array $dataset) : array {
-        if(count($dataset) == 1 && array_key_exists(0, $dataset)) {
+        if(count($dataset) == 1 && isset($dataset[0])) {
             $dataset = $dataset[0];
         }
 
         foreach($dataset as $field=>$thisRow) {
-            $dataset[$field] = (array_key_exists($field, $dataset) ? $dataset[$field] : null);
-            if(!is_string($field)) {continue;}
+
+          // Performance optimization (and fix):
+          // Check for (key == null) first, as it is faster than is_string
+          // NOTE: checking for !is_string commented-out
+          // we need to check - at least for booleans (DB provides 0 and 1 instead of true/false)
+          // if($dataset[$field] === null || !is_string($dataset[$field])) {continue;}
+          if($dataset[$field] === null) { continue; }
+
+          // special case: we need boolean normalization (0 / 1)
+          // but otherwise, just skip
+          if(
+            ( isset($this->normalizeModelFieldTypeCache[$field]) && ($this->normalizeModelFieldTypeCache[$field] !== 'boolean'))
+            && !is_string($dataset[$field])
+          ) { continue; }
+
+            // determine virtuality status of the field
+            if(!isset($this->normalizeModelFieldTypeVirtualCache[$field])) {
+              $tVirtualModelField = \codename\core\value\text\modelfield\virtual::getInstance($field);
+              $this->normalizeModelFieldTypeCache[$field] = $this->getFieldtype($tVirtualModelField);
+              $this->normalizeModelFieldTypeVirtualCache[$field] = $this->normalizeModelFieldTypeCache[$field] === 'virtual';
+            }
 
             ///
             /// Fixing a bad performance issue
             /// using result-specific model field caching
             /// as they're re-constructed EVERY call!
             ///
-            if(!array_key_exists($field, $this->normalizeModelFieldCache)) {
-              $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield::getInstance($field);
+            if(!isset($this->normalizeModelFieldCache[$field])) {
+              if($this->normalizeModelFieldTypeVirtualCache[$field]) {
+                $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield\virtual::getInstance($field);
+              } else {
+                $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield::getInstance($field);
+              }
             }
 
-            if(!array_key_exists($field, $this->normalizeModelFieldTypeCache)) {
+            if(!isset($this->normalizeModelFieldTypeCache[$field])) {
               $this->normalizeModelFieldTypeCache[$field] = $this->getFieldtype($this->normalizeModelFieldCache[$field]);
             }
 
-            if(strpos($this->normalizeModelFieldTypeCache[$field], 'structu') !== false && array_key_exists($field, $dataset) && !is_array($dataset[$field])) {
-              $dataset[$field] = app::object2array(json_decode($dataset[$field], false)/*, 512, JSON_UNESCAPED_UNICODE)*/);
+            //
+            // HACK: only normalize boolean fields
+            //
+            if($this->normalizeModelFieldTypeCache[$field] === 'boolean') {
+              $dataset[$field] = $this->importField($this->normalizeModelFieldCache[$field], $dataset[$field]);
+              continue;
+            }
+
+            if(!isset($this->normalizeModelFieldTypeStructureCache[$field])) {
+              $this->normalizeModelFieldTypeStructureCache[$field] = strpos($this->normalizeModelFieldTypeCache[$field], 'structu') !== false;
+            }
+
+            if($this->normalizeModelFieldTypeStructureCache[$field] && !is_array($dataset[$field])) {
+              $dataset[$field] = $dataset[$field] == null ? null : app::object2array(json_decode($dataset[$field], false)/*, 512, JSON_UNESCAPED_UNICODE)*/);
             }
 
         }
@@ -1566,15 +2104,24 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function reset() {
         $this->cache = false;
-        $this->fieldlist = array();
-        $this->hiddenFields = array();
+        // $this->fieldlist = array();
+        // $this->hiddenFields = array();
         $this->filter = $this->defaultfilter;
+        $this->aggregateFilter = $this->defaultAggregateFilter;
         $this->flagfilter = $this->defaultflagfilter;
         $this->filterCollections = $this->defaultfilterCollections;
         $this->limit = null;
         $this->offset = null;
+        $this->filterDuplicates = false;
         $this->order = array();
         $this->errorstack->reset();
+        foreach($this->nestedModels as $nest) {
+          $nest->model->reset();
+        }
+        foreach($this->siblingModels as $nest) {
+          $nest->model->reset();
+        }
+        // TODO: reset collection models?
         return;
     }
 
@@ -1587,19 +2134,38 @@ abstract class model implements \codename\core\model\modelInterface {
     protected function importField(\codename\core\value\text\modelfield $field, $value = null) {
         switch($this->getFieldtype($field)) {
             case 'boolean' :
-                if(strlen($value) == 0) {
+                // pure boolean
+                if(is_bool($value)) {
+                    return $value;
+                }
+                // int: 0 or 1
+                if(is_int($value)) {
+                    if($value !== 1 && $value !== 0) {
+                      throw new exception('EXCEPTION_MODEL_IMPORTFIELD_BOOLEAN_INVALID', exception::$ERRORLEVEL_ERROR, [
+                        'field' => $field->get(),
+                        'value' => $value
+                      ]);
+                    }
+                    return $value === 1 ? true : false;
+                }
+                // fallback
+                if(strlen($value) === 0) {
                     return null;
                 }
+                // string boolean
                 if($value == 'true') {
                     return true;
                 }
+                // fallback
                 return false;
                 break;
             case 'text_date':
                 if(is_null($value)) {
                     return $value;
                 }
-                $date = \DateTime::createFromFormat('d.m.Y', $value);
+                // automatically convert input value
+                // ctor returns FALSE on creation error, see http://php.net/manual/de/datetime.construct.php
+                $date = new \DateTime($value);
                 if($date !== false) {
                     return $date->format('Y-m-d');
                 }
@@ -1667,6 +2233,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * I remove all special SQL characters from a string.
+     * @deprecated
      * @param string $string
      * @return string
      */

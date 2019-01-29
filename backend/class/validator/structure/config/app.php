@@ -31,16 +31,16 @@ class app extends \codename\core\validator\structure\config implements \codename
                 $this->errorstack->addError('VALUE', 'CORE_BACKEND_CLASS_VALIDATOR_structure_config_APP', $errors);
             }
         }
-        
+
         if(count($errors = \codename\core\app::getValidator('text_templatename')->validate($value['defaulttemplate'])) > 0) {
             $this->errorstack->addError('VALUE', 'CORE_BACKEND_CLASS_VALIDATOR_structure_config_APP', $errors);
         }
-        
-        if(count($errors = \codename\core\app::getValidator('text_appname')->validate($value['defaultcontext'])) > 0) {
+
+        if(count($errors = \codename\core\app::getValidator('text_contextname')->validate($value['defaultcontext'])) > 0) {
             $this->errorstack->addError('VALUE', 'CORE_BACKEND_CLASS_VALIDATOR_structure_config_APP', $errors);
         }
-        
+
         return $this->errorstack->getErrors();
     }
-    
+
 }

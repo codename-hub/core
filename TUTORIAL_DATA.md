@@ -42,8 +42,10 @@ The schema translates to DB Schemata (or, if you're using MySQL, it matches up w
     "stuff_modified" : "text_timestamp",
     "stuff_name" : "text"
   },
-  "db_column_type" : {
-    "stuff_name" : "varchar(64)"
+  "options" : {
+    "stuff_name" : {
+      length: 64
+    }
   },
   "connection" : "myconnection"
 }

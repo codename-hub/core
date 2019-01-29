@@ -9,13 +9,33 @@ namespace codename\core\session;
 class session extends \codename\core\session implements \codename\core\session\sessionInterface {
 
     /**
+     * [isSessionStarted description]
+     * @return bool
+     */
+    protected function isSessionStarted()
+    {
+      if ( php_sapi_name() !== 'cli' ) {
+          if ( version_compare(phpversion(), '5.4.0', '>=') ) {
+              return session_status() === PHP_SESSION_ACTIVE ? true : false;
+          } else {
+              return session_id() === '' ? false : true;
+          }
+      }
+      return false;
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\session_interface::start($data)
      */
     public function start(array $data) : \codename\core\session {
-        @session_start();
-        $_SESSION = $data;
+        if(!$this->isSessionStarted()) {
+          @session_start();
+          $_SESSION = $data;
+        }
+        // Don't forget to set some headers needed for CORS
+        // in your app.
         return $this;
     }
 
@@ -25,7 +45,9 @@ class session extends \codename\core\session implements \codename\core\session\s
      * @see \codename\core\session_interface::destroy()
      */
     public function destroy() {
-        unset($_SESSION);
+        // unset($_SESSION);
+        session_destroy();
+        setcookie ("PHPSESSID", "", time() - 3600);
         return;
     }
 
@@ -55,7 +77,8 @@ class session extends \codename\core\session implements \codename\core\session\s
     }
 
     /**
-     *
+     * [identify description]
+     * @return bool [description]
      */
     public function identify() : bool {
         $data = $this->getData();
@@ -69,6 +92,15 @@ class session extends \codename\core\session implements \codename\core\session\s
      */
     public function isDefined(string $key) : bool {
         return isset($_SESSION[$key]);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function invalidate($sessionId)
+    {
+      // TODO: we might kill sessions via file deletion?
+      throw new \LogicException('This session driver does not support Session Invalidation for foreign sessions (at the moment)');
     }
 
 }

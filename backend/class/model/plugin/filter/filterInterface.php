@@ -18,5 +18,11 @@ interface filterInterface {
      * @return \codename\core\model_plugin_filter
      */
     public function __CONSTRUCT(\codename\core\value\text\modelfield $field, $value = null, string $operator);
-    
+
+    /**
+     * returns the field specifier, optionally using a given table alias
+     * @param  string|null   $tableAlias [description]
+     * @return string        [description]
+     */
+    public function getFieldValue(string $tableAlias = null) : string;
 }

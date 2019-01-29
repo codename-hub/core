@@ -60,8 +60,8 @@ abstract class bucket implements \codename\core\bucket\bucketInterface {
      */
     public function downloadToClient(\codename\core\value\text\filerelative $remotefile, \codename\core\value\text\filename $filename, array $option = array()) {
         if(!$this->fileAvailable($remotefile->get())) {
-            app::writeActivity('BUCKET_FILE_DOWNLOAD_FAIL', $remotefile->get());
-            return;
+            // app::writeActivity('BUCKET_FILE_DOWNLOAD_FAIL', $remotefile->get());
+            throw new exception('BUCKET_FILE_DOWNLOAD_FAIL', exception::$ERRORLEVEL_ERROR, $remotefile->get());
         }
 
         $tempfile = '/tmp/' . md5($remotefile->get() . microtime() . $filename->get());
@@ -84,7 +84,7 @@ abstract class bucket implements \codename\core\bucket\bucketInterface {
               case "jpg": $ctype="image/jpg"; break;
               default: $ctype="application/force-download";
           }
-          
+
           app::getResponse()->setHeader('Content-Type: ' . $ctype);
           app::getResponse()->setHeader("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
           app::getResponse()->setHeader("Cache-Control: post-check=0, pre-check=0", false);

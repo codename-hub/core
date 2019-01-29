@@ -2,18 +2,19 @@
 namespace codename\core\validator\text;
 
 /**
- * I am a validiator for a hostname
+ * Validator for hostnames
+ * NOTE: this validator changed.
+ * Per definition, hostnames are just a string of alphanumeric characters, dots and dashes.
+ * Eventually, its only a 24-char string.
+ *
+ * We define the hostname as the DNS Name.
+ *
+ * Other functionality has been moved to the validator text_endpoint
+ *
  * @package core
- * @since 2016-11-10
- * @todo tear this validator apart from the protocol validation!
+ * @since 2018-08-21
  */
 class hostname extends \codename\core\validator\text implements \codename\core\validator\validatorInterface {
-    
-    /**
-     * I am array of protocols that are allowed in the hostname
-     * @var array
-     */
-    private $allowedProtocols = array('http', 'https'); 
 
     /**
      *
@@ -21,10 +22,10 @@ class hostname extends \codename\core\validator\text implements \codename\core\v
      * @see \codename\core\validator_text::__construct($nullAllowed, $minlength, $maxlength, $allowedchars, $forbiddenchars)
      */
     public function __CONSTRUCT(bool $nullAllowed = false) {
-        parent::__CONSTRUCT($nullAllowed, 6, 128, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz://.:0123456789-');
+        parent::__CONSTRUCT($nullAllowed, 1, 128, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.0123456789-');
         return $this;
     }
-    
+
     /**
      *
      * {@inheritDoc}
@@ -32,16 +33,6 @@ class hostname extends \codename\core\validator\text implements \codename\core\v
      */
     public function validate($value) : array {
         parent::validate($value);
-        
-        if (count($this->errorstack->getErrors()) > 0) {
-            return $this->errorstack->getErrors();
-        }
-        
-        if(strpos($value, '://') === false) {
-            $this->errorstack->addError('VALUE', 'NO_PROTOCOL_FOUND', $value);
-            return $this->errorstack->getErrors();
-        }
-
         return $this->errorstack->getErrors();
     }
 

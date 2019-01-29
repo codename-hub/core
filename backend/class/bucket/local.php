@@ -195,13 +195,22 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
      * @see \codename\core\bucket_interface::dirList($directory)
      */
     public function dirList(string $directory) : array {
-        $directory = $this->normalizePath($directory);
-        if(!$this->dirAvailable($directory)) {
+        $normalizedDirectory = $this->normalizePath($directory);
+        if(!$this->dirAvailable($normalizedDirectory)) {
             $this->errorstack->addError('DIRECTORY', 'REMOTE_DIRECTORY_NOT_FOUND', $directory);
             return array();
         }
 
-        return app::getFilesystem()->dirList($directory);
+        //
+        // HACK:
+        // change bucket_local::dirList() behaviour to be relative to $directory
+        // simply prepend $directory to each entry
+        //
+        $list = app::getFilesystem()->dirList($normalizedDirectory);
+        foreach($list as &$entry) {
+          $entry = $directory.$entry;
+        }
+        return $list;
     }
 
     /**
