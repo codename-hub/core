@@ -1088,7 +1088,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         $this->clearCache($cacheGroup, $cacheKey);
 
         // raw data for usage with the timemachine
-        $raw = $data;
+        if($this instanceof \codename\core\model\timemachineInterface && $this->isTimemachineEnabled()) {
+          $raw = $data;
+        }
 
         $query = 'UPDATE ' . $this->schema . '.' . $this->table .' SET ';
         $index = 0;
@@ -1127,10 +1129,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // use timemachine, if capable and enabled
         // this stores delta values in a separate model
 
-        if ( ((new \ReflectionClass($this))->implementsInterface('\\codename\\core\\model\\timemachineInterface')
-          && $this->isTimemachineEnabled() === true) )
-        {
-          $tm = new \codename\core\timemachine($this);
+        // if ( ((new \ReflectionClass($this))->implementsInterface('\\codename\\core\\model\\timemachineInterface')
+        if($this instanceof \codename\core\model\timemachineInterface && $this->isTimemachineEnabled()) {
+          $tm = \codename\core\timemachine::getInstance($this->getIdentifier());
           $tm->saveState($data[$this->getPrimarykey()], $raw); // we have to use raw data, as we can't use jsonified arrays.
         }
 

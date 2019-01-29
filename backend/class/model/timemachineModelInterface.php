@@ -10,6 +10,7 @@ interface timemachineModelInterface {
   /**
    * returns the name of the field
    * used for storing the model name
+   *
    * @return string [fieldname]
    */
   public function getModelField() : string;
@@ -17,6 +18,7 @@ interface timemachineModelInterface {
   /**
    * returns the name of the field
    * used for storing the reference (e.g. primary key value)
+   *
    * @return string [fieldname]
    */
   public function getRefField() : string;
@@ -24,6 +26,7 @@ interface timemachineModelInterface {
   /**
    * returns the name of the field
    * used for storing delta data
+   *
    * @return string [fieldname]
    */
   public function getDataField() : string;

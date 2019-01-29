@@ -4,6 +4,8 @@ namespace codename\core;
 use \codename\core\model\timemachineInterface;
 use \codename\core\model\timemachineModelInterface;
 
+use codename\rest\app;
+
 /**
  * timemachine
  * provides the ability to access historic versions of model data
@@ -24,15 +26,37 @@ class timemachine {
   protected $capableModel = null;
 
   /**
+   * get a timemachine instance for a given model name
    *
+   * @param  string      $capableModelName [description]
+   * @param  string      $app              [description]
+   * @param  string      $vendor           [description]
+   * @return timemachine                   [description]
+   */
+  public static function getInstance(string $capableModelName, string $app = '', string $vendor = '') : timemachine {
+    $identifier = $capableModelName.'-'.$vendor.'-'.$app;
+    return self::$instances[$identifier] ?? (self::$instances[$identifier] = new self(app::getModel($capableModelName, $app, $vendor)));
+  }
+
+  /**
+   * instance cache
+   * @var timemachine[]
+   */
+  protected static $instances = [];
+
+  /**
+   * creates a new instance of the timemachine
+   * please use ::getInstance() instead!
+   *
+   * @param model $capableModel [description]
    */
   public function __construct(model $capableModel)
   {
     if(!$capableModel instanceof timemachineInterface) {
-      die("Model does not implement timemachineInterface"); // @TODO: throw exception
+      throw new exception('MODEL_DOES_NOT_IMPLEMENT_TIMEMACHINE_INTERFACE', exception::$ERRORLEVEL_FATAL, $capableModel->getIdentifier());
     }
     if(!$capableModel->isTimemachineEnabled()) {
-      die("Model not Timemachine-enabled"); // @TODO: throw exception
+      throw new exception('MODEL_IS_NOT_TIMEMACHINE_ENABLED', exception::$ERRORLEVEL_FATAL, $capableModel->getIdentifier());
     }
 
     // set the source model (model capable of using the timemachine)
@@ -43,12 +67,16 @@ class timemachine {
     $this->timemachineModel = $capableModel->getTimemachineModel();
 
     if(!($this->timemachineModel instanceof timemachineModelInterface)) {
-      die("Timemachine delta storage model does not implement timemachineModelInterface");
+      throw new exception('TIMEMACHINE_MODEL_DOES_NOT_IMPLEMENT_TIMEMACHINEMODELINTERFACE', exception::$ERRORLEVEL_FATAL, $this->timemachineModel->getIdentifier());
     }
   }
 
   /**
    * returns a dataset at a given point in time
+   *
+   * @param  int   $identifier [description]
+   * @param  int   $timestamp  [description]
+   * @return array             [description]
    */
   public function getHistoricData(int $identifier, int $timestamp) : array
   {
@@ -60,6 +88,7 @@ class timemachine {
 
   /**
    * returns the fields excluded from timemachine tracking
+   * @return string[]
    */
   protected function getExcludedFields() : array
   {
@@ -70,6 +99,9 @@ class timemachine {
       $this->capableModel->getIdentifier() .'_created',
       $this->capableModel->getIdentifier() .'_modified'
     );
+
+    // TODO: provide an interface for excluding fields via capableModel
+    
     return $excludedFields;
   }
 
@@ -102,8 +134,9 @@ class timemachine {
   /**
    * returns a history of all changes done to an entry in descending order
    * optionally, until a specific timestamp
-   * @param $identifier [id/primary key value]
-   * @param $timestamp [unix timestamp, default 0 for ALL/until now]
+   * @param int   $identifier [id/primary key value]
+   * @param int   $timestamp [unix timestamp, default 0 for ALL/until now]
+   * @return array
    */
   public function getHistory(int $identifier, int $timestamp = 0) : array
   {
@@ -139,6 +172,9 @@ class timemachine {
 
   /**
    * returns the current dataset
+   *
+   * @param  int   $identifier [description]
+   * @return array             [description]
    */
   public function getCurrentData(int $identifier) : array
   {

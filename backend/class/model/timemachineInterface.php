@@ -14,7 +14,7 @@ interface timemachineInterface {
 
   /**
    * returns a valid timemachine model for this model
-   * @return model [timemachine model]
+   * @return \codename\core\model [timemachine model]
    */
   public function getTimemachineModel() : \codename\core\model;
 
