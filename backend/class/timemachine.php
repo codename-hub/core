@@ -101,7 +101,7 @@ class timemachine {
     );
 
     // TODO: provide an interface for excluding fields via capableModel
-    
+
     return $excludedFields;
   }
 
@@ -184,11 +184,12 @@ class timemachine {
 
   /**
    * saves the delta-based state of a given model and entry
+   * and returns the respective entry id or NULL (empty delta)
    * @param  int    $identifier [description]
    * @param  array  $newData    [description]
-   * @return int                [description]
+   * @return int|null                [description]
    */
-  public function saveState(int $identifier, array $newData) : int
+  public function saveState(int $identifier, array $newData) : ?int
   {
     $data = $this->getCurrentData($identifier);
     $delta = array();
@@ -203,14 +204,19 @@ class timemachine {
       }
     }
 
-    $this->timemachineModel->save(array(
-      // $this->timemachineModel->getIdentifier() . '_created' => \codename\core\helper\date::getCurrentDateTimeAsDbdate(),
-      $this->timemachineModel->getIdentifier() . '_model' => $this->capableModel->getIdentifier(),
-      $this->timemachineModel->getIdentifier() . '_ref' => $identifier,
-      $this->timemachineModel->getIdentifier() . '_data' => $delta
-    ));
+    // do not story empty deltas (no difference)
+    if(count($delta) === 0) {
+      return null;
+    }
 
-    return $this->timemachineModel->lastInsertId();
+    if($this->timemachineModel instanceof \codename\core\model\timemachineModelInterface) {
+      $this->timemachineModel->save([
+        $this->timemachineModel->getModelField()  => $this->capableModel->getIdentifier(),
+        $this->timemachineModel->getRefField()    => $identifier,
+        $this->timemachineModel->getDataField()   => $delta
+      ]);
+      return $this->timemachineModel->lastInsertId();
+    }
   }
 
 }
