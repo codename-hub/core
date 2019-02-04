@@ -1119,6 +1119,17 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [hideAllFields description]
+     * @return model [description]
+     */
+    public function hideAllFields() : model  {
+      foreach($this->getFields() as $field) {
+        $this->hideField($field);
+      }
+      return $this;
+    }
+
+    /**
      * groupBy fields
      * @var \codename\core\model\plugin\group[]
      */
