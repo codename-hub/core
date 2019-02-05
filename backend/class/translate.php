@@ -26,7 +26,7 @@ abstract class translate implements \codename\core\translate\translateInterface 
      * [getPrefix description]
      * @return string [description]
      */
-    protected function getPrefix() : string {
+    public function getPrefix() : string {
       return '';
     }
 

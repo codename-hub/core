@@ -45,36 +45,13 @@ class json extends \codename\core\translate implements \codename\core\translate\
         $key[0] = strtolower($key[0]);
         $key[1] = strtoupper($key[1]);
 
-        $stackname = 'translation/' . app::getInstance('request')->getData('lang') . '/' . $key[0] . '.json';
-
-        /**
-         * [$instance description]
-         * @var \codename\core\config\json
-         */
-        $instance = null;
-
-        if(array_key_exists($stackname, $this->instances)) {
-          $instance = $this->instances[$stackname];
-        } else {
-          try {
-            $instance = new \codename\core\config\json(
-              $stackname,
-              $this->config['inherit'] ?? false,
-              $this->config['inherit'] ?? false
-            );
-          } catch (\Exception $e) {
-            // allow nonexisting hierarchies - but otherwise, really throw the exception.
-            if($e->getCode() !== \codename\core\config\json::EXCEPTION_CONFIG_JSON_CONSTRUCT_HIERARCHY_NOT_FOUND) {
-              throw $e;
-            }
-          }
-        }
+        $instance = $this->getSourceInstance($key[0]);
 
         $keyname = $key[1];
         $value = $keyname;
 
         // use instance, if not null - otherwise, let it fall back.
-        $v = $instance ? $instance->get($key[1]) : null;
+        $v = $instance !== null ? $instance->get($key[1]) : null;
         if($v != null) {
           $value = $v;
         } else {
@@ -85,9 +62,45 @@ class json extends \codename\core\translate implements \codename\core\translate\
     }
 
     /**
+     * [getSourceInstance description]
+     * @param  string                $name [description]
+     * @return \codename\core\config|null            [description]
+     */
+    protected function getSourceInstance(string $name) : ?\codename\core\config {
+      $stackname = 'translation/' . $this->getPrefix() . '/' . $name . '.json';
+      if(array_key_exists($stackname, $this->instances)) {
+        return $this->instances[$stackname];
+      } else {
+        $instance = null;
+        try {
+          $instance = new \codename\core\config\json(
+            $stackname,
+            $this->config['inherit'] ?? false,
+            $this->config['inherit'] ?? false
+          );
+        } catch (\Exception $e) {
+          // allow nonexisting hierarchies - but otherwise, really throw the exception.
+          if($e->getCode() !== \codename\core\config\json::EXCEPTION_CONFIG_JSON_CONSTRUCT_HIERARCHY_NOT_FOUND) {
+            throw $e;
+          }
+        }
+        $this->instances[$stackname] = $instance;
+      }
+      return $this->instances[$stackname];
+    }
+
+    /**
      * @inheritDoc
      */
-    protected function getPrefix(): string
+    public function getAllTranslations(string $prefix): ?array
+    {
+      return $this->getSourceInstance($prefix) ? $this->getSourceInstance($prefix)->get() : null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getPrefix(): string
     {
       return app::getRequest()->getData('lang');
     }
