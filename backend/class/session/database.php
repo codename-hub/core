@@ -128,7 +128,8 @@ class database extends \codename\core\session implements \codename\core\session\
               ])
               ->entrySave();
         }
-        setcookie ($this->cookieName, "", 1);
+
+        setcookie ($this->cookieName, "", 1, '/', $_SERVER['SERVER_NAME']);
         return;
     }
 
@@ -170,6 +171,7 @@ class database extends \codename\core\session implements \codename\core\session\
         $data = $model->search()->getResult();
 
         if(count($data) == 0) {
+            $this->destroy();
             return false;
         }
         $data = $data[0];
