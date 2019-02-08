@@ -87,6 +87,12 @@ class database extends \codename\core\session implements \codename\core\session\
           if(!setcookie($this->cookieName, $sessionIdentifier, strtotime($this->cookieLifetime), '/', $_SERVER['SERVER_NAME'])) {
             throw new exception('COOKIE_SETTING_UGH', exception::$ERRORLEVEL_FATAL);
           }
+          //
+          // FAKE that the cookie existed on request.
+          // just for this instance. needed.
+          //
+          $_COOKIE[$this->cookieName] = $sessionIdentifier;
+
           $data['session_sessionid'] = $sessionIdentifier;
         } else {
           $data['session_sessionid'] = $_COOKIE[$this->cookieName];
