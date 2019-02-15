@@ -1142,7 +1142,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             return $this;
         }
 
-        if(count(self::getValidator('text_methodname')->validate($action)) > 0) {
+        if(count($errors = self::getValidator('text_methodname')->validate($action)) > 0) {
             throw new \codename\core\exception(self::EXCEPTION_DOACTION_ACTIONNAMEISINVALID, \codename\core\exception::$ERRORLEVEL_FATAL, $errors);
         }
 
