@@ -1093,7 +1093,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
 
         $query = 'UPDATE ' . $this->schema . '.' . $this->table .' SET ';
-        $index = 0;
+        $parts = [];
+
         foreach ($this->config->get('field') as $field) {
             if(in_array($field, array($this->getPrimarykey(), $this->table . "_modified", $this->table . "_created"))) {
                 continue;
@@ -1106,12 +1107,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     $data[$field] = $this->jsonEncode($data[$field]);
                 }
 
-                if($index > 0) {
-                    $query .= ', ';
-                }
-
-                $index++;
-
                 $var = $this->getStatementVariable(array_keys($param), $field);
 
                 // performance hack: store modelfield instance!
@@ -1121,9 +1116,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 $fieldInstance = $this->modelfieldInstance[$field];
 
                 $param[$var] = $this->getParametrizedValue($this->delimit($fieldInstance, $data[$field]), $this->getFieldtype($fieldInstance));
-                $query .= $field . ' = ' . ':'.$var;
+                $parts[] = $field . ' = ' . ':'.$var;
             }
         }
+        $parts[] = $this->table . "_modified = now()";
+        $query .= implode(',', $parts);
 
         $var = $this->getStatementVariable(array_keys($param), $this->getPrimarykey());
         // use timemachine, if capable and enabled
