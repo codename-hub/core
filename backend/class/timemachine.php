@@ -199,7 +199,7 @@ class timemachine {
       if(!in_array($key, $excludedFields)) {
         if((!array_key_exists($key, $data)) || ($data[$key] != $value)) {
           // value differs or even the key doesn't exist
-          $delta[$key] = $data[$key]; // store EXISTING/old data (!)
+          $delta[$key] = $data[$key] ?? null; // store EXISTING/old data (!)
         }
       }
     }
