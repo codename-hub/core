@@ -1008,13 +1008,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       $this->countingModeOverride = true;
 
       $this->search();
-      $result = $this->db->getResult();
+      $count = $this->db->getResult()[0]['___count'];
 
       //
       // Russian Caviar End
       //
       $this->countingModeOverride = false;
-      return 0;
+      return $count;
     }
 
     /**
