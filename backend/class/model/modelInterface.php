@@ -15,6 +15,13 @@ interface modelInterface {
     public function search() : \codename\core\model;
 
     /**
+     * explicitly outputs the number of results
+     * with some internal improvements
+     * @return int [count of result items expected]
+     */
+    public function getCount() : int;
+
+    /**
      * Deletes the given key from the model
      * @param  mixed               $primaryKey [description]
      * @return \codename\core\model            [description]

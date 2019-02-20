@@ -299,6 +299,17 @@ abstract class model implements \codename\core\model\modelInterface {
     protected abstract function loadConfig() : \codename\core\config;
 
     /**
+     * @inheritDoc
+     */
+    public function getCount(): int
+    {
+      //
+      // NOTE: this has to be implemented per DB technology
+      //
+      throw new \LogicException('Not implemented'); // TODO
+    }
+
+    /**
      * [getNestedJoins description]
      * @param  string|null  $model                  name of a model to look for
      * @param  string|null  $modelField             name of a field the model is joined upon

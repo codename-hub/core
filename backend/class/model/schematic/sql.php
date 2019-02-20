@@ -997,6 +997,47 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
+     * @inheritDoc
+     */
+    public function getCount(): int
+    {
+      //
+      // Russian Caviar Begin
+      // HACK/WORKAROUND for shrinking count-only-queries.
+      //
+      $this->countingModeOverride = true;
+
+      $this->search();
+      $result = $this->db->getResult();
+
+      //
+      // Russian Caviar End
+      //
+      $this->countingModeOverride = false;
+      return 0;
+    }
+
+    /**
+     * [private description]
+     * @var bool
+     */
+    private $countingModeOverride = false;
+
+    /**
+     * @inheritDoc
+     */
+    public function reset()
+    {
+      if(!$this->countingModeOverride) {
+        parent::reset();
+      } else {
+        // do not reset everything, if we're in special counting mode.
+        // just reset errorstack.
+        $this->errorstack->reset();
+      }
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\model_interface::search()
@@ -1012,21 +1053,29 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // first: deepJoin to get correct alias names
         $deepjoin = $this->deepJoin($this);
 
-        // retrieve a list of all model field lists, recursively
-        // respecting hidden fields and duplicate field names in other models/tables
-        $fieldlist = $this->getCurrentFieldlist();
-
-        if(count($fieldlist) == 0) {
-            $query .= ' * ';
+        //
+        // Russian Caviar
+        // HACK/WORKAROUND for shrinking count-only-queries.
+        //
+        if($this->countingModeOverride) {
+          $query .= 'count('.$this->getPrimarykey().') as ___count';
         } else {
-            $fields = array();
-            foreach($fieldlist as $f) {
-              // schema and table specifier separator (.)(.)
-              // schema.table.field (and field may be a '*')
-              $fields[] = implode('.', $f);
-            }
-            // chain the fields
-            $query .= implode(',', $fields);
+          // retrieve a list of all model field lists, recursively
+          // respecting hidden fields and duplicate field names in other models/tables
+          $fieldlist = $this->getCurrentFieldlist();
+
+          if(count($fieldlist) == 0) {
+              $query .= ' * ';
+          } else {
+              $fields = array();
+              foreach($fieldlist as $f) {
+                // schema and table specifier separator (.)(.)
+                // schema.table.field (and field may be a '*')
+                $fields[] = implode('.', $f);
+              }
+              // chain the fields
+              $query .= implode(',', $fields);
+          }
         }
 
         $query .= ' FROM ' . $this->schema . '.' . $this->table . ' ';
