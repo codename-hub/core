@@ -1051,7 +1051,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
 
         // first: deepJoin to get correct alias names
-        $deepjoin = $this->deepJoin($this);
+        //
+        // Contains Fix for JIRA [CODENAME-493]
+        // see below. We include the main table here, from the start.
+        // As it simply IS part of the used tables.
+        //
+        $tableUsage = [ "{$this->schema}.{$this->table}" => 1];
+        $deepjoin = $this->deepJoin($this, $tableUsage);
 
         //
         // Russian Caviar
@@ -1088,7 +1094,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // running getFilterQuery()
         $params = [];
 
-        $query .= $this->getFilterQuery($params);
+        //
+        // Fix for JIRA [CODENAME-493]
+        // Provide current main table specifier
+        // as pseudo-alias
+        // to fix multiple usage of the same model
+        //
+        $mainAlias = null;
+        if($tableUsage["{$this->schema}.{$this->table}"] > 1) {
+          $mainAlias = "{$this->schema}.{$this->table}";
+        }
+
+        $query .= $this->getFilterQuery($params, $mainAlias);
 
         $groups = $this->getGroups($this->group);
         if(count($groups) > 0) {
@@ -1749,11 +1766,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * [getFilterQuery description]
-     * @param  array  &$appliedFilters [description]
+     * @param  array        &$appliedFilters [reference array containing used filters]
+     * @param  string|null  $mainAlias       [provide an alias for the main table]
      * @return string
      */
-    public function getFilterQuery(array &$appliedFilters = array()) : string {
-      $filterQueryArray = $this->getFilterQueryComponents($appliedFilters);
+    public function getFilterQuery(array &$appliedFilters = array(), ?string $mainAlias = null) : string {
+
+      // provide pseudo main table alias, if needed
+      $filterQueryArray = $this->getFilterQueryComponents($appliedFilters, $mainAlias);
 
 
       //
