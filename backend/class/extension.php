@@ -28,7 +28,7 @@ abstract class extension extends \codename\core\bootstrap {
     return [
       'vendor'    => $this->getExtensionVendor(),
       'app'       => $this->getExtensionName(),
-      'namespace' => (new \ReflectionClass($this))->getNamespaceName()
+      'namespace' => '\\'.(new \ReflectionClass($this))->getNamespaceName()
     ];
   }
 
