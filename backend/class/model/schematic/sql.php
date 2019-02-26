@@ -1125,12 +1125,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $query .= $this->getOrders($this->order);
         }
 
-        if(!is_null($this->limit)) {
+        //
+        // Russian Caviar
+        // HACK/WORKAROUND for shrinking count-only-queries.
+        //
+        if(!$this->countingModeOverride) {
+          if(!is_null($this->limit)) {
             $query .= $this->getLimit($this->limit);
-        }
+          }
 
-        if(!is_null($this->offset) > 0) {
+          if(!is_null($this->offset) > 0) {
             $query .= $this->getOffset($this->offset);
+          }
         }
 
         $this->doQuery($query, $params);
