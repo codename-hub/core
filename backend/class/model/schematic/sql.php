@@ -1064,7 +1064,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // HACK/WORKAROUND for shrinking count-only-queries.
         //
         if($this->countingModeOverride) {
-          $query .= 'count('.$this->getPrimarykey().') as ___count';
+          $query .= 'COUNT('.$this->getPrimarykey().') as ___count';
         } else {
           // retrieve a list of all model field lists, recursively
           // respecting hidden fields and duplicate field names in other models/tables
@@ -1107,7 +1107,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $query .= $this->getFilterQuery($params, $mainAlias);
 
-        $groups = $this->getGroups($this->group);
+        $groups = $this->getGroups();
         if(count($groups) > 0) {
           $query .= ' GROUP BY '. implode(', ', $groups);
         }
@@ -1122,7 +1122,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
 
         if(count($this->order) > 0) {
-            $query .= $this->getOrders($this->order);
+          $query .= $this->getOrders($this->order);
         }
 
         //
@@ -1137,6 +1137,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           if(!is_null($this->offset) > 0) {
             $query .= $this->getOffset($this->offset);
           }
+        }
+
+        //
+        // Russian Caviar
+        // HACK/WORKAROUND for shrinking count-only-queries.
+        //
+        if($this->countingModeOverride && count($groups) > 0) {
+          $query = 'SELECT COUNT(___count) AS ___count FROM('.$query.') AS DerivedTableAlias';
         }
 
         $this->doQuery($query, $params);
@@ -1964,21 +1972,33 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @author Kevin Dargel
      * @return array
      */
-    public function getGroups() : array {
+    public function getGroups(string $currentAlias = null) : array {
         $groupArray = [];
 
         // group by fields
         foreach($this->group as $group) {
-            $groupArray[] = implode('.', array_filter([
-              $group->field->getSchema() ?? null,
-              $group->field->getTable() ?? null,
-              $group->field->get()
-            ]));
+            if(!$currentAlias) {
+              $groupArray[] = implode('.', array_filter([
+                $group->field->getSchema() ?? null,
+                $group->field->getTable() ?? null,
+                $group->field->get()
+              ]));
+            } else {
+              $groupArray[] = implode('.', array_filter([
+                $currentAlias,
+                $group->field->get()
+              ]));
+            }
         }
 
         foreach($this->getNestedJoins() as $join) {
           if($join->model instanceof \codename\core\model\schematic\sql) {
-            $groupArray = array_merge($groupArray, $join->model->getGroups());
+            // TODO: @Kevin: Wolltest du das drin lassen?
+            if(is_array($join->currentAlias)) {
+              print_r($join);
+              die();
+            }
+            $groupArray = array_merge($groupArray, $join->model->getGroups($join->currentAlias));
           }
         }
 
