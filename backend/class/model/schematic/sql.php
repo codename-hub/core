@@ -1993,11 +1993,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         foreach($this->getNestedJoins() as $join) {
           if($join->model instanceof \codename\core\model\schematic\sql) {
-            // TODO: @Kevin: Wolltest du das drin lassen?
-            if(is_array($join->currentAlias)) {
-              print_r($join);
-              die();
-            }
             $groupArray = array_merge($groupArray, $join->model->getGroups($join->currentAlias));
           }
         }
