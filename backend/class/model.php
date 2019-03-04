@@ -920,6 +920,16 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [addAggregateFilterPlugin description]
+     * @param  \codename\core\model\plugin\aggregatefilter $filterPlugin [description]
+     * @return model                                                [description]
+     */
+    public function addAggregateFilterPlugin(\codename\core\model\plugin\aggregatefilter $filterPlugin) : model {
+      array_push($this->aggregateFilter, $filterPlugin);
+      return $this;
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\model_interface::addFilter($field, $value, $operator)

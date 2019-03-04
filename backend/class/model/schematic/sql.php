@@ -1549,6 +1549,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     protected function getStatementVariable(array $existingKeys, string $field, string $add = '', int $c = 0) {
       $name = str_replace('.', '_dot_', $field . (($add != '') ? ('_' . $add) : '') . (($c > 0) ? ('_' . $c) : ''));
+      if($c === 0) {
+        $name = preg_replace('/[^\w]+/', '_', $name);
+      }
       if(in_array($name, $existingKeys)) {
         return $this->getStatementVariable($existingKeys, $field, $add, ++$c);
       }
@@ -1589,7 +1592,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               'query' => null
             ];
 
-            if($filter instanceof \codename\core\model\plugin\filter) {
+            if($filter instanceof \codename\core\model\plugin\filter\filterInterface) {
               // handle regular filters
 
               if(is_array($filter->value)) {
