@@ -1059,6 +1059,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         $tableUsage = [ "{$this->schema}.{$this->table}" => 1];
         $deepjoin = $this->deepJoin($this, $tableUsage);
 
+        // prepare an array for values to submit as PDO statement parameters
+        // done by-ref, so the values are arriving right here after
+        // running getFilterQuery()
+        $params = [];
+
         //
         // Russian Caviar
         // HACK/WORKAROUND for shrinking count-only-queries.
@@ -1068,7 +1073,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         } else {
           // retrieve a list of all model field lists, recursively
           // respecting hidden fields and duplicate field names in other models/tables
-          $fieldlist = $this->getCurrentFieldlist();
+          $fieldlist = $this->getCurrentFieldlist(null, $params);
 
           if(count($fieldlist) == 0) {
               $query .= ' * ';
@@ -1088,11 +1093,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         // append the previously constructed deepjoin string
         $query .= $deepjoin;
-
-        // prepare an array for values to submit as PDO statement parameters
-        // done by-ref, so the values are arriving right here after
-        // running getFilterQuery()
-        $params = [];
 
         //
         // Fix for JIRA [CODENAME-493]
@@ -2070,9 +2070,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      *
      * @author Kevin Dargel
      * @param string|null  $alias   [optional: alias as prefix for the following fields - table alias!]
+     * @param array &$params        [optional: current pdo params, including values]
      * @return array
      */
-    protected function getCurrentFieldlist(string $alias = null) : array {
+    protected function getCurrentFieldlist(string $alias = null, array &$params) : array {
       $result = array();
       if(count($this->fieldlist) == 0 && count($this->hiddenFields) > 0) {
         //
@@ -2108,6 +2109,15 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               // pre-defined aggregate function
               //
               $result[] = array($field->get($alias));
+            } else if($field instanceof \codename\core\model\plugin\fulltext\fulltextInterface) {
+
+              //
+              // pre-defined aggregate function
+              //
+
+              $var = $this->getStatementVariable(array_keys($params), $field->getField(), '_ft');
+              $params[$var] = $this->getParametrizedValue($field->getValue(), 'text');
+              $result[] = array($field->get($var, $alias));
 
             } else if($this->config->get('datatype>'.$field->field->get()) !== 'virtual') {
               //
@@ -2177,12 +2187,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
       foreach($this->nestedModels as $join) {
         if($this->compatibleJoin($join->model)) {
-          $result = array_merge($result, $join->model->getCurrentFieldlist($join->currentAlias));
+          $result = array_merge($result, $join->model->getCurrentFieldlist($join->currentAlias, $params));
         }
       }
       foreach($this->siblingModels as $join) {
         if($this->compatibleJoin($join->model)) {
-          $result = array_merge($result, $join->model->getCurrentFieldlist($join->currentAlias));
+          $result = array_merge($result, $join->model->getCurrentFieldlist($join->currentAlias, $params));
         }
       }
       return $result;

@@ -1237,6 +1237,30 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [addFulltextField description]
+     * @param  string $field  [description]
+     * @param  string $value  [description]
+     * @param  string $fields [description]
+     * @return model          [description]
+     */
+    public function addFulltextField(string $field, string $value, $fields) : model {
+      $field = \codename\core\value\text\modelfield::getInstance($field);
+      if(!is_array($fields)) {
+        $fields = explode(',', $fields);
+      }
+      if (count($fields) === 0) {
+        throw new \codename\core\exception(self::EXCEPTION_ADDFULLTEXTFIELD_NO_FIELDS_FOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $fields);
+      }
+      $thisFields = [];
+      foreach($fields as $resultField) {
+        $thisFields[] = \codename\core\value\text\modelfield::getInstance(trim($resultField));
+      }
+      $class = '\\codename\\core\\model\\plugin\\fulltext\\' . $this->getType();
+      $this->fieldlist[] = new $class($field, $value, $thisFields);
+      return $this;
+    }
+
+    /**
      * exception thrown on duplicate field existance (during addition of an aggregated field)
      * @var string
      */
