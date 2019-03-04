@@ -1081,6 +1081,16 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [addOrderPlugin description]
+     * @param  \codename\core\model\plugin\order $orderPlugin [description]
+     * @return model                                          [description]
+     */
+    public function addOrderPlugin(\codename\core\model\plugin\order $orderPlugin) : model {
+      array_push($this->order, $orderPlugin);
+      return $this;
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\model_interface::addField($field)
