@@ -888,6 +888,16 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * add a custom filter plugin
+     * @param  \codename\core\model\plugin\filter $filterPlugin [description]
+     * @return model                                            [description]
+     */
+    public function addFilterPlugin(\codename\core\model\plugin\filter $filterPlugin) : model {
+        array_push($this->filter, $filterPlugin);
+        return $this;
+    }
+
+    /**
      * [addAggregateFilter description]
      * @param  string               $field       [description]
      * @param  string|int|bool|null $value       [description]
