@@ -181,10 +181,15 @@ abstract class json extends \codename\core\model\schemeless implements \codename
       if(count($this->filter) === 1) {
         foreach($this->filter as $filter) {
           if($filter->field->get() == $this->getPrimarykey() && $filter->operator == '=') {
-            $data = isset($data[$filter->value]) ? [$data[$filter->value]] : [];
+            if(is_array($filter->value)) {
+              $data = array_values(array_intersect_key($data, array_flip($filter->value)));
+            } else {
+              $data = isset($data[$filter->value]) ? [$data[$filter->value]] : [];
+            }
           }
         }
       }
+
       if(count($this->filter) >= 1) {
         $filteredData = array_filter($data, function($entry) {
           $pass = null;

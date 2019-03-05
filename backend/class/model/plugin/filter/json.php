@@ -17,10 +17,24 @@ class json extends \codename\core\model\plugin\filter
     $fieldName = $this->field->get();
     if(($this->operator == '=') || ($this->operator == '!=')) {
       // check for (un)equality
-      if(!array_key_exists($fieldName, $data) || $data[$fieldName] !== $this->value) {
-        return ($this->operator == '!=');
+      if(is_array($this->value)) {
+        //
+        // SQL Simile: IN (...) / NOT IN (...)
+        //
+        if(!array_key_exists($fieldName, $data) || !in_array($data[$fieldName], $this->value)) {
+          return ($this->operator == '!=');
+        } else {
+          return ($this->operator == '=');
+        }
       } else {
-        return ($this->operator == '=');
+        //
+        // SQL Simile: = / != / <>
+        //
+        if(!array_key_exists($fieldName, $data) || $data[$fieldName] !== $this->value) {
+          return ($this->operator == '!=');
+        } else {
+          return ($this->operator == '=');
+        }
       }
     } else if(($this->operator == '>=')
       || ($this->operator == '<=')
