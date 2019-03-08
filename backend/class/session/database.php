@@ -66,6 +66,20 @@ class database extends \codename\core\session implements \codename\core\session\
     }
 
     /**
+     * [closePhpSession description]
+     * @return void
+     */
+    protected function closePhpSession() {
+      // close session directly after, as we don't need it anymore.
+      // this enables concurrent, non-blocking requests
+      // but we can't write to $_SESSION anymore from now on
+      // which is ok, because this is the database session driver
+      if(session_status() !== PHP_SESSION_NONE) {
+        session_write_close();
+      }
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\session_interface::start($data)
@@ -98,11 +112,9 @@ class database extends \codename\core\session implements \codename\core\session\
           $data['session_sessionid'] = $_COOKIE[$this->cookieName];
         }
 
-        // close session directly after, as we don't need it anymore.
-        // this enables concurrent, non-blocking requests
-        // but we can't write to $_SESSION anymore from now on
-        // which is ok, because this is the database session driver
-        session_write_close();
+        // close the PHP Session for allowing better performance
+        // by non-blocking session files
+        $this->closePhpSession();
 
         $this->myModel()->save($data);
 
@@ -144,6 +156,10 @@ class database extends \codename\core\session implements \codename\core\session\
      * @return bool [description]
      */
     public function identify() : bool {
+
+        // close the PHP Session for allowing better performance
+        // by non-blocking session files
+        $this->closePhpSession();
 
         if(!isset($_COOKIE[$this->cookieName])) {
           return false;
