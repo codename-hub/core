@@ -222,4 +222,39 @@ class date extends \codename\core\helper {
       }
       return $result;
     }
+
+    /**
+     * [getISO8601FromRelativeDatetimeString description]
+     * @param  string $relativeDatetime [description]
+     * @return string                   [description]
+     */
+    public static function getISO8601FromRelativeDatetimeString(string $relativeDatetime) : string {
+      return self::getISO8601FromDateInterval(\DateInterval::createFromDateString($relativeDatetime));
+    }
+
+    /**
+     * [getISO8601FromDateInterval description]
+     * @param  \DateInterval $dateInterval [description]
+     * @return string                     [description]
+     */
+    public static function getISO8601FromDateInterval(\DateInterval $dateInterval) : string {
+      //
+      // @see https://stackoverflow.com/questions/33787039/format-dateinterval-as-iso8601
+      //
+
+      // Incomplete variant ignoring "T":
+      // $format = $dateInterval->format("P%yY%mM%dD%hH%iM%sS");
+      // $format = str_replace(["M0S", "H0M", "D0H", "M0D", "Y0M", "P0Y"], ["M", "H", "D", "M", "Y0M", "P"], $format);
+      // return $format;
+
+      list($date,$time) = explode("T",$dateInterval->format("P%yY%mM%dDT%hH%iM%sS"));
+      // now, we need to remove anything that is a zero, but make sure to not remove
+      // something like 10D or 20D
+      $res =
+        str_replace([ 'M0D', 'Y0M', 'P0Y' ], [ 'M', 'Y', 'P' ], $date) .
+        rtrim(str_replace([ 'M0S', 'H0M', 'T0H'], [ 'M', 'H', 'T' ], "T$time"),"T");
+      if ($res == 'P') // edge case - if we remove everything, DateInterval will hate us later
+        return 'PT0S';
+      return $res;
+    }
 }
