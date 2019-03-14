@@ -802,11 +802,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
 
       // handle custom virtual fields
-      // if(count($this->virtualFields) > 0) {
-      //   foreach($result as &$d) {
-      //     $d = $this->handleVirtualFields($d);
-      //   }
-      // }
+      if(count($structure) === 0) {
+        if(count($this->virtualFields) > 0) {
+          foreach($result as &$d) {
+            $d = $this->handleVirtualFields($d);
+          }
+        }
+      }
       // if(count($this->virtualFields) > 0) {
       //   app::getResponse()->setData('protocol_schematic_sql_internalGetResult>'.$this->getIdentifier(), $this->virtualFields);
       //   foreach($result as &$d) {
