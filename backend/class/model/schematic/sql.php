@@ -468,10 +468,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     public function normalizeByFieldlist(array $dataset) : array {
       if(count($this->fieldlist) > 0) {
         // return $dataset;
-        return array_intersect_key( $dataset, array_flip( array_merge( $this->getFieldlistArray($this->fieldlist), $this->getFields() ) ) );
+        return array_intersect_key( $dataset, array_flip( array_merge( $this->getFieldlistArray($this->fieldlist), $this->getFields(), array_keys($this->virtualFields) ) ) );
       } else {
         // return $dataset;
-        return array_intersect_key( $dataset, array_flip( $this->getFields() ) );
+        return array_intersect_key( $dataset, array_flip( array_merge( $this->getFields(), array_keys($this->virtualFields)) ) );
       }
     }
 
