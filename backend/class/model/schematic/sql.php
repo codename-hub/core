@@ -2124,7 +2124,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $params[$var] = $this->getParametrizedValue($field->getValue(), 'text');
               $result[] = array($field->get($var, $alias));
 
-            } else if($this->config->get('datatype>'.$field->field->get()) !== 'virtual') {
+            } else if($this->config->get('datatype>'.$field->field->get()) !== 'virtual' && !in_array($field->field->get(), $this->hiddenFields)) {
               //
               // omit virtual fields
               // they're not part of the DB.
