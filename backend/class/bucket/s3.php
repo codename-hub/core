@@ -131,9 +131,19 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
         'region'  => $this->region
       );
 
+      // custom endpoint override
+      if($data['bucket_endpoint'] ?? false) {
+        $factoryConfig['bucket_endpoint'] = $data['bucket_endpoint'];
+      }
+
+      if($data['endpoint'] ?? false) {
+        $factoryConfig['endpoint'] = $data['endpoint'];
+      }
+
       if($this->credentials != null) {
         $factoryConfig['credentials'] = $this->credentials;
       }
+
 
       $this->client = \Aws\S3\S3Client::factory($factoryConfig);
 
