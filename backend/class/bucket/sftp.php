@@ -115,6 +115,7 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
     public function filePush(string $localfile, string $remotefile) : bool {
         if(!app::getFilesystem()->fileAvailable($localfile)) {
             $this->errorstack->addError('FILE', 'LOCAL_FILE_NOT_FOUND', $localfile);
+            return false;
         }
 
         if($this->fileAvailable($remotefile)) {
@@ -159,6 +160,7 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
           // Close our streams
           fclose($localStream);
           fclose($remoteStream);
+
         } else if($this->method === self::METHOD_SCP) {
 
           //  TODO: provide create mode ?
@@ -181,10 +183,12 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
     public function filePull(string $remotefile, string $localfile) : bool {
         if(app::getFilesystem()->fileAvailable($localfile)) {
             $this->errorstack->addError('FILE', 'LOCAL_FILE_EXISTS', $localfile);
+            return false;
         }
 
         if(!$this->fileAvailable($remotefile)) {
             $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
+            return false;
         }
 
         //  @ftp_get($this->connection, $localfile, $this->basedir . $remotefile, FTP_BINARY
@@ -262,14 +266,22 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
             return array();
         }
 
-        $handle = opendir("ssh2.sftp://{$this->connection}/{$directory}");
+        $handle = @opendir("ssh2.sftp://{$this->connection}/{$this->basedir}{$directory}");
         if ($handle === false) {
           throw new exception("Unable to open remote directory");
         }
+
         $files = array();
-        while (false != ($entry = readdir($handle))) {
-          $files[] = $entry;
+        while (false !== ($entry = readdir($handle))) {
+          // exclude current dir and parent
+          if($entry != '.' && $entry != '..') {
+            $files[] = $entry;
+          }
         }
+
+        // close handle. otherwise, bad things happen.
+        @closedir($handle);
+
         return $files;
 
         //
@@ -314,7 +326,7 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
 
         // @ftp_delete($this->connection, $this->basedir . $remotefile);
         // TODO: handle FALSE return value?
-        @ssh2_sftp_unlink($this->sshConnection, $this->basedir . $remotefile);
+        @ssh2_sftp_unlink($this->connection, $this->basedir . $remotefile);
 
         return !$this->fileAvailable($remotefile);
     }
@@ -327,20 +339,25 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
     {
       if(!$this->fileAvailable($remotefile)) {
           $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
-          return true;
+          return false;
       }
 
-      // check for existance of the new file
+      // check for existance of the new fileW
       if($this->fileAvailable($newremotefile)) {
           $this->errorstack->addError('FILE', 'FILE_ALREADY_EXISTS', $newremotefile);
           return false;
       }
 
+      $targetDir = $this->extractDirectory($newremotefile);
+      if(!$this->dirAvailable($targetDir)) {
+        $this->dirCreate($targetDir);
+      }
+
       // @ftp_rename($this->connection, $this->basedir . $remotefile, $this->basedir . $newremotefile);
       // TODO: handle FALSE return value?
-      @ssh2_sftp_rename($this->sshConnection, $this->basedir . $remotefile, $this->basedir . $newremotefile);
+      $success = @ssh2_sftp_rename($this->connection, $this->basedir . $remotefile, $this->basedir . $newremotefile);
 
-      return $this->fileAvailable($newremotefile);
+      return $success && $this->fileAvailable($newremotefile);
     }
 
     /**
@@ -407,7 +424,11 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
 
         // @ftp_mkdir($this->connection, $directory);
         // TODO: handle errors (FALSE return value) and other params!
-        @ssh2_sftp_mkdir($this->connection, $directory); // , int $mode = 0777 [, bool $recursive = FALSE ]] );
+        try {
+          @ssh2_sftp_mkdir($this->connection, $this->basedir.$directory, 0777, true);
+        } catch (\Exception $e) {
+          return false;
+        }
 
         return $this->dirAvailable($directory);
     }
