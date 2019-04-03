@@ -2228,13 +2228,21 @@ abstract class model implements \codename\core\model\modelInterface {
                     }
                     return $value === 1 ? true : false;
                 }
-                // fallback
-                if(strlen($value) === 0) {
-                    return null;
-                }
                 // string boolean
-                if($value == 'true') {
+                if(is_string($value)) {
+                  // fallback, empty string
+                  if(strlen($value) === 0) {
+                    return null;
+                  }
+                  if($value === '1') {
                     return true;
+                  } else if($value === '0') {
+                    return false;
+                  } else if($value === 'true') {
+                    return true;
+                  } elseif ($value === 'false') {
+                    return false;
+                  }
                 }
                 // fallback
                 return false;
