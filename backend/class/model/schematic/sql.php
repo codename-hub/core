@@ -183,6 +183,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 // if we just inserted a NEW entry, get its primary key and save into the root model
                 if(empty($data[$child][$model->getPrimaryKey()])) {
                   $data2[$childConfig['field']] = $model->lastInsertId();
+                } else {
+                  $data2[$childConfig['field']] = $data[$child][$model->getPrimaryKey()];
                 }
               }
             } else {
