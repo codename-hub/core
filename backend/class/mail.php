@@ -7,13 +7,13 @@ namespace codename\core;
  * @since 2016-02-26
  */
 abstract class mail implements \codename\core\mail\mailInterface {
-    
+
     /**
      * Contains the class that represents the client library's main class.
      * @var object $client
      */
-    private $client = null;
-    
+    protected $client = null;
+
     /**
      * Returns the mail client that was stored in the instance previously
      * @return object

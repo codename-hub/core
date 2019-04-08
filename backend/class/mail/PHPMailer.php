@@ -10,14 +10,20 @@ namespace codename\core\mail;
 class PHPMailer extends \codename\core\mail implements \codename\core\mail\mailInterface {
 
     /**
+     * [protected description]
+     * @var \PHPMailer\PHPMailer\PHPMailer
+     */
+    protected $client;
+
+    /**
      * Creates the instance using the given $config
      * @param array $config
      * @return \codename\core\mail\PHPMailer
      */
     public function __CONSTRUCT(array $config) {
-        require_once  CORE_VENDORDIR . 'phpmailer/phpmailer/PHPMailerAutoload.php';
 
-        $this->client = new \PHPMailer();
+        // NOTE: PHPMailer v6+ is namespaced
+        $this->client = new \PHPMailer\PHPMailer\PHPMailer(true);
 
         // Use SMTP Mode
         $this->client->IsSMTP();
