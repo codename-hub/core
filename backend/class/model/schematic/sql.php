@@ -1329,7 +1329,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         if($fieldtype == 'number') {
           $value = (float) $value;
           $param = \PDO::PARAM_STR; // explicitly use this one...
-        } else if($fieldtype == 'number_natural') {
+        } else if(($fieldtype === 'number_natural') || is_int($value)) {
+          // NOTE: if integer value supplied, explicitly use this as param type
           $param = \PDO::PARAM_INT;
         } else if($fieldtype == 'boolean') {
           //

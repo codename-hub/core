@@ -2289,9 +2289,9 @@ abstract class model implements \codename\core\model\modelInterface {
         if(is_null($value) || (is_string($value) && strlen($value) == 0)) {
           return null;
         }
-        if(strpos($fieldtype, 'text') !== false || strpos($fieldtype, 'ject_') !== false || strpos($fieldtype, 'structure') !== false) {
-            return "" . $value . "";
-        }
+        // if(strpos($fieldtype, 'text') !== false || strpos($fieldtype, 'ject_') !== false || strpos($fieldtype, 'structure') !== false) {
+        //     return "" . $value . "";
+        // }
         if($fieldtype == 'number') {
             if(is_numeric($value)) {
               return $value;
