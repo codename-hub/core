@@ -399,7 +399,36 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
      * NOTE: we may have to check for objects in this bucket path
      * as s3 is a flat file system
      */
-    return $this->objectExists($this->getPrefixedPath($directory));
+
+     try{
+       /**
+        * @see http://stackoverflow.com/questions/18683206/list-objects-in-a-specific-folder-on-amazon-s3
+        */
+
+       $response = $this->client->listObjectsV2([
+         "Bucket" => $this->bucket,
+         "Prefix" => $this->getPrefixedPath($directory),
+         "Delimiter" => '/',
+         "MaxKeys" => 1
+       ]);
+
+       $result = $response->get('Contents') ?? false;
+
+       //
+       // NOTE: we limit "MaxKeys" to 1
+       // but I expect some S3 APIs to ignore that
+       // we MIGHT change that to a > 1 later.
+       //
+       if($result && count($result) === 1) {
+         return true;
+       } else {
+         return false;
+       }
+     } catch(S3Exception $e) {
+       $this->errorstack->addError('BUCKET', 'S3_EXCEPTION', $e->getMessage());
+     }
+
+    return false;
   }
 
   /**
