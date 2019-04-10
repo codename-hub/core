@@ -207,6 +207,10 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
         // simply prepend $directory to each entry
         //
         $list = app::getFilesystem()->dirList($normalizedDirectory);
+
+        if($directory !== '' && substr($directory, strlen($directory)-1, 1) !== '/') {
+          $directory .= '/';
+        }
         foreach($list as &$entry) {
           $entry = $directory.$entry;
         }
