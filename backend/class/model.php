@@ -2220,6 +2220,11 @@ abstract class model implements \codename\core\model\modelInterface {
     protected function importField(\codename\core\value\text\modelfield $field, $value = null) {
         switch($this->getFieldtype($field)) {
             case 'boolean' :
+                // allow null booleans
+                // may be needed for conditional unique keys
+                if(is_null($value)) {
+                    return $value;
+                }
                 // pure boolean
                 if(is_bool($value)) {
                     return $value;
