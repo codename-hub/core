@@ -1985,17 +1985,21 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         // group by fields
         foreach($this->group as $group) {
-            if(!$currentAlias) {
-              $groupArray[] = implode('.', array_filter([
-                $group->field->getSchema() ?? null,
-                $group->field->getTable() ?? null,
-                $group->field->get()
-              ]));
+            if($group->aliased) {
+              $groupArray[] = $group->field->get();
             } else {
-              $groupArray[] = implode('.', array_filter([
-                $currentAlias,
-                $group->field->get()
-              ]));
+              if(!$currentAlias) {
+                $groupArray[] = implode('.', array_filter([
+                  $group->field->getSchema() ?? null,
+                  $group->field->getTable() ?? null,
+                  $group->field->get()
+                ]));
+              } else {
+                $groupArray[] = implode('.', array_filter([
+                  $currentAlias,
+                  $group->field->get()
+                ]));
+              }
             }
         }
 

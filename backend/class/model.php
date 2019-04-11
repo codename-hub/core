@@ -1185,11 +1185,15 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function addGroup(string $field) : model {
       $field = \codename\core\value\text\modelfield::getInstance($field);
+      $aliased = false;
       if(!$this->fieldExists($field)) {
         $foundInFieldlist = false;
         foreach($this->fieldlist as $checkField) {
           if($checkField->field->get() == $field->get()) {
             $foundInFieldlist = true;
+            if($checkField instanceof \codename\core\model\plugin\aggregate) {
+              $aliased = true;
+            }
             break;
           }
         }
@@ -1198,7 +1202,9 @@ abstract class model implements \codename\core\model\modelInterface {
         }
       }
       $class = '\\codename\\core\\model\\plugin\\group\\' . $this->getType();
-      $this->group[] = new $class($field);
+      $groupInstance = new $class($field);
+      $groupInstance->aliased = true;
+      $this->group[] = $groupInstance;
       return $this;
     }
 

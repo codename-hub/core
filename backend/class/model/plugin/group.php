@@ -16,6 +16,14 @@ class group extends \codename\core\model\plugin implements \codename\core\model\
     public $field = null;
 
     /**
+     * whether this plugin is subject to dynamic table aliasing
+     * aliased === false : normal behaviour, may get a dynamic alias
+     * aliased === true : respective field MAY NOT be used in dynamic aliasing
+     * @var [type]
+     */
+    public $aliased = false;
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\model_plugin_field_interface::__CONSTRUCT(string $field)
