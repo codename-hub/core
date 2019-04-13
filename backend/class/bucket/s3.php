@@ -205,7 +205,7 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function fileAvailable(string $remotefile): bool
   {
-    return $this->objectExists($remotefile);
+    return $this->objectExists($this->getPrefixedPath($remotefile));
   }
 
   /**
