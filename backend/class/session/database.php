@@ -170,9 +170,13 @@ class database extends \codename\core\session implements \codename\core\session\
         // filter for must-have conditions:
         // 1. session id match
         // 2. valid session (not destroyed)
+        // 3. user ip is match
+        // 3. user agent is match
         $model
           ->addFilter('session_sessionid', $_COOKIE[$this->cookieName])
-          ->addFilter('session_valid', true);
+          ->addFilter('session_valid', true)
+          ->addFilter('session_user_ip', ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['HTTP_X_REAL_IP'] ?? $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? null))
+          ->addFilter('session_user_agent', ($_SERVER['HTTP_USER_AGENT'] ?? null));
 
         //
         // session_valid_until must be either null or above current time
