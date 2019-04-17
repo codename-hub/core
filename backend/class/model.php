@@ -1111,7 +1111,7 @@ abstract class model implements \codename\core\model\modelInterface {
         $class = '\\codename\\core\\model\\plugin\\field\\' . $this->getType();
         $alias = $alias ? \codename\core\value\text\modelfield::getInstance($alias) : null;
         $this->fieldlist[] = new $class($field, $alias);
-        if (in_array($field->getValue(), $this->hiddenFields)) {
+        if (!$alias && in_array($field->getValue(), $this->hiddenFields)) {
           $fieldKey = array_search($field->getValue(), $this->hiddenFields);
           unset($this->hiddenFields[$fieldKey]);
         }
