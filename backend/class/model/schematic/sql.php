@@ -2061,14 +2061,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * [getFieldlistArray description]
-     * @param  array $fields [description]
+     * @param  \codename\core\model\plugin\field[] $fields [description]
      * @return array         [description]
      */
     protected function getFieldlistArray(array $fields) : array {
       $returnFields = [];
       if(count($fields) > 0) {
         foreach($fields as $field) {
-          $returnFields[] = $field->field->get();
+          if($field->alias) {
+            $returnFields[] = $field->alias->get();
+          } else {
+            $returnFields[] = $field->field->get();
+          }
         }
       }
       return $returnFields;
