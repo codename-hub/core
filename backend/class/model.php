@@ -1463,6 +1463,25 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [getFieldlistArray description]
+     * @param  \codename\core\model\plugin\field[] $fields [description]
+     * @return array         [description]
+     */
+    protected function getFieldlistArray(array $fields) : array {
+      $returnFields = [];
+      if(count($fields) > 0) {
+        foreach($fields as $field) {
+          if($field->alias) {
+            $returnFields[] = $field->alias->get();
+          } else {
+            $returnFields[] = $field->field->get();
+          }
+        }
+      }
+      return $returnFields;
+    }
+
+    /**
      * returns an array of virtual fields (names) currently configured
      * @return array [description]
      */
