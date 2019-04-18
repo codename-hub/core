@@ -565,16 +565,18 @@ abstract class model implements \codename\core\model\modelInterface {
           if($model->config->exists('foreign')) {
             foreach($model->config->get('foreign') as $fkeyName => $fkeyConfig) {
               if($fkeyConfig['model'] == $this->getIdentifier()) {
-                if($thisKey == null || $thisKey == $fkeyConfig['key']) {
-                  $joinKey = $fkeyName;
+                if($referenceField == null || $referenceField == $fkeyName) {
+                  if($thisKey == null || $thisKey == $fkeyConfig['key']) {
+                    $joinKey = $fkeyName;
+                  }
+                  if($joinKey == null || $joinKey == $fkeyName) {
+                    $thisKey = $fkeyConfig['key'];
+                  }
+                  $conditions = $fkeyConfig['condition'] ?? [];
+                  // $thisKey = $fkeyConfig['key'];
+                  // $joinKey = $fkeyName;
+                  break;
                 }
-                if($joinKey == null || $joinKey == $fkeyName) {
-                  $thisKey = $fkeyConfig['key'];
-                }
-                $conditions = $fkeyConfig['condition'] ?? [];
-                // $thisKey = $fkeyConfig['key'];
-                // $joinKey = $fkeyName;
-                break;
               }
             }
           }
