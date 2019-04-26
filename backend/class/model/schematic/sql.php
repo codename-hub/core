@@ -1166,10 +1166,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @return string         [query]
      */
     protected function saveUpdate(array $data, array &$param = array()) {
-        $this->saveLog('UPDATE', $data);
-        $cacheGroup = $this->getCachegroup();
-        $cacheKey = "PRIMARY_" . $data[$this->getPrimarykey()];
-        $this->clearCache($cacheGroup, $cacheKey);
+
+        // TEMPORARY: SAVE LOG DISABLED
+        // $this->saveLog('UPDATE', $data);
+
+        //
+        // disable cache reset, if model is not enabled for it.
+        // At the moment, we don't even use the PRIMARY cache
+        //
+        if($this->cache) {
+          $cacheGroup = $this->getCachegroup();
+          $cacheKey = "PRIMARY_" . $data[$this->getPrimarykey()];
+          $this->clearCache($cacheGroup, $cacheKey);
+        }
 
         // raw data for usage with the timemachine
         if($this instanceof \codename\core\model\timemachineInterface && $this->isTimemachineEnabled()) {
@@ -1237,7 +1246,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @return string           [query]
      */
     protected function saveCreate(array $data, array &$param = array(), bool $replace = false) {
-        $this->saveLog('CREATE', $data);
+
+        // TEMPORARY: SAVE LOG DISABLED
+        // $this->saveLog('CREATE', $data);
+
         $query = 'INSERT INTO ' . $this->schema . '.' . $this->table .' ';
         $query .= ' (';
         $index = 0;
