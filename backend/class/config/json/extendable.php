@@ -90,14 +90,14 @@ class extendable extends \codename\core\config\json {
       $extends = is_array($config['extends']) ? $config['extends'] : [ $config['extends'] ];
       foreach($extends as $extend) {
         $extendableJsonConfig = new \codename\core\config\json\extendable($extend, $appstack, $inherit, $useAppstack);
-        $config = array_replace_recursive($extendableJsonConfig->get(), $config);
+        $config = array_replace_recursive($config, $extendableJsonConfig->get());
       }
     }
     if($config !== null && ($config['mixins'] ?? false)) {
       $mixins = is_array($config['mixins']) ? $config['mixins'] : [ $config['mixins'] ];
       foreach($mixins as $mixin) {
         $extendableJsonConfig = new \codename\core\config\json\extendable($mixin, $appstack, $inherit, $useAppstack);
-        $config = array_merge_recursive($extendableJsonConfig->get(), $config);
+        $config = array_merge_recursive($config, $extendableJsonConfig->get());
       }
     }
     return $config;
