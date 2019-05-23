@@ -90,7 +90,14 @@ class extendable extends \codename\core\config\json {
       $extends = is_array($config['extends']) ? $config['extends'] : [ $config['extends'] ];
       foreach($extends as $extend) {
         $extendableJsonConfig = new \codename\core\config\json\extendable($extend, $appstack, $inherit, $useAppstack);
-        $config = array_replace_recursive($config, $extendableJsonConfig->get());
+        //
+        // NOTE: this is a recursive replace in an inhertance-like "extends"-manner
+        // this means:
+        // we inherit ('extend') another config and replace/add/extend keys with those from our current config
+        // base config: some $extendableJsonConfig (we loop through the "extends" array)
+        // config that replaces/adds keys: this one ($config)
+        //
+        $config = array_replace_recursive($extendableJsonConfig->get(), $config);
       }
     }
     if($config !== null && ($config['mixins'] ?? false)) {
