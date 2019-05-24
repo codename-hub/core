@@ -449,7 +449,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       //
       foreach($result as $index => $r) {
         // normalize using this model
-        $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeByFieldlist($r));
+        // CHANGED 2019-05-24: additionally call $this->normalizeRow around normalizeByFieldlist,
+        // otherwise we might run into issues, e.g.
+        // - "structure"-type fields are not json_decode'd, if present on the root model
+        // - ... other things?
+        $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeRow($this->normalizeByFieldlist($r)));
       }
 
       // \codename\core\app::getResponse()->setData('model_normalize_debug', array_merge(\codename\core\app::getResponse()->getData('model_normalize_debug') ?? [], $fResult));
