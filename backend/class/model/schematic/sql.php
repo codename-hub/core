@@ -658,13 +658,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
                   $vData = $vModel->normalizeRow($vData);
 
-
+                  // CHANGED 2019-06-05: moved to after-dive
                   // handle custom virtual fields
-                  if(count($vModel->getVirtualFields()) > 0) {
-                    // foreach($vData as &$d) {
-                    $vData = $vModel->handleVirtualFields($vData);
-                    // }
-                  }
+                  // if(count($vModel->getVirtualFields()) > 0) {
+                  //   // foreach($vData as &$d) {
+                  //   $vData = $vModel->handleVirtualFields($vData);
+                  //   // }
+                  // }
 
                   // Old method, put data to root array
                   // $dataset[$field] = $vData;
@@ -676,6 +676,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     $dive = &$dive[$key];
                   }
                   $dive[$field] = array_merge_recursive($dive[$field] ?? [], $vData);
+
+                  // handle custom virtual fields
+                  // CHANGED 2019-06-05: we have to trigger virtual field handling
+                  // AFTER diving, because we might be missing all the important fields...
+                  if(count($vModel->getVirtualFields()) > 0) {
+                    $dive[$field] = $vModel->handleVirtualFields($dive[$field]);
+                  }
 
                   // DEBUG
                   // \codename\core\app::getResponse()->setData(
