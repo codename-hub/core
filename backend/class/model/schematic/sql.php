@@ -1223,7 +1223,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 $parts[] = $field . ' = ' . ':'.$var;
             }
         }
-        $parts[] = $this->table . "_modified = now()";
+        // NOTE: double entry, see line 1242
+        // $parts[] = $this->table . "_modified = now()";
         $query .= implode(',', $parts);
 
         $var = $this->getStatementVariable(array_keys($param), $this->getPrimarykey());
