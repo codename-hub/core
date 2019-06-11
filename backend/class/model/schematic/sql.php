@@ -363,7 +363,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         //
         if(count($this->virtualFields) > 0) {
           foreach($result as &$d) {
-            $d = $this->handleVirtualFields($d);
+            // NOTE: at the moment, we already handle virtual fields
+            // (e.g. a field added through ->addVirtualField)
+            // in ->getVirtualFieldResult(...)
+            // at the end, when we reached the original root structure again.
+            // $d = $this->handleVirtualFields($d);
           }
         }
 
