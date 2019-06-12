@@ -1228,7 +1228,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             }
         }
         // NOTE: double entry, see line 1242
-        // $parts[] = $this->table . "_modified = now()";
+        $parts[] = $this->table . "_modified = now()";
         $query .= implode(',', $parts);
 
         $var = $this->getStatementVariable(array_keys($param), $this->getPrimarykey());
@@ -1243,7 +1243,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $param[$var] = $this->getParametrizedValue($data[$this->getPrimarykey()], 'number_natural'); // ? hardcoded type?
 
-        $query .= " , " . $this->table . "_modified = now() WHERE " . $this->getPrimarykey() . " = " . ':'.$var;
+        $query .= " WHERE " . $this->getPrimarykey() . " = " . ':'.$var;
         return $query;
 
     }
