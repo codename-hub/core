@@ -590,6 +590,22 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               //   echo("Example source dataset entry: ".var_export($result[0][$vModel->getPrimaryKey()],true)."<br><br><br>");
               // }
 
+
+              //
+              // for sql-based models: extract fields
+              // for others: set explicitly null
+              //
+              $vModelFieldlist = null;
+
+              if($vModel instanceof \codename\core\model\schematic\sql) {
+                $dummy = [];
+                $vModelFieldlist = $vModel->getCurrentFieldlist(null, $dummy);
+                // always pick the last array element
+                foreach($vModelFieldlist as &$fieldComponents) {
+                  $fieldComponents = $fieldComponents[count($fieldComponents)-1];
+                }
+              }
+
               foreach($result as &$dataset) {
                 if($vModel != null) {
 
@@ -621,8 +637,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // $vData['used_structure'] = $structure;
                   // echo("USED INDEX: ".$index ." for field $field<br><br><br>");
 
-
                   foreach($vModel->getFields() as $modelField) {
+
+                    //
+                    // we have to compare the fieldlist (actually enabled fields for display)
+                    // either the field is mentioned explicitly in the query
+                    // or we have a wildcard match for the current model (*)
+                    //
+                    if($vModelFieldlist !== null && !in_array($modelField, $vModelFieldlist) && !in_array('*', $vModelFieldlist)) {
+                      continue;
+                    }
+
                     //
                     // NOTE:
                     // We're looping through the fields of the virtual model
