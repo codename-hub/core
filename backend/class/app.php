@@ -248,7 +248,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
               case E_ERROR:               throw new ErrorException            ($err_msg, 0, $err_severity, $err_file, $err_line);
               case E_WARNING:             throw new WarningException          ($err_msg, 0, $err_severity, $err_file, $err_line);
               case E_PARSE:               throw new ParseException            ($err_msg, 0, $err_severity, $err_file, $err_line);
-              case E_NOTICE:              throw new NoticeException           ($err_msg, 0, $err_severity, $err_file, $err_line);
+              // case E_NOTICE:              throw new NoticeException           ($err_msg, 0, $err_severity, $err_file, $err_line);
               case E_CORE_ERROR:          throw new CoreErrorException        ($err_msg, 0, $err_severity, $err_file, $err_line);
               case E_CORE_WARNING:        throw new CoreWarningException      ($err_msg, 0, $err_severity, $err_file, $err_line);
               case E_COMPILE_ERROR:       throw new CompileErrorException     ($err_msg, 0, $err_severity, $err_file, $err_line);
