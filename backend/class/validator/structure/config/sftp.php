@@ -16,7 +16,7 @@ class sftp extends \codename\core\validator\structure\config implements \codenam
             'host',
             'port',
             'user',
-            'pass'
+            // 'pass'
     );
 
 }

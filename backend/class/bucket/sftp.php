@@ -82,13 +82,43 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
             return $this;
         }
 
-        // TODO: key auth?
-        $username = $data['sftpserver']['user'];
-        $password = $data['sftpserver']['pass'];
+        if($data['sftpserver']['auth_type'] === 'password') {
+          // TODO: key auth?
+          $username = $data['sftpserver']['user'];
+          $password = $data['sftpserver']['pass'];
 
-        if (! @ssh2_auth_password($this->sshConnection, $username, $password)) {
+          if (! @ssh2_auth_password($this->sshConnection, $username, $password)) {
+              throw new exception("EXCEPTION_BUCKET_SFTP_SSH_AUTH_FAILED", exception::$ERRORLEVEL_ERROR);
+          }
+        } else if($data['sftpserver']['auth_type'] === 'pubkey_file') {
+          $username = $data['sftpserver']['user'];
+
+          $pubkeyString = $data['sftpserver']['pubkey'];
+          $privkeyString = $data['sftpserver']['privkey'];
+
+          $pubkeyFile = tempnam('secure', 'sftp_pub_');
+          $handle = fopen($pubkeyFile, 'w');
+          fwrite($handle, $pubkeyString);
+          fclose($handle);
+
+          $privkeyFile = tempnam('secure', 'sftp_pub_');
+          $handle = fopen($privkeyFile, 'w');
+          fwrite($handle, $privkeyString);
+          fclose($handle);
+
+          // TODO: passphrase for privkey file
+
+          $passphrase = $data['sftpserver']['privkey_passphrase'] ?? null;
+          if (! @ssh2_auth_pubkey_file($this->sshConnection, $username, $pubkeyFile, $privkeyFile, $passphrase)) {
             throw new exception("EXCEPTION_BUCKET_SFTP_SSH_AUTH_FAILED", exception::$ERRORLEVEL_ERROR);
+          }
+          
+          // emulate "files" via streams?
+        } else {
+          // err?
         }
+
+
 
         // initialize sftp client
         $this->connection = @ssh2_sftp($this->sshConnection);
