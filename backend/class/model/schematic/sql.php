@@ -513,13 +513,42 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  array  $structure
      * @return [type]             [description]
      */
-    public function getVirtualFieldResult(array $result, &$track = [], array $structure = []) {
+    public function getVirtualFieldResult(array $result, &$track = [], array $structure = [], &$trackFields = []) {
 
       // DEBUG app::getResponse()->setData('structure', array_merge(app::getResponse()->getData('structure') ?? [], [$structure]));
       // DEBUG echo("structure1 ".implode('=>', $structure).'<br>');
 
       foreach($this->getNestedJoins() as $join) {
         $track[$join->model->getIdentifier()][] = $join->model;
+
+        //
+        // WORKAROUND 2019-06-17
+        // for handling field indexes in joins
+        // of same models, but differing fieldlists...
+        //
+        if($join->model instanceof \codename\core\model\schematic\sql) {
+          $dummy = [];
+          $vModelFieldlist = $join->model->getCurrentFieldlistNonRecursive(null, $dummy);
+
+          // always pick the last array element
+          foreach($vModelFieldlist as &$fieldComponents) {
+            $fieldComponents = $fieldComponents[count($fieldComponents)-1];
+          }
+
+          $fields = [];
+
+          if(in_array('*', $vModelFieldlist)) {
+            foreach($join->model->getFields() as $field) {
+              $fields[] = $field;
+            }
+          }
+
+          $fields = array_merge($fields, $vModelFieldlist);
+
+          foreach($fields as $field) {
+            $trackFields[$field][] = $join->model;
+          }
+        }
 
         if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
           $structureDive = [];
@@ -535,9 +564,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               }
             }
           }
-          $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, $structureDive) );
+          $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, $structureDive), $trackFields);
         }
       }
+
+      // \codename\core\app::getResponse()->setData('sql_'.$this->getIdentifier(), $trackFields);
+      // \codename\core\app::getResponse()->setData('sql_', $trackFields);
       // TODO, fix, refactor
       // foreach($this->getSiblingJoins() as $join) {
       //   $track[$join->model->getIdentifier()][] = $join->model;
@@ -599,7 +631,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
               if($vModel instanceof \codename\core\model\schematic\sql) {
                 $dummy = [];
-                $vModelFieldlist = $vModel->getCurrentFieldlist(null, $dummy);
+                $vModelFieldlist = $vModel->getCurrentFieldlistNonRecursive(null, $dummy);
                 // always pick the last array element
                 foreach($vModelFieldlist as &$fieldComponents) {
                   $fieldComponents = $fieldComponents[count($fieldComponents)-1];
@@ -638,6 +670,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // echo("USED INDEX: ".$index ." for field $field<br><br><br>");
 
                   foreach($vModel->getFields() as $modelField) {
+
+                    //
+                    // handle the trackFields array from above
+                    // which tracks possible PDO FETCH_NAMED indexes per field name
+                    //
+                    if($trackFields[$modelField] ?? false) {
+                      // override index...
+                      if(count($indexes = array_keys($trackFields[$modelField], $join->model, true)) === 1) {
+                        $index = $indexes[0];
+                      }
+                    }
 
                     //
                     // we have to compare the fieldlist (actually enabled fields for display)
@@ -2114,17 +2157,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
 
     /**
-     * Returns the current fieldlist as an array of triples (schema, table, field)
-     * it contains the visible fields of all nested models (childs, siblings)
-     * retrieved in a recursive call
-     * this also respects hiddenFields
+     * retrieves the fieldlist of this model
+     * on a non-recursive basis
      *
-     * @author Kevin Dargel
-     * @param string|null  $alias   [optional: alias as prefix for the following fields - table alias!]
-     * @param array &$params        [optional: current pdo params, including values]
-     * @return array
+     * @param  string|null  $alias    [description]
+     * @param  array        &$params  [description]
+     * @return array                  [description]
      */
-    protected function getCurrentFieldlist(string $alias = null, array &$params) : array {
+    protected function getCurrentFieldlistNonRecursive(string $alias = null, array &$params) : array {
       $result = array();
       if(count($this->fieldlist) == 0 && count($this->hiddenFields) > 0) {
         //
@@ -2236,6 +2276,26 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
       }
 
+      return $result;
+    }
+
+    /**
+     * Returns the current fieldlist as an array of triples (schema, table, field)
+     * it contains the visible fields of all nested models (childs, siblings)
+     * retrieved in a recursive call
+     * this also respects hiddenFields
+     *
+     * @author Kevin Dargel
+     * @param string|null  $alias   [optional: alias as prefix for the following fields - table alias!]
+     * @param array &$params        [optional: current pdo params, including values]
+     * @return array
+     */
+    protected function getCurrentFieldlist(string $alias = null, array &$params) : array {
+
+      // CHANGED 2019-06-17: main functionality moved to ::getCurrentFieldlistNonRecursive
+      // as we also need it for each model, singularly in ::getVirtualFieldResult()
+      $result = $this->getCurrentFieldlistNonRecursive($alias, $params);
+
       foreach($this->nestedModels as $join) {
         if($this->compatibleJoin($join->model)) {
           $result = array_merge($result, $join->model->getCurrentFieldlist($join->currentAlias, $params));
@@ -2248,6 +2308,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       }
       return $result;
     }
+
 
     /**
      * [protected description]
