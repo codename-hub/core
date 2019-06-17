@@ -900,6 +900,25 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     *
+     * {@inheritDoc}
+     * @see \codename\core\model_interface::addFilterList($field, $value, $operator)
+     */
+    public function addFilterList(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
+        $class = '\\codename\\core\\model\\plugin\\filterlist\\' . $this->getType();
+        if(is_array($value)) {
+            if(count($value) == 0) {
+                return $this;
+            }
+            array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
+        } else {
+            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            array_push($this->filter, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $conjunction));
+        }
+        return $this;
+    }
+
+    /**
      * [addAggregateFilter description]
      * @param  string               $field       [description]
      * @param  string|int|bool|null $value       [description]
@@ -1042,6 +1061,31 @@ abstract class model implements \codename\core\model\modelInterface {
         //     throw new \codename\core\exception(self::EXCEPTION_ADDDEFAULTFILTER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
         // }
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
+
+        if(is_array($value)) {
+            if(count($value) == 0) {
+                return $this;
+            }
+            array_push($this->defaultfilter, new $class($field, $value, $operator, $conjunction));
+            array_push($this->filter, new $class($field, $value, $operator, $conjunction));
+        } else {
+            array_push($this->defaultfilter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
+            array_push($this->filter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
+        }
+        return $this;
+    }
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see \codename\core\model_interface::addDefaultfilter($field, $value, $operator)
+     */
+    public function addDefaultfilterlist(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
+        $field = \codename\core\value\text\modelfield::getInstance($field);
+        // if(!$this->fieldExists($field)) {
+        //     throw new \codename\core\exception(self::EXCEPTION_ADDDEFAULTFILTER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
+        // }
+        $class = '\\codename\\core\\model\\plugin\\filterlist\\' . $this->getType();
 
         if(is_array($value)) {
             if(count($value) == 0) {

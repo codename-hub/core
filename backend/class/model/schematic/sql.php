@@ -1726,6 +1726,27 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                       $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field) ?? 'text'); // values separated from query
                   }
               }
+            } else if($filter instanceof \codename\core\model\plugin\filterlist\filterlistInterface) {
+
+              if(is_array($filter->value)) {
+                  // filter value is an array (e.g. IN() match)
+                  foreach($filter->value as $thisval) {
+                    if(!is_numeric($thisval)) {
+                      throw new exception(self::EXCEPTION_SQL_GETFILTERS_INVALID_QUERY_VALUE, exception::$ERRORLEVEL_ERROR, $filter);
+                    }
+                  }
+                  $string = implode(', ', $filter->value);
+                  $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
+                  $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' (' . $string . ') ';
+              } else {
+
+                if(!preg_match('/^([0-9,]+)$/i',$filter->value)) {
+                  throw new exception(self::EXCEPTION_SQL_GETFILTERS_INVALID_QUERY_VALUE, exception::$ERRORLEVEL_ERROR, $filter);
+                }
+                $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
+                $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' (' . $filter->value . ') ';
+              }
+
             } else if ($filter instanceof \codename\core\model\plugin\fieldfilter) {
               // handle field-based filters
               // this is not something PDO needs separately transmitted variables for
