@@ -45,6 +45,13 @@ abstract class response extends \codename\core\datacontainer {
     public const STATUS_UNAUTHENTICATED = 'STATUS_UNAUTHENTICATED';
 
     /**
+     * Status Constant: request performed includes too much data to be handled
+     * mostly relevant for HTTP requests and less CLI ...
+     * @var string
+     */
+    public const STATUS_REQUEST_SIZE_TOO_LARGE = 'STATUS_REQUEST_SIZE_TOO_LARGE';
+
+    /**
      * Contains the derived output
      * @var string
      */

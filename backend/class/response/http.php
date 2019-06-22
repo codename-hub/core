@@ -48,7 +48,8 @@ class http extends \codename\core\response {
         self::STATUS_INTERNAL_ERROR => 500,
         self::STATUS_NOTFOUND => 404,
         self::STATUS_FORBIDDEN => 403,
-        self::STATUS_UNAUTHENTICATED => 401
+        self::STATUS_UNAUTHENTICATED => 401,
+        self::STATUS_REQUEST_SIZE_TOO_LARGE => 413,
       );
       return $translate[$this->status] ?? 418; // fallback: teapot
     }
