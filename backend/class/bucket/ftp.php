@@ -80,7 +80,11 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
             $this->dirCreate($directory);
         }
 
-        @ftp_put($this->connection, $this->basedir . $remotefile, $localfile, FTP_BINARY);
+        try {
+          @ftp_put($this->connection, $this->basedir . $remotefile, $localfile, FTP_BINARY);
+        } catch (\Exception $e) {
+          $this->errorstack->addError('FILE', 'FILE_PUSH_FAILED', $this->basedir . $remotefile);
+        }
 
         return $this->fileAvailable($remotefile);
     }
