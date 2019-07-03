@@ -78,6 +78,7 @@ class http extends \codename\core\response {
      * Helper to set HTTP status codes
      * @param int $statusCode
      * @param string $statusText
+     * @return \codename\core\response
      */
     public function setStatuscode(int $statusCode, string $statusText) : \codename\core\response {
         $this->statusCode = $statusCode;
@@ -109,11 +110,15 @@ class http extends \codename\core\response {
 
     /**
      * CDN prefixes and matching rules
+     * @var array
      */
     protected $cdnPrefixes = array();
 
     /**
      * sets a cdn prefix
+     *
+     * @param [type] $prefix [description]
+     * @param [type] $target [description]
      */
     public function setCDNResourcePrefix($prefix, $target) {
       $this->cdnPrefixes[$prefix] = $target;
@@ -121,21 +126,20 @@ class http extends \codename\core\response {
 
     /**
      * Contains data for redirecting the user after finishing the request
-     * @var array | string
+     * @var array|string
      */
     protected $redirect = null;
 
     /**
      * Redirects the user at some point to the given destination.
-     * <br >Either pass a valid URL to the function (including protocol!) or pass the app/context/view/action data
-     * @param string $string (URL / app)
-     * @param string $context
-     * @param string $view
-     * @param string $action
-     * @param array $params
-     * @return void
+     * Either pass a valid URL to the function (including protocol!) or pass the app/context/view/action data
+     *
+     * @param string      $string  [description]
+     * @param string|null $context [description]
+     * @param string|null $view    [description]
+     * @param string|null $action  [description]
      */
-    public function setRedirect(string $string, string $context = null, string $view = null, string $action = null) {
+    public function setRedirect(string $string, ?string $context = null, ?string $view = null, ?string $action = null) {
         if(strpos($string, '://') != false || strpos($string, '/') === 0) {
             $this->redirect = $string;
             return;
@@ -151,7 +155,7 @@ class http extends \codename\core\response {
 
     /**
      * Sets parameters used for redirection
-     * @param array
+     * @param array $param [description]
      */
     public function setRedirectArray(array $param) {
       $this->redirect = $param;

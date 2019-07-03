@@ -176,7 +176,7 @@ abstract class response extends \codename\core\datacontainer {
 
     /**
      * [displayException description]
-     * @param  Exception $e [description]
+     * @param  \Exception $e [description]
      * @return [type]       [description]
      */
     public function displayException(\Exception $e) {
