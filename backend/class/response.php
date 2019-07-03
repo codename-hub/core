@@ -39,6 +39,12 @@ abstract class response extends \codename\core\datacontainer {
     public const STATUS_FORBIDDEN = 'STATUS_FORBIDDEN';
 
     /**
+     * Status Constant: Bad request
+     * @var string
+     */
+    public const STATUS_BAD_REQUEST = 'STATUS_BAD_REQUEST';
+
+    /**
      * Status Constant: Unauthenticated response
      * @var string
      */

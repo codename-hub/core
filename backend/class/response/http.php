@@ -28,14 +28,6 @@ class http extends \codename\core\response {
     protected function translateStatus()
     {
       return $this->translateStatusToHttpStatus();
-      // $translate = array(
-      //   self::STATUS_SUCCESS => 200,
-      //   self::STATUS_INTERNAL_ERROR => 500,
-      //   self::STATUS_NOTFOUND => 404,
-      //   self::STATUS_FORBIDDEN => 403,
-      //   self::STATUS_UNAUTHENTICATED => 401
-      // );
-      // return $translate[$this->status];
     }
 
     /**
@@ -50,6 +42,7 @@ class http extends \codename\core\response {
         self::STATUS_FORBIDDEN => 403,
         self::STATUS_UNAUTHENTICATED => 401,
         self::STATUS_REQUEST_SIZE_TOO_LARGE => 413,
+        self::STATUS_BAD_REQUEST => 400,
       );
       return $translate[$this->status] ?? 418; // fallback: teapot
     }
