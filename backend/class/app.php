@@ -740,7 +740,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
                 $config['context'][$key] = utils::array_merge_recursive_ex($config['context'][$key], $contexttype);
 
-                if(count($config['context'][$key]['defaultview']) > 1) {
+                if(is_array($config['context'][$key]['defaultview']) && count($config['context'][$key]['defaultview']) > 1) {
                     $config['context'][$key]['defaultview'] = $config['context'][$key]['defaultview'][0];
                 }
             }
