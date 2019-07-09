@@ -37,12 +37,7 @@ class modelfield extends \codename\core\value\text {
      * @return \codename\core\value\text\modelfield          [description]
      */
     public static function getInstance(string $field) : \codename\core\value\text\modelfield {
-      if(isset(self::$cached[$field])) {
-        return self::$cached[$field];
-      } else {
-        self::$cached[$field] = new self($field);
-        return self::$cached[$field];
-      }
+      return self::$cached[$field] ?? self::$cached[$field] = new self($field);
     }
 
     /**
@@ -50,7 +45,7 @@ class modelfield extends \codename\core\value\text {
      */
     protected static $cached = array();
 
-    
+
     protected $field = null;
 
     /**

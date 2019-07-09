@@ -16,10 +16,7 @@ class virtual extends \codename\core\value\text\modelfield {
      * @return \codename\core\value\text\modelfield
      */
     public static function getInstance(string $field) : \codename\core\value\text\modelfield {
-      if(!array_key_exists($field, self::$cached)) {
-        self::$cached[$field] = new self($field);
-      }
-      return self::$cached[$field];
+      return self::$cached[$field] ?? self::$cached[$field] = new self($field);
     }
 
 }
