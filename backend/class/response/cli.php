@@ -47,6 +47,9 @@ class cli extends \codename\core\response {
   {
     $formatter = new \codename\core\helper\clicolors();
 
+    // log to stderr
+    error_log(print_r($e, true), 0);
+
     if(defined('CORE_ENVIRONMENT')
       // && CORE_ENVIRONMENT != 'production'
     ) {

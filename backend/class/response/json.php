@@ -24,6 +24,9 @@ class json extends \codename\core\response\http {
   {
     $this->getResponse()->setStatuscode(500, "Internal Server Error");
 
+    // log to stderr
+    error_log(print_r($e, true), 0);
+
     if(defined('CORE_ENVIRONMENT') && CORE_ENVIRONMENT != 'production') {
       // TODO: optimize / check output?
       print_r(json_encode($e));
@@ -31,6 +34,7 @@ class json extends \codename\core\response\http {
     } else {
       // TODO: show exception ?
     }
+
 
     $this->pushOutput();
   }
