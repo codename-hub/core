@@ -913,6 +913,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
+     * enables overriding/setting the connection
+     * @param \codename\core\database $db [description]
+     */
+    public function setConnectionOverride(\codename\core\database $db) {
+      $this->db = $db;
+    }
+
+    /**
      * Use right joining for this model
      * which allows empty joined fields to appear
      * @var bool
