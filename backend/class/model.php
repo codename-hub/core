@@ -2247,7 +2247,17 @@ abstract class model implements \codename\core\model\modelInterface {
         return $dataset;
     }
 
-
+    /**
+     * function is required to remove the default filter from the number generator
+     * @return [type] [description]
+     */
+    public function removeDefaultFilter() {
+      $this->defaultfilter = [];
+      $this->defaultAggregateFilter = [];
+      $this->defaultflagfilter = [];
+      $this->defaultfilterCollections = [];
+      return $this;
+    }
 
     /**
      * resets all the parameters of the instance for another query
