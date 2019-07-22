@@ -129,7 +129,7 @@ class bootstrap {
             return 'cli';
         }
         // ?
-        if(strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+        if(strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false) {
             return 'json';
         }
         return 'https';
