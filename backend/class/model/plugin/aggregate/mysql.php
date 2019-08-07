@@ -31,6 +31,9 @@ class mysql extends \codename\core\model\plugin\aggregate implements \codename\c
       case 'year':
         $sql = 'YEAR('.$tableAlias.$this->fieldBase->get().')';
         break;
+      case 'quarter':
+        $sql = 'QUARTER('.$tableAlias.$this->fieldBase->get().')';
+        break;
       case 'month':
         $sql = 'MONTH('.$tableAlias.$this->fieldBase->get().')';
         break;
