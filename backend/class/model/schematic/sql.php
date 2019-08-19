@@ -1037,7 +1037,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             }
 
             $joinComponentsString = implode(' AND ', $joinComponents);
-            $ret .= " {$joinMethod} {$nest->schema}.{$nest->table} {$aliasAs} ON $joinComponentsString";
+
+            // SQL USE INDEX implementation, limited to one index per table at a time
+            $useIndex = '';
+            if($nest->useIndex ?? false && count($nest->useIndex) > 0) {
+              $useIndex = ' USE INDEX('.$nest->useIndex[0].') ';
+            }
+
+            $ret .= " {$joinMethod} {$nest->schema}.{$nest->table} {$aliasAs}{$useIndex} ON $joinComponentsString";
 
             $join->currentAlias = $alias;
 
@@ -1085,7 +1092,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           $thisField = $join->modelField; // $siblingConfig['this_field'];
           $siblingField = $join->referenceField; // $siblingConfig['sibling_field'];
 
-          $ret .= " {$joinMethod} {$sibling->schema}.{$sibling->table} {$aliasAs} ON {$alias}.{$siblingField} = {$this->table}.{$thisField}";
+          // SQL USE INDEX implementation, limited to one index per table at a time
+          $useIndex = '';
+          if($sibling->useIndex ?? false && count($sibling->useIndex) > 0) {
+            $useIndex = ' USE INDEX('.$sibling->useIndex[0].') ';
+          }
+
+          $ret .= " {$joinMethod} {$sibling->schema}.{$sibling->table} {$aliasAs}{$useIndex} ON {$alias}.{$siblingField} = {$this->table}.{$thisField}";
           $ret .= $sibling->deepJoin($sibling, $tableUsage, $aliasCounter);
         }
         return $ret;
@@ -1130,6 +1143,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // just reset errorstack.
         $this->errorstack->reset();
       }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function addUseIndex(array $fields): \codename\core\model
+    {
+      $fieldString = (count($fields) === 1 ? $fields[0] : implode(',', $fields));
+      $this->useIndex = [ 'index_'.md5($fieldString) ];
+      // $this->useIndex = array_values(array_unique($this->useIndex));
+      return $this;
     }
 
     /**
@@ -1185,6 +1209,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
 
         $query .= ' FROM ' . $this->schema . '.' . $this->table . ' ';
+
+        if($this->useIndex ?? false && count($this->useIndex) > 0) {
+          $query .= 'USE INDEX('.$this->useIndex[0].') ';
+        }
 
         // append the previously constructed deepjoin string
         $query .= $deepjoin;
