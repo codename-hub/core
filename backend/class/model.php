@@ -1997,7 +1997,7 @@ abstract class model implements \codename\core\model\modelInterface {
       // nested first
       // siblings second
       //
-      foreach(array_merge($this->getNestedJoins(), $this->getSiblingJoins()) as $join) {
+      foreach(array_merge($this->getNestedJoins() /*, $this->getSiblingJoins()*/ ) as $join) {
         $nest = $join->model;
 
         $vKey = null;
