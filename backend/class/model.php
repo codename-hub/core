@@ -175,6 +175,12 @@ abstract class model implements \codename\core\model\modelInterface {
     protected $result = null;
 
     /**
+     * add a index for the function use index
+     * @var string[]
+     */
+    protected $useIndex = [];
+
+    /**
      * Contains instances of the filters for the model request
      * @var \codename\core\model\plugin\filter[] $filter
      */
@@ -868,6 +874,15 @@ abstract class model implements \codename\core\model\modelInterface {
             }
         }
         return $this->addFilter($this->getPrimarykey(), $primaryKey)->search()->getResult()[0];
+    }
+
+    /**
+     * [addUseindex description]
+     * @param  array $fields [description]
+     * @return model         [description]
+     */
+    public function addUseIndex(array $fields) : model {
+      throw new \LogicException('Not implemented for this kind of model');
     }
 
     /**
