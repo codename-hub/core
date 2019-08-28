@@ -96,15 +96,25 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
           $pubkeyString = $data['sftpserver']['pubkey'];
           $privkeyString = $data['sftpserver']['privkey'];
 
-          $pubkeyFile = tempnam('secure', 'sftp_pub_');
-          $handle = fopen($pubkeyFile, 'w');
-          fwrite($handle, $pubkeyString);
-          fclose($handle);
+          $pubkeyFile = null;
+          try {
+            $pubkeyFile = tempnam('secure', 'sftp_pub_');
+            $handle = fopen($pubkeyFile, 'w');
+            fwrite($handle, $pubkeyString);
+            fclose($handle);
+          } catch (\Exception $e) {
+            throw new exception('FILE_COULD_NOT_BE_WRITE', exception::$ERRORLEVEL_ERROR,array($pubkeyFile));
+          }
 
-          $privkeyFile = tempnam('secure', 'sftp_pub_');
-          $handle = fopen($privkeyFile, 'w');
-          fwrite($handle, $privkeyString);
-          fclose($handle);
+          $privkeyFile = null;
+          try {
+            $privkeyFile = tempnam('secure', 'sftp_pri_');
+            $handle = fopen($privkeyFile, 'w');
+            fwrite($handle, $privkeyString);
+            fclose($handle);
+          } catch (\Exception $e) {
+            throw new exception('FILE_COULD_NOT_BE_WRITE', exception::$ERRORLEVEL_ERROR,array($privkeyFile));
+          }
 
           // TODO: passphrase for privkey file
 
@@ -112,10 +122,10 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
           if (! @ssh2_auth_pubkey_file($this->sshConnection, $username, $pubkeyFile, $privkeyFile, $passphrase)) {
             throw new exception("EXCEPTION_BUCKET_SFTP_SSH_AUTH_FAILED", exception::$ERRORLEVEL_ERROR);
           }
-          
+
           // emulate "files" via streams?
         } else {
-          // err?
+          throw new exception('EXCEPTION_BUCKET_SFTP_SSH_AUTH_TYPE_NOT_IMPLEMENTED', exception::$ERRORLEVEL_ERROR);
         }
 
 
