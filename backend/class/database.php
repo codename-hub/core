@@ -88,7 +88,7 @@ class database extends \codename\core\observable {
               $autoconnectDatabase = $config['autoconnect_database'];
             }
 
-            $this->connection = new \PDO($this->driver . ":" . ( $autoconnectDatabase ? "dbname=" . $config['database'] . ";" : '') . 'host=' . $host . (isset($config['charset']) ? (';charset='.$config['charset']) : ''), $user, $pass);
+            $this->connection = new \PDO($this->driver . ":" . ( $autoconnectDatabase ? "dbname=" . $config['database'] . ";" : '') . 'host=' . $host . (isset($config['port']) ? (';port='.$config['port']) : '') . (isset($config['charset']) ? (';charset='.$config['charset']) : ''), $user, $pass);
 
             $this->connection->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false);
             $this->connection->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
