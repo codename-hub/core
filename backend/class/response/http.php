@@ -305,6 +305,17 @@ class http extends \codename\core\response {
     {
       $this->setStatuscode(500, "Internal Server Error");
 
+      // log to stderr
+      // NOTE: we log twice, as the second one might be killed
+      // by memory exhaustion
+      if($e instanceof \codename\core\exception && !is_null($e->info)) {
+        $info = print_r($e->info, true);
+      } else {
+        $info = '<none>';
+      }
+      
+      error_log("[SAFE ERROR LOG] "."{$e->getMessage()} (Code: {$e->getCode()}) in File: {$e->getFile()}:{$e->getLine()}, Info: {$info}");
+
       if(
         defined('CORE_ENVIRONMENT')
         // && CORE_ENVIRONMENT != 'production'
@@ -319,10 +330,15 @@ class http extends \codename\core\response {
             echo "</pre>";
         }
 
-        echo "<h6>Stacktrace:</h6>";
-        echo "<pre>";
-        print_r($e->getTrace());
-        echo "</pre>";
+        //
+        // CHANGED 2019-09-02: handle sensitive exceptions differently
+        //
+        if(!($e instanceof \codename\core\sensitiveException)) {
+          echo "<h6>Stacktrace:</h6>";
+          echo "<pre>";
+          print_r($e->getTrace());
+          echo "</pre>";
+        }
         die();
       }
 
