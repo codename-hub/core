@@ -367,7 +367,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             // (e.g. a field added through ->addVirtualField)
             // in ->getVirtualFieldResult(...)
             // at the end, when we reached the original root structure again.
-            // $d = $this->handleVirtualFields($d);
+
+            //
+            // NOTE/CHANGED 2019-09-10: we now handle virtual fields for the root model right here
+            // as we wouldn't get normalized structure fields the way we did it before
+            //
+            // Before, we were handling virtual fields inside ::getVirtualFieldResult()
+            // Which DOES NOT normalize those fields - so, inside a virtualField callback, you'd get JSON strings
+            // instead of "real" object/array data
+            //
+            $d = $this->handleVirtualFields($d);
           }
         }
 
@@ -457,6 +466,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // otherwise we might run into issues, e.g.
         // - "structure"-type fields are not json_decode'd, if present on the root model
         // - ... other things?
+        // NOTE: as of 2019-09-10 the normalization of structure fields has changed
         $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeRow($this->normalizeByFieldlist($r)));
       }
 
@@ -565,6 +575,22 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             }
           }
           $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, $structureDive), $trackFields);
+
+          //
+          // NOTE/CHANGED 2019-09-10: changed handling/behaviour of virtual fields via ::addVirtualField()
+          // if we're on root-level but handling a join
+          // (case: no virtual field for objectdata, but joined table)
+          // NOTE: root model virtual fields are handled outside
+          // NOTE: we're performing a small normalization inside this join handling.
+          //
+          if(count($structure) === 0 && count($structureDive) === 0) {
+            if(count($join->model->getVirtualFields()) > 0) {
+              foreach($result as &$d) {
+                $d = $join->model->normalizeRow($d);
+                $d = $join->model->handleVirtualFields($d);
+              }
+            }
+          }
         }
       }
 
@@ -885,19 +911,22 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
       }
 
-
+      //
+      // NOTE/CHANGED 2019-09-10: we now handle virtual field handling AFTER normalization of structure fields (JSON-decoding!)
+      // as we wouldn't get normalized structure fields the way we did it before
+      //
+      // Before, we were handling virtual fields inside ::getVirtualFieldResult()
+      // Which DOES NOT normalize those fields - so, inside a virtualField callback, you'd get JSON strings
+      // instead of "real" object/array data
+      //
+      // see: ::internalGetResult() in this class
+      //
       // handle custom virtual fields
-      if(count($structure) === 0) {
-        if(count($this->virtualFields) > 0) {
-          foreach($result as &$d) {
-            $d = $this->handleVirtualFields($d);
-          }
-        }
-      }
-      // if(count($this->virtualFields) > 0) {
-      //   app::getResponse()->setData('protocol_schematic_sql_internalGetResult>'.$this->getIdentifier(), $this->virtualFields);
-      //   foreach($result as &$d) {
-      //     $d = $this->handleVirtualFields($d);
+      // if(count($structure) === 0) {
+      //   if(count($this->virtualFields) > 0) {
+      //     foreach($result as &$d) {
+      //       $d = $this->handleVirtualFields($d);
+      //     }
       //   }
       // }
       return $result;
