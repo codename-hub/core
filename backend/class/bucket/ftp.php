@@ -57,7 +57,21 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
             return $this;
         }
 
+        // passive mode setting from config
+        if($data['ftpserver']['passive_mode'] ?? false) {
+          $this->enablePassiveMode(true);
+        }
+
         return $this;
+    }
+
+    /**
+     * [enablePassiveMode description]
+     * @param  bool   $state [description]
+     * @return [type]        [description]
+     */
+    public function enablePassiveMode(bool $state) {
+      @ftp_pasv($this->connection, $state);
     }
 
     /**
