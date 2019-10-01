@@ -528,7 +528,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       // DEBUG app::getResponse()->setData('structure', array_merge(app::getResponse()->getData('structure') ?? [], [$structure]));
       // DEBUG echo("structure1 ".implode('=>', $structure).'<br>');
 
+      // app::getResponse()->setData('protocol', array_merge(app::getResponse()->getData('protocol') ?? [], [[
+      //     'structure/nesting level' => $structure,
+      //     'model' => $this->getIdentifier(),
+      // ]]));
+
       foreach($this->getNestedJoins() as $join) {
+
+        // app::getResponse()->setData('structure', array_merge(app::getResponse()->getData('structure') ?? [], [$structure]));
+        // app::getResponse()->setData('protocol', array_merge(app::getResponse()->getData('protocol') ?? [], [[
+        //     'structure/nesting level' => $structure,
+        //     'model' => $join->model->getIdentifier(),
+        // ]]));
         $track[$join->model->getIdentifier()][] = $join->model;
 
         //
@@ -558,6 +569,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           foreach($fields as $field) {
             $trackFields[$field][] = $join->model;
           }
+
+          // if($join->model->getIdentifier() == 'person') {
+          //   $key = 'model_join '.$this->getIdentifier().'__'.$join->model->getIdentifier();
+          //   \codename\core\app::getResponse()->setData(
+          //     $key,
+          //     array_merge(
+          //       \codename\core\app::getResponse()->getData($key) ?? [],
+          //       [ $vModelFieldlist ]
+          //     )
+          //   );
+          // }
+          // \codename\core\app::getResponse()->setData('trackFields', $trackFields);
+
         }
 
         if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
@@ -627,6 +651,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   }
                 }
               }
+
+              // app::getResponse()->setData('protocol', array_merge(app::getResponse()->getData('protocol') ?? [], [[
+              //   'structure/nesting level' => $structure,
+              //   'model' => $this->getIdentifier(),
+              //   'indexIsNull' => $index === null,
+              //   'foreignModel' => $foreign['model'],
+              //   'index' => $index
+              //   ]]));
 
               if($index === null) {
                 // index is still null -> model not found in currently nested models
@@ -707,7 +739,38 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                       if(count($indexes = array_keys($trackFields[$modelField], $vModel, true)) === 1) { // NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
                         $index = $indexes[0];
                       }
+                      // else {
+                      //   $indexes = array_keys($trackFields[$modelField], $vModel, true);// NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
+                      //   if(count($indexes) > 1) {
+                      //     throw new exception('BAD', exception::$ERRORLEVEL_DEBUG, [
+                      //       'modelField' => $modelField,
+                      //       'indexes' => array_keys($trackFields[$modelField], $vModel, true)// NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
+                      //     ]);
+                      //   }
+                      // }
                     }
+
+                    // \codename\core\app::getResponse()->setData('indexes_'.'person_firstname', ($trackFields['person_firstname']));
+                    // \codename\core\app::getResponse()->setData('indexes_'.'person_salutation', ($trackFields['person_salutation']));
+
+                    // if($vModel->getIdentifier() == 'person' /* || $this->getIdentifier() == 'customer'*/ ) {
+                    //   \codename\core\app::getResponse()->setData(
+                    //     'index_chosen',
+                    //     array_merge(
+                    //       \codename\core\app::getResponse()->getData('index_chosen') ?? [],
+                    //       [
+                    //         [
+                    //           'structure' => $structure,
+                    //           'field' => $this->getIdentifier().'.'.$modelField,
+                    //           'index' => $index,
+                    //           'vModelFieldlist' => $vModelFieldlist,
+                    //           'skip' => ($vModelFieldlist !== null && !in_array($modelField, $vModelFieldlist) && !in_array('*', $vModelFieldlist)),
+                    //           'value' => $result[$modelField][$index]
+                    //         ]
+                    //       ]
+                    //     )
+                    //   );
+                    // }
 
                     //
                     // we have to compare the fieldlist (actually enabled fields for display)
@@ -825,6 +888,31 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 }
               }
             }
+
+            // else {
+            //   //
+            //   // non-virtual field?
+            //   // TESTING!
+            //   //
+            //   $index = null;
+            //   if(count($indexes = array_keys($track[$foreign['model']], $join->model, true)) === 1) {
+            //     $index = $indexes[0];
+            //   }
+            //   if($index === null) {
+            //     continue;
+            //   }
+            //   $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
+            //   $vModelFieldlist = null;
+            //   if($vModel instanceof \codename\core\model\schematic\sql) {
+            //     $dummy = [];
+            //     $vModelFieldlist = $vModel->getCurrentFieldlistNonRecursive(null, $dummy);
+            //     // always pick the last array element
+            //     foreach($vModelFieldlist as &$fieldComponents) {
+            //       $fieldComponents = $fieldComponents[count($fieldComponents)-1];
+            //     }
+            //   }
+            //
+            // }
           // }
           } else if($config['type'] === 'collection') {
 
@@ -911,6 +999,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           // TODO: Handle collections?
         }
       }
+
+      // \codename\core\app::getResponse()->setData('track', $track);
+      // \codename\core\app::getResponse()->setData('trackFields', $trackFields);
 
       //
       // NOTE/CHANGED 2019-09-10: we now handle virtual field handling AFTER normalization of structure fields (JSON-decoding!)
