@@ -701,9 +701,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     // handle the trackFields array from above
                     // which tracks possible PDO FETCH_NAMED indexes per field name
                     //
+                    $index = null;
                     if($trackFields[$modelField] ?? false) {
                       // override index...
-                      if(count($indexes = array_keys($trackFields[$modelField], $join->model, true)) === 1) {
+                      if(count($indexes = array_keys($trackFields[$modelField], $vModel, true)) === 1) { // NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
                         $index = $indexes[0];
                       }
                     }
