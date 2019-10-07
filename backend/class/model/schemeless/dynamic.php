@@ -124,6 +124,14 @@ class dynamic extends \codename\core\model\schemeless implements \codename\core\
   /**
    * @inheritDoc
    */
+  protected function compatibleJoin(\codename\core\model $model): bool
+  {
+    return false; // ?
+  }
+
+  /**
+   * @inheritDoc
+   */
   protected function doQuery(string $query, array $params = array())
   {
     throw new \LogicException('Not implemented'); // TODO

@@ -593,7 +593,11 @@ abstract class model implements \codename\core\model\modelInterface {
         }
 
         // fallback to bare model joining
-        $pluginDriver = $this->compatibleJoin($model) ? $this->getType() : 'bare';
+        if($model instanceof \codename\core\model\schemeless\dynamic || $this instanceof \codename\core\model\schemeless\dynamic) {
+          $pluginDriver = 'dynamic';
+        } else {
+          $pluginDriver = $this->compatibleJoin($model) ? $this->getType() : 'bare';
+        }
 
         $class = '\\codename\\core\\model\\plugin\\join\\' . $pluginDriver;
         array_push($this->nestedModels, new $class($model, $type, $thisKey, $joinKey, $conditions));
@@ -2096,6 +2100,8 @@ abstract class model implements \codename\core\model\modelInterface {
           } else {
             $result = $join->join($result, $subresult);
           }
+        } else if(!$this->compatibleJoin($nest) && ($join instanceof \codename\core\model\plugin\join\dynamicJoinInterface)) {
+          $result = $join->dynamicJoin($result);
         }
       }
       return $result;
