@@ -2061,6 +2061,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
+     * [EXCEPTION_SQL_GETFILTERS_INVALID_QUERY_VALUE description]
+     * @var string
+     */
+    const EXCEPTION_SQL_GETFILTERS_INVALID_QUERY_VALUE = 'EXCEPTION_SQL_GETFILTERS_INVALID_QUERY_VALUE';
+
+    /**
      * [getFilterQuery description]
      * @param  array        &$appliedFilters [reference array containing used filters]
      * @param  string|null  $mainAlias       [provide an alias for the main table]
