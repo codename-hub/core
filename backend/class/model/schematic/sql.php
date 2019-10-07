@@ -1150,11 +1150,26 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $joinComponents[] = "{$alias}.{$joinKey} = {$useAlias}.{$thisKey}";
             }
 
+            // DEBUG
+            // print_r( [
+            //   'nest' => $nest->getIdentifier(),
+            //   'fkey.key' => $nest->getConfig()->get('foreign>'.$joinKey.'>key'),
+            //   'joinKey' => $joinKey,
+            //   'thisKey' => $thisKey,
+            //   'alias' => $alias,
+            //   'useAlias' => $useAlias,
+            // ] );
+
+            // Determine the specific alias
+            // if we're doing a reverse join, current alias is simply wrong
+            // at least when using explicit values as condition parts
+            $cAlias = $nest->getConfig()->get('foreign>'.$joinKey.'>key') == $thisKey ? $alias : $useAlias;
+
             // add conditions!
             foreach($join->conditions as $filter) {
               $operator = $filter['value'] == null ? ($filter['operator'] == '!=' ? 'IS NOT' : 'IS') : $filter['operator'];
               $value = $filter['value'] == null ? 'NULL' : $filter['value'];
-              $joinComponents[] = "{$useAlias}.{$filter['field']} {$operator} {$value}";
+              $joinComponents[] = "{$cAlias}.{$filter['field']} {$operator} {$value}";
             }
 
             $joinComponentsString = implode(' AND ', $joinComponents);
