@@ -241,6 +241,23 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      */
     public function __CONSTRUCT() {
 
+        //
+        // register shutdown handler
+        // and handle fatal PHP core runtime/execution errors like
+        // - maximum execution time exceeded
+        // - memory limit exhausted
+        // - function nesting level reached
+        //
+        ini_set('display_errors', 0);
+        register_shutdown_function(function() {
+          if($error = error_get_last()) {
+            $exc = new \codename\core\exception('EXCEPTION_RUNTIME_SHUTDOWN', exception::$ERRORLEVEL_FATAL, $error);
+            app::getResponse()->setStatus(\codename\core\response::STATUS_INTERNAL_ERROR);
+            app::getResponse()->displayException($exc);
+            exit(1);
+          }
+        });
+
         // Make Exceptions out of PHP Errors
         set_error_handler(function ($err_severity, $err_msg, $err_file, $err_line, array $err_context) {
           switch($err_severity)
