@@ -1667,7 +1667,9 @@ abstract class model implements \codename\core\model\modelInterface {
         if($this->config->exists('validators')) {
           $validators = $this->config->get('validators');
           foreach($validators as $validator) {
-            if(count($errors = app::getValidator($validator)->validate($data)) > 0) {
+            // NOTE: reset validator needed, as app::getValidator() caches the validator instance,
+            // including the current errorstack
+            if(count($errors = app::getValidator($validator)->reset()->validate($data)) > 0) {
               $this->errorstack->addError('DATA', 'INVALID', $errors);
             }
           }
