@@ -607,6 +607,35 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * adds a model using custom parameters
+     * and optionally using custom extra conditions
+     *
+     * this can be used to join models that have no explicit foreign key reference to each other
+     *
+     * @param  \codename\core\model     $model          [description]
+     * @param  string                   $type           [description]
+     * @param  string                   $modelField     [description]
+     * @param  string                   $referenceField [description]
+     * @param  array                    $conditions
+     * @return \codename\core\model                 [description]
+     */
+    public function addCustomJoin(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT, string $modelField, string $referenceField, array $conditions = []) : \codename\core\model {
+      $thisKey = $modelField;
+      $joinKey = $referenceField;
+
+      // fallback to bare model joining
+      if($model instanceof \codename\core\model\schemeless\dynamic || $this instanceof \codename\core\model\schemeless\dynamic) {
+        $pluginDriver = 'dynamic';
+      } else {
+        $pluginDriver = $this->compatibleJoin($model) ? $this->getType() : 'bare';
+      }
+
+      $class = '\\codename\\core\\model\\plugin\\join\\' . $pluginDriver;
+      array_push($this->nestedModels, new $class($model, $type, $thisKey, $joinKey, $conditions));
+      return $this;
+    }
+
+    /**
      * contains configured join plugin instances for nested models
      * @var \codename\core\model\plugin\join[]
      */
