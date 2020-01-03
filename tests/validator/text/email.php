@@ -47,7 +47,17 @@ class email extends \codename\core\tests\validator\text {
      * @return void
      */
     public function testValueDomainInvalid() {
-        $this->assertEquals('VALIDATION.EMAIL_DOMAIN_INVALID', $this->getValidator()->validate('invalid@')[0]['__CODE'] );
+        $validationResult = $this->getValidator()->validate('invalid@');
+        $this->assertEquals(
+          in_array(
+            $validationResult[0]['__CODE'],
+            [
+              'VALIDATION.EMAIL_DOMAIN_INVALID',
+              'VALIDATION.EMAIL_INVALID',
+            ]
+          ),
+          true
+        );
     }
 
     /**
@@ -55,7 +65,17 @@ class email extends \codename\core\tests\validator\text {
      * @return void
      */
     public function testValueAtNotUnique() {
-        $this->assertEquals('VALIDATION.EMAIL_AT_NOT_UNIQUE', $this->getValidator()->validate('invalid@sadas@as')[0]['__CODE'] );
+      $validationResult = $this->getValidator()->validate('invalid@sadas@as');
+      $this->assertEquals(
+        in_array(
+          $validationResult[0]['__CODE'],
+          [
+            'VALIDATION.EMAIL_AT_NOT_UNIQUE',
+            'VALIDATION.EMAIL_INVALID',
+          ]
+        ),
+        true
+      );
     }
 
     /**
