@@ -96,6 +96,9 @@ class database extends \codename\core\observable {
 
             $this->connection->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false);
             $this->connection->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+            // if using NON-PERSISTENT connections, we override the statement class with one of our own
+            $this->connection->setAttribute(\PDO::ATTR_STATEMENT_CLASS, [\codename\core\extendedPdoStatement::class, [ $this->connection ] ]);
         }
         catch (\PDOException $e) {
             throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONNECTIONERROR, \codename\core\exception::$ERRORLEVEL_FATAL, $e);
@@ -110,6 +113,31 @@ class database extends \codename\core\observable {
      * @var \PDOStatement[]
      */
     protected $statements = [];
+
+    /**
+     * holds data about the amount/count of cached statements
+     * to avoid calls to count() as far as possible
+     * @var int
+     */
+    protected $statementsCount = 0;
+
+    /**
+     * limit of how many PDO Prepared Statement Instances are kept for this database
+     * @var int
+     */
+    protected $maximumCachedStatements = 100;
+
+    /**
+     * [protected description]
+     * @var int
+     */
+    protected $maximumCachedOptimizedStatements = 50;
+
+    // DEBUG Statement preparation performance
+    // public $statementPreparedCount = 0;
+    // public $statementsClearCount = 0;
+    // public $statementReusageCount = 0;
+    // public $statementUsageStatistics = [];
 
     /**
      * Performs the given $query on the \PDO instance.
@@ -130,20 +158,40 @@ class database extends \codename\core\observable {
       foreach($this->statements as $statement) {
         if($statement->queryString == $query) {
           $this->statement = $statement;
+
+          // DEBUG Statement preparation performance
+          // $this->statementReusageCount++;
+          // $this->statementUsageStatistics[$query]++;
           break;
         }
       }
       if($this->statement === null) {
         $this->statement = $this->connection->prepare($query);
 
+        // DEBUG Statement preparation performance
+        // $this->statementPreparedCount++;
+
         //
         // Clear cached prepared PDO statements, if there're more than N of them
         //
-        if(count($this->statements) > $this->maximumCachedStatements) {
-          $this->statements = [];
+        if($this->statementsCount > $this->maximumCachedStatements) {
+          if($this->maximumCachedOptimizedStatements) {
+            uasort($this->statements, function(extendedPdoStatement $a, extendedPdoStatement $b) {
+              return $a->getExecutionCount() <=> $b->getExecutionCount();
+            });
+            $this->statements = array_slice($this->statements, 0, $this->maximumCachedOptimizedStatements);
+            $this->statementsCount = count($this->statements);
+          } else {
+            $this->statements = [];
+            $this->statementsCount = 0;
+          }
+
+          // DEBUG Statement preparation performance
+          // $this->statementsClearCount++;
         }
 
         $this->statements[] = $this->statement;
+        $this->statementsCount++;
       }
 
       foreach($params as $key => $param) {
@@ -165,12 +213,6 @@ class database extends \codename\core\observable {
       // $this->notify();
       return;
     }
-
-    /**
-     * limit of how many PDO Prepared Statement Instances are kept for this database
-     * @var int
-     */
-    protected $maximumCachedStatements = 10;
 
     /**
      * Returns the array of records in the result
