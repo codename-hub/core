@@ -1699,7 +1699,26 @@ abstract class model implements \codename\core\model\modelInterface {
             // NOTE: reset validator needed, as app::getValidator() caches the validator instance,
             // including the current errorstack
             if(count($errors = app::getValidator($validator)->reset()->validate($data)) > 0) {
-              $this->errorstack->addError('DATA', 'INVALID', $errors);
+              //
+              // NOTE/CHANGED 2020-02-18
+              // split errors into field-related and others
+              // to improve validation handling
+              //
+              $dataErrors = [];
+              $fieldErrors = [];
+              foreach($errors as $error) {
+                if(in_array($error['__IDENTIFIER'], $this->getFields())) {
+                  $fieldErrors[] = $error;
+                } else {
+                  $dataErrors[] = $error;
+                }
+              }
+              if(count($dataErrors) > 0) {
+                $this->errorstack->addError('DATA', 'INVALID', $dataErrors);
+              }
+              if(count($fieldErrors) > 0) {
+                $this->errorstack->addErrors($fieldErrors);
+              }
             }
           }
         }
