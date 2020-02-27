@@ -61,12 +61,16 @@ abstract class bucket implements \codename\core\bucket\bucketInterface {
     public function downloadToClient(\codename\core\value\text\filerelative $remotefile, \codename\core\value\text\filename $filename, array $option = array()) {
         if(!$this->fileAvailable($remotefile->get())) {
             // app::writeActivity('BUCKET_FILE_DOWNLOAD_FAIL', $remotefile->get());
-            throw new exception('BUCKET_FILE_DOWNLOAD_FAIL', exception::$ERRORLEVEL_ERROR, $remotefile->get());
+            throw new exception('BUCKET_FILE_DOWNLOAD_UNAVAILABLE', exception::$ERRORLEVEL_ERROR, $remotefile->get());
         }
 
         $tempfile = '/tmp/' . md5($remotefile->get() . microtime() . $filename->get());
 
-        $this->filePull($remotefile->get(), $tempfile);
+        // evaluate return value from ::filePull()
+        if(!$this->filePull($remotefile->get(), $tempfile)) {
+          throw new exception('BUCKET_FILE_DOWNLOAD_FAIL', exception::$ERRORLEVEL_ERROR, $remotefile->get());
+        }
+
         app::writeActivity('BUCKET_FILE_DOWNLOAD', $remotefile->get());
 
         if(array_key_exists('inline', $option) === TRUE && $option['inline'] === TRUE) {
@@ -105,6 +109,7 @@ abstract class bucket implements \codename\core\bucket\bucketInterface {
         if (ob_get_contents()) ob_clean();
         flush();
         readfile($tempfile);
+        unlink($tempfile); // delete the tempfile afterwards
         exit;
     }
 
