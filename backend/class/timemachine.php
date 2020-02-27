@@ -187,19 +187,30 @@ class timemachine {
    * and returns the respective entry id or NULL (empty delta)
    * @param  int    $identifier [description]
    * @param  array  $newData    [description]
+   * @param  bool   $deletion   [whether the corresponding dataset is going to be deleted - this stores a full snapshot]
    * @return int|null                [description]
    */
-  public function saveState(int $identifier, array $newData) : ?int
+  public function saveState(int $identifier, array $newData, bool $deletion = false) : ?int
   {
     $data = $this->getCurrentData($identifier);
     $delta = array();
     $excludedFields = $this->getExcludedFields();
 
-    foreach($newData as $key => $value) {
-      if(!in_array($key, $excludedFields)) {
-        if((!array_key_exists($key, $data)) || ($data[$key] != $value)) {
-          // value differs or even the key doesn't exist
-          $delta[$key] = $data[$key] ?? null; // store EXISTING/old data (!)
+    if($deletion) {
+      //
+      // for deletion: store the full dataset
+      //
+      $delta = $data;
+    } else {
+      //
+      // generic delta calculation
+      //
+      foreach($newData as $key => $value) {
+        if(!in_array($key, $excludedFields)) {
+          if((!array_key_exists($key, $data)) || ($data[$key] != $value)) {
+            // value differs or even the key doesn't exist
+            $delta[$key] = $data[$key] ?? null; // store EXISTING/old data (!)
+          }
         }
       }
     }
@@ -209,14 +220,17 @@ class timemachine {
       return null;
     }
 
-    if($this->timemachineModel instanceof \codename\core\model\timemachineModelInterface) {
-      $this->timemachineModel->save([
-        $this->timemachineModel->getModelField()  => $this->capableModel->getIdentifier(),
-        $this->timemachineModel->getRefField()    => $identifier,
-        $this->timemachineModel->getDataField()   => $delta
-      ]);
-      return $this->timemachineModel->lastInsertId();
-    }
+    //
+    // CHANGED 2020-02-27: omit instanceof for timemachine model,
+    // as it might cost cycles
+    // and it is implemented/checked in the constructor anyways
+    //
+    $this->timemachineModel->save([
+      $this->timemachineModel->getModelField()  => $this->capableModel->getIdentifier(),
+      $this->timemachineModel->getRefField()    => $identifier,
+      $this->timemachineModel->getDataField()   => $delta
+    ]);
+    return $this->timemachineModel->lastInsertId();
   }
 
 }

@@ -1737,7 +1737,30 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       $query .= implode(',', $parts);
 
       // $params = array();
-      $query .= $this->getFilterQuery($param);
+      $filterQuery = $this->getFilterQuery($param);
+
+      //
+      // query the datasets's pkey identifiers that are to-be-updated
+      // and submit each to timemachine
+      //
+      if($this->useTimemachine()) {
+        $timemachineQuery = "SELECT {$this->getPrimaryKey()} FROM " . $this->schema . "." . $this->table . ' ';
+        // NOTE: we have to use a separate array for this
+        // as we're also storing bound params of the update data in $param above
+        $timemachineFilterQueryParams = [];
+        $timemachineFilterQuery = $this->getFilterQuery($timemachineFilterQueryParams);
+        $timemachineQuery .= $timemachineFilterQuery;
+        $timemachineQueryResponse = $this->internalQuery($timemachineQuery, $timemachineFilterQueryParams);
+        $timemachineResult = $this->db->getResult();
+        $pkeyValues = array_column($timemachineResult, $this->getPrimaryKey());
+
+        $tm = \codename\core\timemachine::getInstance($this->getIdentifier());
+        foreach($pkeyValues as $id) {
+          $tm->saveState($id, $data); // supply data to be changed for each entry
+        }
+      }
+
+      $query .= $filterQuery;
       $this->doQuery($query, $param);
 
       return $this;
@@ -1769,6 +1792,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             }
 
             $this->deleteChildren($primaryKey);
+
+            if($this->useTimemachine()) {
+              $tm = \codename\core\timemachine::getInstance($this->getIdentifier());
+              $tm->saveState($primaryKey, [], true); // supply empty array and deletion flag
+            }
+
             $query = "DELETE FROM " . $this->schema . "." . $this->table . " WHERE " . $this->getPrimarykey() . " = " . $primaryKey;
             $this->doQuery($query);
             return $this;
@@ -1799,7 +1828,27 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // running getFilterQuery()
         $params = array();
 
-        $query .= $this->getFilterQuery($params);
+        // pre-fetch filterquery for regular query and timemachine
+        $filterQuery = $this->getFilterQuery($params);
+
+        //
+        // query the datasets's pkey identifiers that are to-be-deleted
+        // and submit each to timemachine
+        //
+        if($this->useTimemachine()) {
+          $timemachineQuery = "SELECT {$this->getPrimaryKey()} FROM " . $this->schema . "." . $this->table . ' ';
+          $timemachineQuery .= $filterQuery;
+          $timemachineQueryResponse = $this->internalQuery($timemachineQuery, $params);
+          $timemachineResult = $this->db->getResult();
+          $pkeyValues = array_column($timemachineResult, $this->getPrimaryKey());
+
+          $tm = \codename\core\timemachine::getInstance($this->getIdentifier());
+          foreach($pkeyValues as $id) {
+            $tm->saveState($id, [], true); // supply empty array and deletion flag
+          }
+        }
+
+        $query .= $filterQuery;
         $this->doQuery($query, $params);
 
         return $this;
