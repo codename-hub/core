@@ -1411,7 +1411,22 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         return $this;
     }
 
+    /**
+     * [protected description]
+     * @var bool|null
+     */
+    protected $useTimemachineState = null;
 
+    /**
+     * Whether this model is timemachine-capable and enabled
+     * @return bool
+     */
+    protected function useTimemachine() : bool {
+      if($this->useTimemachineState === null) {
+        $this->useTimemachineState = ($this instanceof \codename\core\model\timemachineInterface) && $this->isTimemachineEnabled();
+      }
+      return $this->useTimemachineState;
+    }
 
     /**
      * returns a query that performs a save using UPDATE
@@ -1436,7 +1451,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
 
         // raw data for usage with the timemachine
-        if($this instanceof \codename\core\model\timemachineInterface && $this->isTimemachineEnabled()) {
+        if($this->useTimemachine()) {
           $raw = $data;
         }
 
@@ -1476,7 +1491,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // this stores delta values in a separate model
 
         // if ( ((new \ReflectionClass($this))->implementsInterface('\\codename\\core\\model\\timemachineInterface')
-        if($this instanceof \codename\core\model\timemachineInterface && $this->isTimemachineEnabled()) {
+        if($this->useTimemachine()) {
           $tm = \codename\core\timemachine::getInstance($this->getIdentifier());
           $tm->saveState($data[$this->getPrimarykey()], $raw); // we have to use raw data, as we can't use jsonified arrays.
         }
