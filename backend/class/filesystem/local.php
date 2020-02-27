@@ -205,7 +205,17 @@ class local extends \codename\core\filesystem implements \codename\core\filesyst
             return false;
         }
 
-        @mkdir($directory);
+        //
+        // In some situations, mkdir may throw an exception,
+        // if the directory had been created in the meantime
+        // Either way, we check for the dir being available, below.
+        //
+        try {
+          @mkdir($directory);
+        } catch (\Exception $e) {
+
+        }
+
         return $this->fileAvailable($directory);
     }
 
