@@ -37,7 +37,12 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
         }
 
         $this->basedir = $data['basedir'];
-        $this->connection = @ftp_connect($data['ftpserver']['host'], $data['ftpserver']['port'], 2);
+
+        if($data['ftpserver']['ssl'] ?? false) {
+          $this->connection = @ftp_ssl_connect($data['ftpserver']['host'], $data['ftpserver']['port'], 2);
+        } else {
+          $this->connection = @ftp_connect($data['ftpserver']['host'], $data['ftpserver']['port'], 2);
+        }
 
         if(isset($data['public']) && $data['public']) {
             $this->baseurl = $data['baseurl'];
