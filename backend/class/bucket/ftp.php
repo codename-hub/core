@@ -62,6 +62,16 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
             return $this;
         }
 
+        //
+        // Sometimes, the server reports his own IP address
+        // which might be wrong or a local address
+        // advise the client to ignore it and instead connect
+        // to the known endpoint directly
+        //
+        if($data['ftpserver']['ignore_passive_address'] ?? false) {
+          @ftp_set_option($this->connection, FTP_USEPASVADDRESS, false);
+        }
+
         // passive mode setting from config
         if($data['ftpserver']['passive_mode'] ?? false) {
           $this->enablePassiveMode(true);
