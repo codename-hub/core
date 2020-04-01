@@ -210,7 +210,38 @@ class http extends \codename\core\response {
           return true;
         }
 
-        if(strpos('://', $content) && !app::getInstance('filesystem_local')->fileAvailable(CORE_WEBROOT . $content)) {
+        if(strpos('://', $content) === false) {
+            //
+            // Local asset check
+            //
+            if(app::getInstance('filesystem_local')->fileAvailable($file = app::getHomedir() . $content)) {
+              //
+              // Local asset available
+              // Current style: load inline, automatically.
+              //
+              if($type === 'css') {
+                if(pathinfo($file, PATHINFO_EXTENSION) == 'css') {
+                  return self::requireResource('style', file_get_contents($file));
+                } else {
+                  // exception
+                  throw new \codename\core\exception('EXCEPTION_REQUIRERESOURCE_DISALLOWED', \codename\core\exception::$ERRORLEVEL_FATAL, $content);
+                }
+              } else if('js') {
+                if(pathinfo($file, PATHINFO_EXTENSION) == 'js') {
+                  return self::requireResource('script', file_get_contents($file));
+                } else {
+                  // exception
+                  throw new \codename\core\exception('EXCEPTION_REQUIRERESOURCE_DISALLOWED', \codename\core\exception::$ERRORLEVEL_FATAL, $content);
+                }
+              } else {
+                // error!
+                throw new \codename\core\exception('EXCEPTION_REQUIRERESOURCE_DISALLOWED', \codename\core\exception::$ERRORLEVEL_FATAL, $content);
+              }
+            }
+            //
+            // NOTE: if not found locally, it might me an external asset - continue.
+            //
+        } else if(!app::getInstance('filesystem_local')->fileAvailable(CORE_WEBROOT . $content)) {
             throw new \codename\core\exception(self::EXCEPTION_REQUIRERESOURCE_RESOURCENOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $content);
         }
 
