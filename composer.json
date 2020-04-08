@@ -1,7 +1,6 @@
 {
     "name": "codename/core",
     "description": "This is THE core framework.",
-    "version": "0.0.3",
     "type": "library",
     "keywords": ["codename", "core", "framework"],
     "time": "2017-09-25",
