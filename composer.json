@@ -3,7 +3,6 @@
     "description": "This is THE core framework.",
     "type": "library",
     "keywords": ["codename", "core", "framework"],
-    "time": "2017-09-25",
     "authors": [
         {
             "name": "Kevin Dargel",
