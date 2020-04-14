@@ -112,7 +112,7 @@ abstract class xml extends \codename\core\model\schemeless implements \codename\
      * @todo DOCUMENTATION
      */
     protected function doQuery(string $query, array $params = array()) : array {
-        $data = \codename\core\XML2Array::createArray(file_get_contents($this->file))['modelEntries']['entry'];
+        $data = \codename\core\xml2array::createArray(file_get_contents($this->file))['modelEntries']['entry'];
 
         if(count($this->filter) > 0) {
             $data = $this->filterResults($data);

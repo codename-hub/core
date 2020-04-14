@@ -1,7 +1,7 @@
 <?php
 namespace codename\core;
 /**
- * XML2Array: A class to convert XML to array in PHP
+ * xml2array: A class to convert XML to array in PHP
  * It returns the array which can be converted back to XML using the Array2XML script
  * It takes an XML string or a DOMDocument object as an input.
  *
@@ -16,10 +16,10 @@ namespace codename\core;
  *             Fixed typo 'DomDocument' to 'DOMDocument'
  *
  * Usage:
- *       $array = XML2Array::createArray($xml);
+ *       $array = xml2array::createArray($xml);
  */
 
-class XML2Array {
+class xml2array {
 
     private static $xml = null;
     private static $encoding = 'UTF-8';
@@ -47,11 +47,11 @@ class XML2Array {
         if(is_string($input_xml)) {
             $parsed = $xml->loadXML($input_xml);
             if(!$parsed) {
-                throw new Exception('[XML2Array] Error parsing the XML string.');
+                throw new Exception('[xml2array] Error parsing the XML string.');
             }
         } else {
             if(get_class($input_xml) != 'DOMDocument') {
-                throw new Exception('[XML2Array] The input XML object should be of type: DOMDocument.');
+                throw new Exception('[xml2array] The input XML object should be of type: DOMDocument.');
             }
             $xml = self::$xml = $input_xml;
         }
