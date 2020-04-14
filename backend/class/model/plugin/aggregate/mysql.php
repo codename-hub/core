@@ -40,6 +40,9 @@ class mysql extends \codename\core\model\plugin\aggregate implements \codename\c
       case 'day':
         $sql = 'DAY('.$tableAlias.$this->fieldBase->get().')';
         break;
+      case 'timestampdiff-year':
+        $sql = 'TIMESTAMPDIFF(YEAR, '.$tableAlias.$this->fieldBase->get().', CURDATE())';
+        break;
       default:
         throw new exception('EXCEPTION_MODEL_PLUGIN_CALCULATION_MYSQL_UNKKNOWN_CALCULATION_TYPE', exception::$ERRORLEVEL_ERROR, $this->calculationType);
         break;
