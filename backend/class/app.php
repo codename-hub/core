@@ -1057,7 +1057,9 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             return self::$instances[$simplename];
         }
 
-        $class = "\\codename\\core\\" . str_replace('_', '\\', $class);
+        // $class = "\\codename\\core\\" . str_replace('_', '\\', $class);
+        $class = self::getInheritedClass($class);
+
         if (!is_null($config)) {
             return self::$instances[$simplename] = new $class($config);
         }
