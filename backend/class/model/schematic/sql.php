@@ -1703,7 +1703,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     public function update(array $data) {
       if(count($this->filter) == 0) {
-          throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_DELETE_NO_FILTERS_DEFINED', exception::$ERRORLEVEL_FATAL);
+          throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_UPDATE_NO_FILTERS_DEFINED', exception::$ERRORLEVEL_FATAL);
       }
       $query = 'UPDATE ' . $this->schema . '.' . $this->table .' SET ';
       $parts = [];
