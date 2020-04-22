@@ -27,6 +27,9 @@ class app extends \codename\core\validator\structure\config implements \codename
         parent::validate($value);
 
         foreach($value['context'] as $context) {
+            if($context['custom'] ?? false) {
+              continue;
+            }
             if(count($errors = \codename\core\app::getValidator('structure_config_context')->validate($context)) > 0) {
                 $this->errorstack->addError('VALUE', 'CORE_BACKEND_CLASS_VALIDATOR_structure_config_APP', $errors);
             }

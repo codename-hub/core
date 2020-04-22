@@ -320,6 +320,10 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             . '  ' . \codename\core\observer\cache::$get . ' Cache GETs'.chr(10)
             . '  ' . \codename\core\observer\cache::$hit . ' Cache HITs'.chr(10)
             . '  ' . \codename\core\observer\cache::$miss . ' Cache MISSes'.chr(10);
+          } else if($this->getRequest() instanceof \codename\core\request\json || $this->getRequest() instanceof \codename\rest\request\json) {
+            //
+            // NO DEBUG APPEND for this type of request/response
+            //
           } else {
             if(self::getRequest()->getData('template') !== 'json' && self::getRequest()->getData('template') !== 'blank') {
               echo '<pre style="position: fixed; bottom: 0; right: 0; opacity:0.5;">Generated in '.round(abs(($_REQUEST['start'] - microtime(true)) * 1000),2).'ms
@@ -377,7 +381,14 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return bool [description]
      */
     protected function handleAccess() : bool {
-      if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
+      if($this->getContext() instanceof \codename\core\context\customContextInterface) {
+          if(!$this->getContext()->isAllowed()) {
+            self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
+            // TODO: redirect?
+            return false;
+          }
+          return true;
+      } else if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
           self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
           $this->getResponse()->setRedirect($this->getApp(), 'login');
           $this->getResponse()->doRedirect();
@@ -456,7 +467,21 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * the main run / main lifecycle (context, action, view, show - output)
      */
     protected function mainRun() {
-      $this->doAction()->doView()->doShow()->doOutput();
+      if($this->getContext() instanceof \codename\core\context\customContextInterface) {
+        $this->doContextRun();
+      } else {
+        $this->doAction()->doView();
+      }
+      $this->doShow()->doOutput();
+    }
+
+    /**
+     * [doContextRun description]
+     * @return \codename\core\app
+     */
+    protected function doContextRun() : \codename\core\app {
+      $this->getContext()->run();
+      return $this;
     }
 
     /**
@@ -505,8 +530,10 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             throw new \codename\core\exception(self::EXCEPTION_MAKEREQUEST_CONTEXT_CONFIGURATION_MISSING, \codename\core\exception::$ERRORLEVEL_ERROR, self::getRequest()->getData('context'));
         }
 
-        if (!$this->viewExists(new \codename\core\value\text\contextname(self::getRequest()->getData('context')), new \codename\core\value\text\viewname(self::getRequest()->getData('view')))) {
-            throw new \codename\core\exception(self::EXCEPTION_MAKEREQUEST_REQUESTEDVIEWNOTINCONTEXT, \codename\core\exception::$ERRORLEVEL_ERROR, self::getRequest()->getData('view'));
+        if(!self::getConfig()->get('context>' . self::getRequest()->getData('context') . '>custom')) {
+          if (!$this->viewExists(new \codename\core\value\text\contextname(self::getRequest()->getData('context')), new \codename\core\value\text\viewname(self::getRequest()->getData('view')))) {
+              throw new \codename\core\exception(self::EXCEPTION_MAKEREQUEST_REQUESTEDVIEWNOTINCONTEXT, \codename\core\exception::$ERRORLEVEL_ERROR, self::getRequest()->getData('view'));
+          }
         }
 
         if (!$this->getRequest()->isDefined('template')) {
