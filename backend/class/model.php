@@ -955,9 +955,10 @@ abstract class model implements \codename\core\model\modelInterface {
     public function addFilterList(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
         $class = '\\codename\\core\\model\\plugin\\filterlist\\' . $this->getType();
         if(is_array($value)) {
-            if(count($value) == 0) {
-                return $this;
-            }
+            // NOTE: if array is empty, must set false, otherwise return all data
+            // if(count($value) == 0) {
+            //     return $this;
+            // }
             array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
         } else {
             $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);

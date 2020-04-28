@@ -1965,6 +1965,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             } else if($filter instanceof \codename\core\model\plugin\filterlist\filterlistInterface) {
 
               if(is_array($filter->value)) {
+                if(count($filter->value) !== 0) {
                   // filter value is an array (e.g. IN() match)
                   foreach($filter->value as $thisval) {
                     if(!is_numeric($thisval)) {
@@ -1974,13 +1975,20 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   $string = implode(', ', $filter->value);
                   $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
                   $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' (' . $string . ') ';
+                } else {
+                  $filterQuery['query'] = 'false';
+                }
               } else {
 
                 if(!preg_match('/^([0-9,]+)$/i',$filter->value)) {
                   throw new exception(self::EXCEPTION_SQL_GETFILTERS_INVALID_QUERY_VALUE, exception::$ERRORLEVEL_ERROR, $filter);
                 }
-                $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
-                $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' (' . $filter->value . ') ';
+                if(strlen($filter->value) !== 0) {
+                  $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
+                  $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' (' . $filter->value . ') ';
+                } else {
+                  $filterQuery['query'] = 'false';
+                }
               }
 
             } else if ($filter instanceof \codename\core\model\plugin\fieldfilter) {
