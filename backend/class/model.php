@@ -1771,6 +1771,13 @@ abstract class model implements \codename\core\model\modelInterface {
         return $this;
     }
 
+
+    /**
+     * internal caching variable containing the list of fields in the model
+     * @var array
+     */
+    protected $normalizeDataFieldCache = null;
+
     /**
      * normalizes data in the given array.
      * <br />Tries to identify complex datastructures by the Hiden $FIELDNAME."_" fields and makes objects of them
@@ -1779,7 +1786,14 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function normalizeData(array $data) : array {
         $myData = array();
-        foreach($this->config->get('field') as $field) {
+
+        $flagFieldName = $this->table . '_flag';
+
+        if(!$this->normalizeDataFieldCache) {
+          $this->normalizeDataFieldCache = $this->config->get('field');
+        }
+
+        foreach($this->normalizeDataFieldCache as $field) {
             // if field has object identified
             //
             // OBSOLETE, possibly. From the old days.
@@ -1794,14 +1808,14 @@ abstract class model implements \codename\core\model\modelInterface {
             //     $myData[$field] = $object;
             // }
 
-            if($field == $this->table . '_flag') {
-                if(array_key_exists($this->table . '_flag', $data)) {
-                    if(!is_array($data[$this->table . '_flag'])) {
+            if($field == $flagFieldName) {
+                if(array_key_exists($flagFieldName, $data)) {
+                    if(!is_array($data[$flagFieldName])) {
                         continue;
                     }
 
                     $flagval = 0;
-                    foreach($data[$this->table . '_flag'] as $flagname => $status) {
+                    foreach($data[$flagFieldName] as $flagname => $status) {
                         $currflag = $this->config->get("flag>$flagname");
                         if(is_null($currflag) || !$status) {
                             continue;
