@@ -2220,8 +2220,13 @@ abstract class model implements \codename\core\model\modelInterface {
             return array();
         }
 
-        $this->normalizeModelFieldCache = array();
-        $this->normalizeModelFieldTypeCache = array();
+        //
+        // CHANGED 2020-05-13 - major change
+        // we're no longer resetting normalizeModelFieldCache & normalizeModelFieldTypeCache
+        // as it was reset every time we called normalizeResult.
+        //
+        // $this->normalizeModelFieldCache = array();
+        // $this->normalizeModelFieldTypeCache = array();
 
         // Normalize single row
         if(count($result) == 1) {
