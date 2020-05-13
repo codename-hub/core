@@ -1784,15 +1784,15 @@ abstract class model implements \codename\core\model\modelInterface {
             //
             // OBSOLETE, possibly. From the old days.
             //
-            if(array_key_exists($field.'_', $data)) {
-                $object = array();
-                foreach($data as $key => $value) {
-                    if(strpos($key, $field.'__') !== false) {
-                        $object[str_replace($field . '__', '', strtolower($key))] = $data[$key];
-                    }
-                }
-                $myData[$field] = $object;
-            }
+            // if(array_key_exists($field.'_', $data)) {
+            //     $object = array();
+            //     foreach($data as $key => $value) {
+            //         if(strpos($key, $field.'__') !== false) {
+            //             $object[str_replace($field . '__', '', strtolower($key))] = $data[$key];
+            //         }
+            //     }
+            //     $myData[$field] = $object;
+            // }
 
             if($field == $this->table . '_flag') {
                 if(array_key_exists($this->table . '_flag', $data)) {
