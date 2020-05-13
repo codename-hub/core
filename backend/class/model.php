@@ -2373,13 +2373,21 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * internal variable containing field types for a given field
+     * to improve performance of ::importField
+     * @var [type]
+     */
+    protected $importFieldTypeCache = [];
+
+    /**
      * Converts the given field and it's value from a human readible format into a storage format
      * @param \codename\core\value\text\modelfield $field
      * @param unknown $value
      * @return multitype
      */
     protected function importField(\codename\core\value\text\modelfield $field, $value = null) {
-        switch($this->getFieldtype($field)) {
+        $fieldType = $this->importFieldTypeCache[$field->get()] ?? $this->importFieldTypeCache[$field->get()] = $this->getFieldtype($field);
+        switch($fieldType) {
             case 'number_natural':
               if(is_string($value) && strlen($value) === 0) {
                   return null;
