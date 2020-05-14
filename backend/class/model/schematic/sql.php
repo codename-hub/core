@@ -1943,14 +1943,15 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // filter value is an array (e.g. IN() match)
                   $values = array();
                   $i = 0;
+                  $filterFieldIdentifier = $filter->getFieldValue($currentAlias);
                   foreach($filter->value as $thisval) {
-                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->getFieldValue($currentAlias), $i++);
+                      $var = $this->getStatementVariable(\array_keys($appliedFilters), $filterFieldIdentifier, $i++);
                       $values[] = ':' . $var; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field)); // values separated from query
                   }
                   $string = implode(', ', $values);
                   $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
-                  $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' ( ' . $string . ') ';
+                  $filterQuery['query'] = $filterFieldIdentifier . ' ' . $operator . ' ( ' . $string . ') ';
               } else {
 
                   // filter value is a singular value
@@ -1964,8 +1965,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                       $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // no param!
                       // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                   } else {
-                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->getFieldValue($currentAlias));
-                      $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
+                      $filterFieldIdentifier = $filter->getFieldValue($currentAlias);
+                      $var = $this->getStatementVariable(\array_keys($appliedFilters), $filterFieldIdentifier);
+                      $filterQuery['query'] = $filterFieldIdentifier . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field) ?? 'text'); // values separated from query
                   }
               }
