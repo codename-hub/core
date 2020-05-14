@@ -929,10 +929,10 @@ abstract class model implements \codename\core\model\modelInterface {
             if(\count($value) === 0) {
                 return $this;
             }
-            array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
+            \array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
         } else {
             $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
-            array_push($this->filter, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $conjunction));
+            \array_push($this->filter, new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $conjunction));
         }
         return $this;
     }
@@ -962,7 +962,7 @@ abstract class model implements \codename\core\model\modelInterface {
             array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
         } else {
             $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
-            array_push($this->filter, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $conjunction));
+            array_push($this->filter, new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $conjunction));
         }
         return $this;
     }
@@ -984,7 +984,7 @@ abstract class model implements \codename\core\model\modelInterface {
           array_push($this->aggregateFilter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
       } else {
           $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
-          array_push($this->aggregateFilter, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $conjunction));
+          array_push($this->aggregateFilter, new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $conjunction));
       }
       return $this;
     }
@@ -1053,7 +1053,7 @@ abstract class model implements \codename\core\model\modelInterface {
             array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $filter_conjunction));
         } else {
             $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
-            array_push($filterCollection, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $filter_conjunction));
+            array_push($filterCollection, new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $filter_conjunction));
         }
       }
       if(count($filterCollection) > 0) {
@@ -1081,10 +1081,10 @@ abstract class model implements \codename\core\model\modelInterface {
             array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $filter_conjunction));
         } else {
             $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
-            array_push($filterCollection, new $class($modelfieldInstance, $this->delimit($modelfieldInstance, $value), $operator, $filter_conjunction));
+            array_push($filterCollection, new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $filter_conjunction));
         }
       }
-      if(sizeof($filterCollection) > 0) {
+      if(\count($filterCollection) > 0) {
         $this->defaultfilterCollections[$groupName][] = array(
               'operator' => $groupOperator,
               'filters' => $filterCollection,
@@ -1488,6 +1488,59 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [getFieldtypeImproved description]
+     * @param  string $specifier [description]
+     * @return string|null
+     */
+    public function getFieldtypeImproved(string $specifier) : ?string {
+      if(isset($this->cachedFieldtype[$specifier])) {
+        return $this->cachedFieldtype[$specifier];
+      } else {
+
+        // // DEBUG
+        // \codename\core\app::getResponse()->setData('getFieldtypeCounter', \codename\core\app::getResponse()->getData('getFieldtypeCounter') +1 );
+
+        // fieldtype not in current model config
+        if(($fieldtype = $this->config->get("datatype>" . $specifier))) {
+
+          // field in this model
+          $this->cachedFieldtype[$specifier] = $fieldtype;
+          return $this->cachedFieldtype[$specifier];
+
+        } else {
+
+          // check nested model configs
+          foreach($this->nestedModels as $joinPlugin) {
+            $fieldtype = $joinPlugin->model->getFieldtypeImproved($specifier);
+            if($fieldtype !== null) {
+              $this->cachedFieldtype[$specifier] = $fieldtype;
+              return $fieldtype;
+            }
+          }
+
+          // check sibling model configs
+          foreach($this->siblingModels as $joinPlugin) {
+            $fieldtype = $joinPlugin->model->getFieldtypeImproved($specifier);
+            if($fieldtype !== null) {
+              $this->cachedFieldtype[$specifier] = $fieldtype;
+              return $fieldtype;
+            }
+          }
+
+          // cache error value, too
+          $fieldtype = null;
+
+          // // DEBUG
+          // \codename\core\app::getResponse()->setData('fieldtype_errors', array_merge(\codename\core\app::getResponse()->getData('fieldtype_errors') ?? [], [ $this->getIdentifier().':'.$specifier ]) );
+
+          $this->cachedFieldtype[$specifier] = $fieldtype;
+          return $this->cachedFieldtype[$specifier];
+        }
+
+      }
+    }
+
+    /**
      * Returns the datatype of the given field
      * @param \codename\core\value\text\modelfield $field
      * @return string
@@ -1830,8 +1883,9 @@ abstract class model implements \codename\core\model\modelInterface {
             }
 
             // Otherwise the field exists in the data object
-            if(array_key_exists($field, $data)) {
-                $myData[$field] = $this->importField(\codename\core\value\text\modelfield::getInstance($field), $data[$field]);
+            if(\array_key_exists($field, $data)) {
+                // $myData[$field] = $this->importField(\codename\core\value\text\modelfield::getInstance($field), $data[$field]);
+                $myData[$field] = $this->importFieldImproved($field, $data[$field]);
             }
 
         }
@@ -2384,6 +2438,71 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     protected $importFieldTypeCache = [];
 
+    protected $fieldTypeCache = [];
+
+    protected function importFieldImproved(string $field, $value = null) {
+      $fieldType = $this->fieldTypeCache[$field] ?? $this->fieldTypeCache[$field] = $this->getFieldtypeImproved($field);
+      switch($fieldType) {
+        case 'number_natural':
+          if(\is_string($value) && \strlen($value) === 0) {
+              return null;
+          }
+          break;
+        case 'boolean' :
+          // allow null booleans
+          // may be needed for conditional unique keys
+          if(\is_null($value)) {
+              return $value;
+          }
+          // pure boolean
+          if(\is_bool($value)) {
+              return $value;
+          }
+          // int: 0 or 1
+          if(\is_int($value)) {
+              if($value !== 1 && $value !== 0) {
+                throw new exception('EXCEPTION_MODEL_IMPORTFIELD_BOOLEAN_INVALID', exception::$ERRORLEVEL_ERROR, [
+                  'field' => $field,
+                  'value' => $value
+                ]);
+              }
+              return $value === 1 ? true : false;
+          }
+          // string boolean
+          if(\is_string($value)) {
+            // fallback, empty string
+            if(\strlen($value) === 0) {
+              return null;
+            }
+            if($value === '1') {
+              return true;
+            } else if($value === '0') {
+              return false;
+            } else if($value === 'true') {
+              return true;
+            } elseif ($value === 'false') {
+              return false;
+            }
+          }
+          // fallback
+          return false;
+          break;
+        case 'text_date':
+          if(\is_null($value)) {
+              return $value;
+          }
+          // automatically convert input value
+          // ctor returns FALSE on creation error, see http://php.net/manual/de/datetime.construct.php
+          $date = new \DateTime($value);
+          if($date !== false) {
+              return $date->format('Y-m-d');
+          }
+          return null;
+          break;
+      }
+      return $value;
+    }
+
     /**
      * Converts the given field and it's value from a human readible format into a storage format
      * @param \codename\core\value\text\modelfield $field
@@ -2465,6 +2584,47 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     protected function getType() : string {
         return static::DB_TYPE;
+    }
+
+    /**
+     * [delimitImproved description]
+     * @param  string $field [description]
+     * @param  [type] $value [description]
+     * @return [type]        [description]
+     */
+    protected function delimitImproved(string $field, $value = null) {
+      $fieldtype = $this->fieldTypeCache[$field] ?? $this->fieldTypeCache[$field] = $this->getFieldtypeImproved($field);
+      if(($value === null) || (\is_string($value) && \strlen($value) == 0)) {
+        return null;
+      }
+      // if(strpos($fieldtype, 'text') !== false || strpos($fieldtype, 'ject_') !== false || strpos($fieldtype, 'structure') !== false) {
+      //     return "" . $value . "";
+      // }
+      if($fieldtype == 'number') {
+        if(\is_numeric($value)) {
+          return $value;
+        }
+        if(\strlen($value) == 0) {
+          return null;
+        }
+        return $value;
+      }
+      if($fieldtype == 'number_natural') {
+        if(\is_int($value)) {
+          return $value;
+        }
+        if(\is_string($value) && \strlen($value) == 0) {
+          return null;
+        }
+        return (int) $value;
+      }
+      if($fieldtype == 'boolean') {
+        if($value) {
+          return true;
+        }
+        return false;
+      }
+      return $value;
     }
 
     /**
