@@ -71,11 +71,11 @@ class datacontainer {
      * @return multitype
      */
     public function getData(string $key = '') {
-        if(strlen($key) == 0) {
+        if(\strlen($key) == 0) {
             return $this->data;
         }
 
-        if(strpos($key, '>') === false) {
+        if(\strpos($key, '>') === false) {
             if($this->isDefined($key)) {
                 return $this->data[$key];
             }
@@ -84,7 +84,7 @@ class datacontainer {
 
         $myConfig = $this->data;
         foreach(explode('>', $key) as $myKey) {
-            if(!array_key_exists($myKey, $myConfig)) {
+            if(!\array_key_exists($myKey, $myConfig)) {
                 return null;
             }
             $myConfig = $myConfig[$myKey];
@@ -98,12 +98,12 @@ class datacontainer {
      * @param string $key
      */
     public function isDefined(string $key) : bool {
-        if(strpos($key, '>') === false) {
-          return array_key_exists($key, $this->data);
+        if(\strpos($key, '>') === false) {
+          return \array_key_exists($key, $this->data);
         } else {
           $myConfig = $this->data;
           foreach(explode('>', $key) as $myKey) {
-              if(!array_key_exists($myKey, $myConfig)) {
+              if(!\array_key_exists($myKey, $myConfig)) {
                   return false;
               }
               $myConfig = $myConfig[$myKey];

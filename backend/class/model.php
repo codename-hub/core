@@ -925,8 +925,8 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function addFilter(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
-        if(is_array($value)) {
-            if(count($value) == 0) {
+        if(\is_array($value)) {
+            if(\count($value) === 0) {
                 return $this;
             }
             array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
@@ -1938,7 +1938,7 @@ abstract class model implements \codename\core\model\modelInterface {
             }
         }
 
-        if(count($this->getErrors()) > 0) {
+        if(\count($this->getErrors()) > 0) {
             return false;
         }
 
@@ -2053,7 +2053,7 @@ abstract class model implements \codename\core\model\modelInterface {
      public function getResult() : array {
          $result = $this->result;
 
-         if (is_null($result)) {
+         if ($result === null) {
              $this->result = $this->internalGetResult();
              $result = $this->result;
          }
@@ -2072,7 +2072,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @return array
      */
     protected function performBareJoin(array $result) : array {
-      if(count($this->getNestedJoins()) == 0 && count($this->getSiblingJoins()) == 0) {
+      if(\count($this->getNestedJoins()) == 0 && \count($this->getSiblingJoins()) == 0) {
         return $result;
       }
 
@@ -2274,7 +2274,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @param array $dataset
      */
     protected function normalizeRow(array $dataset) : array {
-        if(count($dataset) == 1 && isset($dataset[0])) {
+        if(\count($dataset) == 1 && isset($dataset[0])) {
             $dataset = $dataset[0];
         }
 
@@ -2291,7 +2291,7 @@ abstract class model implements \codename\core\model\modelInterface {
           // but otherwise, just skip
           if(
             ( isset($this->normalizeModelFieldTypeCache[$field]) && ($this->normalizeModelFieldTypeCache[$field] !== 'boolean'))
-            && !is_string($dataset[$field])
+            && !\is_string($dataset[$field])
           ) { continue; }
 
             // determine virtuality status of the field
@@ -2394,22 +2394,22 @@ abstract class model implements \codename\core\model\modelInterface {
         $fieldType = $this->importFieldTypeCache[$field->get()] ?? $this->importFieldTypeCache[$field->get()] = $this->getFieldtype($field);
         switch($fieldType) {
             case 'number_natural':
-              if(is_string($value) && strlen($value) === 0) {
+              if(\is_string($value) && \strlen($value) === 0) {
                   return null;
               }
               break;
             case 'boolean' :
                 // allow null booleans
                 // may be needed for conditional unique keys
-                if(is_null($value)) {
+                if(\is_null($value)) {
                     return $value;
                 }
                 // pure boolean
-                if(is_bool($value)) {
+                if(\is_bool($value)) {
                     return $value;
                 }
                 // int: 0 or 1
-                if(is_int($value)) {
+                if(\is_int($value)) {
                     if($value !== 1 && $value !== 0) {
                       throw new exception('EXCEPTION_MODEL_IMPORTFIELD_BOOLEAN_INVALID', exception::$ERRORLEVEL_ERROR, [
                         'field' => $field->get(),
@@ -2419,9 +2419,9 @@ abstract class model implements \codename\core\model\modelInterface {
                     return $value === 1 ? true : false;
                 }
                 // string boolean
-                if(is_string($value)) {
+                if(\is_string($value)) {
                   // fallback, empty string
-                  if(strlen($value) === 0) {
+                  if(\strlen($value) === 0) {
                     return null;
                   }
                   if($value === '1') {
@@ -2438,7 +2438,7 @@ abstract class model implements \codename\core\model\modelInterface {
                 return false;
                 break;
             case 'text_date':
-                if(is_null($value)) {
+                if(\is_null($value)) {
                     return $value;
                 }
                 // automatically convert input value
@@ -2476,7 +2476,7 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     protected function delimit(\codename\core\value\text\modelfield $field, $value = null) {
         $fieldtype = $this->getFieldtype($field);
-        if(is_null($value) || (is_string($value) && strlen($value) == 0)) {
+        if(($value === null) || (\is_string($value) && \strlen($value) == 0)) {
           return null;
         }
         // if(strpos($fieldtype, 'text') !== false || strpos($fieldtype, 'ject_') !== false || strpos($fieldtype, 'structure') !== false) {

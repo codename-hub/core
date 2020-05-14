@@ -1064,7 +1064,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @return string                 [query part]
      */
     public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0, string $parentAlias = null) {
-        if(count($model->getNestedJoins()) == 0 && count($model->getSiblingJoins()) == 0) {
+        if(\count($model->getNestedJoins()) == 0 && \count($model->getSiblingJoins()) == 0) {
             return '';
         }
         $ret = '';
@@ -1606,7 +1606,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @return array             [description]
      */
     protected function getParametrizedValue($value, string $fieldtype) : array {
-      if(is_null($value)) {
+      if($value === null) {
         $param = \PDO::PARAM_NULL; // Explicit NULL
       } else {
         if($fieldtype == 'number') {
@@ -1932,7 +1932,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             if($filter instanceof \codename\core\model\plugin\filter\filterInterface) {
               // handle regular filters
 
-              if(is_array($filter->value)) {
+              if(\is_array($filter->value)) {
                   // filter value is an array (e.g. IN() match)
                   $values = array();
                   $i = 0;
@@ -1952,7 +1952,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // NOTE: $filter->value == null (equality operator, compared to NULL) may evaluate to TRUE if you're passing in a negative boolean (!)
                   // instead, we're now using the identity operator === to explicitly check for a real NULL
                   // @see http://www.php.net/manual/en/types.comparisons.php
-                  if(($filter->value === null) || (is_string($filter->value) && (strlen($filter->value) === 0)) || ($filter->value === 'null')) {
+                  if(($filter->value === null) || (\is_string($filter->value) && (\strlen($filter->value) === 0)) || ($filter->value === 'null')) {
                       // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
                       $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // no param!
                       // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
@@ -2061,12 +2061,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 'query' => null
               ];
 
-              if(is_array($filter->value)) {
+              if(\is_array($filter->value)) {
                   // value is an array
                   $values = array();
                   $i = 0;
                   foreach($filter->value as $thisval) {
-                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->getFieldValue($currentAlias), $i++);
+                      $var = $this->getStatementVariable(\array_keys($appliedFilters), $filter->getFieldValue($currentAlias), $i++);
                       $values[] = ':' . $var; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field));
                   }
@@ -2076,12 +2076,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               } else {
                   // value is a singular value
                   // NOTE: see other $filter->value == null (equality or identity operator) note and others
-                  if($filter->value === null || (is_string($filter->value) && strlen($filter->value) == 0) || $filter->value === 'null') {
+                  if($filter->value === null || (\is_string($filter->value) && \strlen($filter->value) == 0) || $filter->value === 'null') {
                       // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
                       $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // var = PDO Param
                       // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                   } else {
-                      $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->getFieldValue($currentAlias));
+                      $var = $this->getStatementVariable(\array_keys($appliedFilters), $filter->getFieldValue($currentAlias));
                       $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . $filter->operator . ' ' . ':'.$var.' ';
                       $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field));
                   }
@@ -2094,7 +2094,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               }
             }
 
-            if(count($t_filters) > 0) {
+            if(\count($t_filters) > 0) {
               // put all collected filters
               // into a recursive array structure
               $t_groups[] = [
@@ -2113,7 +2113,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           ];
         }
 
-        if(count($t_filtergroups) > 0) {
+        if(\count($t_filtergroups) > 0) {
           // put all collected named groups
           // into a recursive array structure
           $where[] = [
@@ -2171,7 +2171,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       $grouped = [];
       $ungrouped = [];
       foreach($filterQueryArray as $part) {
-        if(is_array($part['query'])) {
+        if(\is_array($part['query'])) {
           //
           // restructure part
           //
@@ -2189,7 +2189,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $rePart['query'][] = $queryComponent;
             }
           }
-          if(count($rePart['query']) > 0) {
+          if(\count($rePart['query']) > 0) {
             $ungrouped[] = $rePart;
           }
         } else {
@@ -2300,7 +2300,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         if($index > 0) {
           $queryPart .= ' ' . $filterQuery['conjunction'] . ' ';
         }
-        if(is_array($filterQuery['query'])) {
+        if(\is_array($filterQuery['query'])) {
           $queryPart .= self::convertFilterQueryArray($filterQuery['query']);
         } else {
           $queryPart .= $filterQuery['query'];
@@ -2437,7 +2437,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     protected function getCurrentFieldlistNonRecursive(string $alias = null, array &$params) : array {
       $result = array();
-      if(count($this->fieldlist) == 0 && count($this->hiddenFields) > 0) {
+      if(\count($this->fieldlist) == 0 && \count($this->hiddenFields) > 0) {
         //
         // Include all fields but specific ones
         //
