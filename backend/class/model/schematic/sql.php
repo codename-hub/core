@@ -1885,12 +1885,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @return string                [variable name]
      */
     protected function getStatementVariable(array $existingKeys, string $field, string $add = '', int $c = 0) {
-      $name = str_replace('.', '_dot_', $field . (($add != '') ? ('_' . $add) : '') . (($c > 0) ? ('_' . $c) : ''));
       if($c === 0) {
-        $name = preg_replace('/[^\w]+/', '_', $name);
+        $baseName = \str_replace('.', '_dot_', $field . (($add != '') ? ('_' . $add) : ''));
+        $baseName = \preg_replace('/[^\w]+/', '_', $baseName);
+      } else {
+        $baseName = $field;
       }
-      if(in_array($name, $existingKeys)) {
-        return $this->getStatementVariable($existingKeys, $field, $add, ++$c);
+      // if($c === 0) {
+      //   $name = preg_replace('/[^\w]+/', '_', $name);
+      // }
+      // $name = str_replace('.', '_dot_', $field . (($add != '') ? ('_' . $add) : '') . (($c > 0) ? ('_' . $c) : ''));
+      $name = $baseName . (($c > 0) ? ('_' . $c) : '');
+      if(\in_array($name, $existingKeys)) {
+        return $this->getStatementVariable($existingKeys, $baseName, $add, ++$c);
       }
       return $name;
     }
