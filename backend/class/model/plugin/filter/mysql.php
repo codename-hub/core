@@ -34,7 +34,7 @@ class mysql extends \codename\core\model\plugin\filter implements \codename\core
     if($this->operator == 'ILIKE') {
       $this->operator = 'LIKE';
     }
-    if(!in_array($this->operator, self::allowedOperators)) {
+    if(!\in_array($this->operator, self::allowedOperators)) {
       throw new exception('EXCEPTION_INVALID_OPERATOR', exception::$ERRORLEVEL_ERROR, $this->operator);
     }
     return $this;
