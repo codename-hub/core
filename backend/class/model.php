@@ -615,7 +615,11 @@ abstract class model implements \codename\core\model\modelInterface {
         // to overcome join limits by some RDBMS like MySQL.
         //
         if($model->getForceVirtualJoin()) {
-          $pluginDriver = 'bare';
+          if($this->getType() == $model->getType()) {
+            $pluginDriver = 'dynamic';
+          } else {
+            $pluginDriver = 'bare';
+          }
         }
 
         $class = '\\codename\\core\\model\\plugin\\join\\' . $pluginDriver;
