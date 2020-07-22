@@ -2268,7 +2268,17 @@ abstract class model implements \codename\core\model\modelInterface {
             $result = $join->join($result, $subresult);
           }
         } else if(!$this->compatibleJoin($nest) && ($join instanceof \codename\core\model\plugin\join\dynamicJoinInterface)) {
-          $result = $join->dynamicJoin($result);
+
+          //
+          // CHANGED 2020-07-22 vkey handling inside dynamic joins
+          // Special join handling
+          // using dynamic join method
+          // vKey is specified either way (but may be null)
+          // so the join module may handle the virtual field result
+          //
+          $result = $join->dynamicJoin($result, [
+            'vkey' => $vKey,
+          ]);
         }
       }
       return $result;
