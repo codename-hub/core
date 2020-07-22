@@ -260,6 +260,15 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
         // Make Exceptions out of PHP Errors
         set_error_handler(function ($err_severity, $err_msg, $err_file, $err_line, array $err_context) {
+          //
+          // https://www.php.net/manual/de/language.operators.errorcontrol.php
+          // This function simply exits, if we've got a suppressed error reporting
+          // (via @). This is more 'natural', as we also suppress exceptions
+          // when we suppress warnings, notices, errors or else.
+          //
+          if(error_reporting() === 0) {
+            return;
+          }
           switch($err_severity)
           {
               case E_ERROR:               throw new ErrorException            ($err_msg, 0, $err_severity, $err_file, $err_line);
