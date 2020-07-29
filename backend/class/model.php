@@ -1681,6 +1681,12 @@ abstract class model implements \codename\core\model\modelInterface {
      * @todo move the UNIQUE constraint checks to a separaate method
      */
     public function validate(array $data) : model {
+
+        //
+        // CHANGED 2020-07-29 reset the current errorstack just right before validation
+        //
+        $this->errorstack->reset();
+
         foreach($this->config->get('field') as $field) {
             if(in_array($field, array($this->getPrimarykey(), $this->getIdentifier() . "_modified", $this->getIdentifier() . "_created"))) {
                 continue;
@@ -1704,12 +1710,10 @@ abstract class model implements \codename\core\model\modelInterface {
                 $foreignKeyField = $childConfig['field'];
 
                 // get the join plugin valid for the child reference field
-                $res = array_filter($this->getNestedJoins(), function(\codename\core\model\plugin\join $join) use ($foreignKeyField) {
-                  return $join->modelField == $foreignKeyField;
-                });
+                $res = $this->getNestedJoins($foreignConfig['model'], $childConfig['field']);
 
                 if(count($res) === 1) {
-                  $join = reset($res);
+                  $join = $res[0]; // reset($res);
                   $join->model->validate($data[$field]);
                   if(count($errors = $join->model->getErrors()) > 0) {
                     $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
