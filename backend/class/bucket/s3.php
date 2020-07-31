@@ -76,6 +76,14 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
   protected $prefix = '';
 
   /**
+   * option to make this client fetch ALL
+   * available results, e.g. in dirList
+   * using internal handling of continuationTokens
+   * @var bool
+   */
+  protected $useContinuationToken = false;
+
+  /**
    * returns the current prefixed path component
    * @return string [description]
    */
@@ -125,6 +133,7 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
       $this->version = $data['version'] ?? $this->version;
       $this->credentials = $data['credentials'] ?? $this->credentials;
       $this->prefix = $data['prefix'] ?? $this->prefix;
+      $this->useContinuationToken = $data['use_continuation_token'] ?? false;
 
       $factoryConfig = array(
         'version' => $this->version,
@@ -339,49 +348,76 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
   public function dirList(string $directory): array
   {
     try{
-      /**
-       * @see http://stackoverflow.com/questions/18683206/list-objects-in-a-specific-folder-on-amazon-s3
-       */
+      //
+      // @see http://stackoverflow.com/questions/18683206/list-objects-in-a-specific-folder-on-amazon-s3
+      //
 
-      $response = $this->client->listObjectsV2([
-        "Bucket" => $this->bucket,
-        "Prefix" => $this->getPrefixedPath($directory),
-        "Delimiter" => '/'
-      ]);
-
+      //
+      // CHANGED 2020-07-31: allow usage of continuation tokens
+      // Background:
+      // S3 fetches up to 1000 results at a time, by default
+      // if there are more, we also get a continuationToken
+      // to get more results. This may lead to ultra-large resultsets
+      // and has to be explicitly specified in configuration
+      //
+      $continuationToken = null;
       $objects = array();
 
-      //
-      // The "Files" (objects)
-      //
-      $result = $response->get('Contents') ?? false;
-      if($result) {
-        foreach($result as $object) {
-          //
-          // HACK:
-          // filter out self - s3 outputs the starting (requested) folder, too.
-          //
-          if($object['Key'] != $directory) {
-            $objects[] = $object['Key'];
-          }
-        }
-      }
+      do {
+        $response = $this->client->listObjectsV2([
+          "Bucket" => $this->bucket,
+          "Prefix" => $this->getPrefixedPath($directory),
+          "Delimiter" => '/',
+          "ContinuationToken" => $continuationToken,
+        ]);
 
-      if($response['CommonPrefixes'] ?? false) {
+
         //
-        // The "Folders"
+        // The "Files" (objects)
         //
-        $commonPrefixes = $response->get('CommonPrefixes');
-        foreach($commonPrefixes as $object) {
-          //
-          // HACK:
-          // filter out self - s3 outputs also the starting (requested) folder in CommonPrefixes
-          //
-          if($object['Prefix'] != $directory) {
-            $objects[] = $object['Prefix'];
+        $result = $response->get('Contents') ?? false;
+        if($result) {
+          foreach($result as $object) {
+            //
+            // HACK:
+            // filter out self - s3 outputs the starting (requested) folder, too.
+            //
+            if($object['Key'] != $directory) {
+              $objects[] = $object['Key'];
+            }
           }
         }
-      }
+
+        if($response['CommonPrefixes'] ?? false) {
+          //
+          // The "Folders"
+          //
+          $commonPrefixes = $response->get('CommonPrefixes');
+          foreach($commonPrefixes as $object) {
+            //
+            // HACK:
+            // filter out self - s3 outputs also the starting (requested) folder in CommonPrefixes
+            //
+            if($object['Prefix'] != $directory) {
+              $objects[] = $object['Prefix'];
+            }
+          }
+        }
+
+        // Handle response.NextContinuationToken
+        // Which indicates we have MORE objects in the listing
+        // as far as we have enabled it via config.
+        if(($token = $response['NextContinuationToken'] ?? null) && $this->useContinuationToken) {
+          $continuationToken = $token;
+        } else {
+          break;
+        }
+
+        //
+        // Continue/repeat execution, as long as we have a continuation token.
+        //
+      } while($continuationToken !== null);
+
       return $objects;
 
     } catch (S3Exception $e) {
