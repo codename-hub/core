@@ -1974,10 +1974,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             } else if($filter instanceof \codename\core\model\plugin\filterlist\filterlistInterface) {
               $string = \is_array($filter->value) ? \implode(',', $filter->value) :  $filter->value;
 
-              if(!\preg_match('/^([0-9,]+)$/i',$string)) {
-                throw new exception(self::EXCEPTION_SQL_GETFILTERS_INVALID_QUERY_VALUE, exception::$ERRORLEVEL_ERROR, $filter);
-              }
               if(\strlen($string) !== 0) {
+                if(!\preg_match('/^([0-9,]+)$/i',$string)) {
+                  throw new exception(self::EXCEPTION_SQL_GETFILTERS_INVALID_QUERY_VALUE, exception::$ERRORLEVEL_ERROR, $filter);
+                }
                 $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
                 $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' (' . $string . ') ';
               } else {
