@@ -31,33 +31,51 @@ class dynamic extends \codename\core\model\plugin\join implements dynamicJoinInt
   /**
    * @inheritDoc
    */
-  public function dynamicJoin(array $result): array
+  public function dynamicJoin(array $result, ?array $params = null): array
   {
-    // print_r("dynamic join!");
     $newResult = [];
 
-    // print_r([
-    //   'model' => $this->model->getIdentifier(),
-    //   'modelField' => $this->modelField,
-    //   'referenceField' => $this->referenceField,
-    // ]);
-    // print_r($result);
+    //
+    // CHANGED 2020-07-22 vkey handling inside dynamic joins
+    //
+    $vKey = $params['vkey'];
 
     foreach($result as $baseResultRow) {
+      //
+      // If we have a FKEY value provided, query for the dataset
+      // using the given model (and all of its descendants!)
+      //
       if($leftValue = $baseResultRow[$this->modelField]) {
+
+        //
+        // TODO: we might backup the filters/filtercollections first
+        // and re-apply them afterwards
+        // NOTE: this might get risky, if you only apply regular filters before
+        // and not defaultfilters. It should not break the logic!
+        //
         $res = $this->model->addFilter($this->referenceField, $leftValue)->search()->getResult();
-        // echo("res!");
-        // print_r($res);
+
         foreach($res as $partialResultRow) {
-          $newResult[] = array_merge($baseResultRow, $partialResultRow);
+          //
+          // CHANGED 2020-07-22 vkey handling inside dynamic joins
+          //
+          if($vKey) {
+            $newResult[] = array_merge(
+              $baseResultRow,
+              [
+                $vKey => $partialResultRow
+              ]
+            );
+          } else {
+            $newResult[] = array_merge($baseResultRow, $partialResultRow);
+          }
         }
       } else {
+        // In case of empty FKEY value
+        // simply output the base result without added data
         $newResult[] = $baseResultRow;
       }
     }
-
-    // echo("new result:");
-    // print_r($newResult);
 
     return $newResult;
   }

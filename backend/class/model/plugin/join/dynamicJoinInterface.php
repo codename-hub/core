@@ -9,8 +9,9 @@ interface dynamicJoinInterface
 {
   /**
    * [performDynamicJoin description]
-   * @param  array $result [description]
-   * @return array         [description]
+   * @param  array       $result        [base result before dynamic join/query]
+   * @param  array|null  $params        [internal parameter handling]
+   * @return array                      [modified result]
    */
-  function dynamicJoin(array $result) : array;
+  function dynamicJoin(array $result, ?array $params = null) : array;
 }

@@ -350,10 +350,20 @@ abstract class model implements \codename\core\model\modelInterface {
     /**
      * determines if the model is joinable
      * in the same run (e.g. DB compatibility and stuff)
+     * @param  \codename\core\model $model [the model to check direct join compatibility with]
      * @return bool
      */
     protected function compatibleJoin(\codename\core\model $model) : bool {
-      return $this->getType() == $model->getType();
+      //
+      // NOTE/CHANGED 2020-07-21: Feature 'force_virtual_join' is checked right here
+      // to allow virtually joining a table via already available features of the framework.
+      // This overcomes the problem of join count limitations
+      // While preserving ORM capabilities
+      //
+      // If $model has the force_virtual_join feature enabled,
+      // this method will return false, no matter if its mysql==mysql or else.
+      //
+      return $this->getType() == $model->getType() && !$model->getForceVirtualJoin();
     }
 
     /**
@@ -608,11 +618,49 @@ abstract class model implements \codename\core\model\modelInterface {
           $pluginDriver = $this->compatibleJoin($model) ? $this->getType() : 'bare';
         }
 
+        //
+        // FEATURE/CHANGED 2020-07-21:
+        // Added feature 'force_virtual_join' get/setForceVirtualJoin
+        // to overcome join limits by some RDBMS like MySQL.
+        //
+        if($model->getForceVirtualJoin()) {
+          if($this->getType() == $model->getType()) {
+            $pluginDriver = 'dynamic';
+          } else {
+            $pluginDriver = 'bare';
+          }
+        }
+
         $class = '\\codename\\core\\model\\plugin\\join\\' . $pluginDriver;
         array_push($this->nestedModels, new $class($model, $type, $thisKey, $joinKey, $conditions));
         // check for already-added ?
 
         return $this;
+    }
+
+    /**
+     * state of force_virtual_join feature
+     * @var bool
+     */
+    protected $forceVirtualJoin = false;
+
+    /**
+     * Sets the force_virtual_join feature state
+     * This enables the model to be joined virtually
+     * to avoid join limits of various RDBMS
+     * @param bool $state
+     */
+    public function setForceVirtualJoin(bool $state) {
+      $this->forceVirtualJoin = $state;
+      return $this;
+    }
+
+    /**
+     * Gets the current state of the force_virtual_join feature
+     * @return bool
+     */
+    public function getForceVirtualJoin() : bool {
+      return $this->forceVirtualJoin;
     }
 
     /**
@@ -2233,7 +2281,17 @@ abstract class model implements \codename\core\model\modelInterface {
             $result = $join->join($result, $subresult);
           }
         } else if(!$this->compatibleJoin($nest) && ($join instanceof \codename\core\model\plugin\join\dynamicJoinInterface)) {
-          $result = $join->dynamicJoin($result);
+
+          //
+          // CHANGED 2020-07-22 vkey handling inside dynamic joins
+          // Special join handling
+          // using dynamic join method
+          // vKey is specified either way (but may be null)
+          // so the join module may handle the virtual field result
+          //
+          $result = $join->dynamicJoin($result, [
+            'vkey' => $vKey,
+          ]);
         }
       }
       return $result;
