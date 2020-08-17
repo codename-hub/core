@@ -1086,7 +1086,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             } else {
               $tableUsage["{$nest->schema}.{$nest->table}"] = 1;
               $aliasAs = '';
-              $alias = "{$nest->schema}.{$nest->table}";
+
+              if($nest->isDiscreteModel()) {
+                //
+                // CHANGED/ADDED 2020-06-10
+                // derived table, explicitly specify alias
+                // for usage with discrete model feature
+                // This is needed in the case of ONE/the first join of this derived table
+                //
+                $aliasAs = $nest->table;
+                $alias = implode('.', array_filter([ $nest->schema, $nest->table ]));
+              } else {
+                $alias = "{$nest->schema}.{$nest->table}";
+              }
             }
 
             // get join method from plugin
@@ -1127,28 +1139,51 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $joinKey = $join->referenceField;
 
             if(($thisKey == null) || ($joinKey == null)) {
-              throw new \codename\core\exception(self::EXCEPTION_SQL_DEEPJOIN_INVALID_FOREIGNKEY_CONFIG, \codename\core\exception::$ERRORLEVEL_FATAL, array($this->table, $nest->table));
+              //
+              // CHANGED/ADDED 2020-06-10
+              // We allow thisKey & joinKey to be null (models not directly in relation)
+              // In this case, additional conditions have to be defined
+              // See else
+              //
+              if(!$this->isDiscreteModel() && !$join->model->isDiscreteModel()) {
+                throw new \codename\core\exception(self::EXCEPTION_SQL_DEEPJOIN_INVALID_FOREIGNKEY_CONFIG, \codename\core\exception::$ERRORLEVEL_FATAL, array($this->table, $nest->table));
+              } else {
+                //
+                // Check for additional conditions
+                // As we HAVE to have some references defined, somehow.
+                //
+                if(!$join->conditions || count($join->conditions) === 0) {
+                  throw new \codename\core\exception(self::EXCEPTION_SQL_DEEPJOIN_INVALID_FOREIGNKEY_CONFIG, \codename\core\exception::$ERRORLEVEL_FATAL, array($this->table, $nest->table));
+                }
+              }
             }
 
             $joinComponents = [];
 
             $useAlias = $parentAlias ?? $this->table;
 
-            if(is_array($thisKey) && is_array($joinKey)) {
-              // TODO: check for equal array item counts! otherwise: exception
-              // perform a multi-component join
-              foreach($thisKey as $index => $thisKeyValue) {
-                $joinComponents[] = "{$alias}.{$joinKey[$index]} = {$useAlias}.{$thisKeyValue}";
-              }
-            } else if(is_array($thisKey) && !is_array($joinKey)) {
-              foreach($thisKey as $index => $thisKeyValue) {
-                $joinComponents[] = "{$alias}.{$index} = {$useAlias}.{$thisKeyValue}";
-              }
-            } else if(!is_array($thisKey) && is_array($joinKey)) {
-              throw new \LogicException('Not implemented multi-component foreign key join');
+            if($thisKey === null && $joinKey === null) {
+              // only rely on conditions
+              $cAlias = $alias ?? $useAlias; // TODO: dunno if this is correct. test also reverse and forward joins
             } else {
-              $joinComponents[] = "{$alias}.{$joinKey} = {$useAlias}.{$thisKey}";
+              if(is_array($thisKey) && is_array($joinKey)) {
+                // TODO: check for equal array item counts! otherwise: exception
+                // perform a multi-component join
+                foreach($thisKey as $index => $thisKeyValue) {
+                  $joinComponents[] = "{$alias}.{$joinKey[$index]} = {$useAlias}.{$thisKeyValue}";
+                }
+              } else if(is_array($thisKey) && !is_array($joinKey)) {
+                foreach($thisKey as $index => $thisKeyValue) {
+                  $joinComponents[] = "{$alias}.{$index} = {$useAlias}.{$thisKeyValue}";
+                }
+              } else if(!is_array($thisKey) && is_array($joinKey)) {
+                throw new \LogicException('Not implemented multi-component foreign key join');
+              } else {
+                $joinComponents[] = "{$alias}.{$joinKey} = {$useAlias}.{$thisKey}";
+              }
+
             }
+
 
             // DEBUG
             // print_r( [
@@ -1170,6 +1205,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $operator = $filter['value'] == null ? ($filter['operator'] == '!=' ? 'IS NOT' : 'IS') : $filter['operator'];
               $value = $filter['value'] == null ? 'NULL' : $filter['value'];
               $joinComponents[] = "{$cAlias}.{$filter['field']} {$operator} {$value}";
+
+              // DEBUG Debugging join conditions for discrete models
+              // if($nest instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
+              //   \codename\core\app::getResponse()->setData('dbg_'.$filter['field'], [
+              //     '$cAlias' => $cAlias,
+              //     '$alias' => $alias,
+              //     '$useAlias' => $useAlias,
+              //     '$join->currentAlias' => $join->currentAlias,
+              //   ]);
+              // }
             }
 
             $joinComponentsString = implode(' AND ', $joinComponents);
@@ -1180,7 +1225,24 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $useIndex = ' USE INDEX('.$nest->useIndex[0].') ';
             }
 
-            $ret .= " {$joinMethod} {$nest->schema}.{$nest->table} {$aliasAs}{$useIndex} ON $joinComponentsString";
+            //
+            // CHANGED/ADDED 2020-06-10 Discrete models (empowering subqueries)
+            // NOTE: we're checking for discrete models here
+            // as they don't represent a table on its own, but merely an entire subquery
+            //
+            if($nest->isDiscreteModel() && $nest instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
+              $ret .= " {$joinMethod} {$nest->getDiscreteModelQuery()} {$aliasAs}{$useIndex} ON $joinComponentsString";
+            } else {
+              $ret .= " {$joinMethod} {$nest->schema}.{$nest->table} {$aliasAs}{$useIndex} ON $joinComponentsString";
+            }
+
+            // DEBUG Deepjoin debugging, especially for discrete models
+            // \codename\core\app::getResponse()->setData('dbg_deepjoin_'.$this->getIdentifier(), [
+            //   '$cAlias' => $cAlias,
+            //   '$alias' => $alias,
+            //   '$useAlias' => $useAlias,
+            //   '$join->currentAlias' => $join->currentAlias,
+            // ]);
 
             $join->currentAlias = $alias;
 
@@ -1344,7 +1406,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           }
         }
 
-        $query .= ' FROM ' . $this->schema . '.' . $this->table . ' ';
+        //
+        // CHANGED/ADDED 2020-06-10 Discrete models (empowering subqueries)
+        // NOTE: we're checking for discrete models here
+        // as they don't represent a table on its own, but merely an entire subquery
+        //
+        if($this->isDiscreteModel() && $this instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
+          $query .= ' FROM ' . $this->getDiscreteModelQuery() . ' AS '. $this->table . ' '; // directly apply table alias
+        } else {
+          $query .= ' FROM ' . $this->schema . '.' . $this->table . ' ';
+        }
 
         if($this->useIndex ?? false && count($this->useIndex) > 0) {
           $query .= 'USE INDEX('.$this->useIndex[0].') ';

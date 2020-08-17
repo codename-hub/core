@@ -357,6 +357,15 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * Whether model is discrete/self-contained
+     * and/or performs its work as a subquery
+     * @return bool [description]
+     */
+    protected function isDiscreteModel() : bool {
+      return false;
+    }
+
+    /**
      * @var array
      */
     // protected $siblingJoins = array();
@@ -614,12 +623,12 @@ abstract class model implements \codename\core\model\modelInterface {
      *
      * @param  \codename\core\model     $model          [description]
      * @param  string                   $type           [description]
-     * @param  string                   $modelField     [description]
-     * @param  string                   $referenceField [description]
+     * @param  string|null              $modelField     [description]
+     * @param  string|null              $referenceField [description]
      * @param  array                    $conditions
      * @return \codename\core\model                 [description]
      */
-    public function addCustomJoin(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT, string $modelField, string $referenceField, array $conditions = []) : \codename\core\model {
+    public function addCustomJoin(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT, ?string $modelField = null, ?string $referenceField = null, array $conditions = []) : \codename\core\model {
       $thisKey = $modelField;
       $joinKey = $referenceField;
 
