@@ -2043,32 +2043,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   }
               }
             } else if($filter instanceof \codename\core\model\plugin\filterlist\filterlistInterface) {
+              $string = \is_array($filter->value) ? \implode(',', $filter->value) :  $filter->value;
 
-              if(is_array($filter->value)) {
-                if(count($filter->value) !== 0) {
-                  // filter value is an array (e.g. IN() match)
-                  foreach($filter->value as $thisval) {
-                    if(!is_numeric($thisval)) {
-                      throw new exception(self::EXCEPTION_SQL_GETFILTERS_INVALID_QUERY_VALUE, exception::$ERRORLEVEL_ERROR, $filter);
-                    }
-                  }
-                  $string = implode(', ', $filter->value);
-                  $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
-                  $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' (' . $string . ') ';
-                } else {
-                  $filterQuery['query'] = 'false';
-                }
-              } else {
-
-                if(!preg_match('/^([0-9,]+)$/i',$filter->value)) {
+              if(\strlen($string) !== 0) {
+                if(!\preg_match('/^([0-9,]+)$/i',$string)) {
                   throw new exception(self::EXCEPTION_SQL_GETFILTERS_INVALID_QUERY_VALUE, exception::$ERRORLEVEL_ERROR, $filter);
                 }
-                if(strlen($filter->value) !== 0) {
-                  $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
-                  $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' (' . $filter->value . ') ';
-                } else {
-                  $filterQuery['query'] = 'false';
-                }
+                $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
+                $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' (' . $string . ') ';
+              } else {
+                $filterQuery['query'] = 'false';
               }
 
             } else if ($filter instanceof \codename\core\model\plugin\fieldfilter) {
