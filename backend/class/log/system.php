@@ -12,6 +12,17 @@ class system extends \codename\core\log implements \codename\core\log\logInterfa
   /**
    * @inheritDoc
    */
+  protected function __construct(array $config)
+  {
+    parent::__construct($config);
+    if(array_key_exists('minlevel', $config['data'])) {
+        $this->minlevel = $config['data']['minlevel'];
+    }
+  }
+
+  /**
+   * @inheritDoc
+   */
   public function write(string $text, int $level)
   {
     // only write, if ... you know.
