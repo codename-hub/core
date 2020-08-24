@@ -63,6 +63,14 @@ class PHPMailer extends \codename\core\mail implements \codename\core\mail\mailI
     }
 
     /**
+     * @inheritDoc
+     */
+    public function addReplyTo(string $email, string $name = '') : \codename\core\mail {
+        $this->client->addReplyTo($email, $name);
+        return $this;
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\mail_interface::addTo($email, $name)

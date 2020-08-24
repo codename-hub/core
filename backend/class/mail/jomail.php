@@ -27,6 +27,14 @@ class jomail extends \codename\core\mail implements \codename\core\mail\mailInte
     }
 
     /**
+     * @inheritDoc
+     */
+    public function addReplyTo(string $email, string $name = '') : \codename\core\mail {
+      // Not implemented in this client
+      return $this;
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\mail_interface::addTo($email, $name)
