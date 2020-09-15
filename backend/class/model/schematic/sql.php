@@ -1246,25 +1246,30 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             foreach($join->conditions as $filter) {
               $operator = $filter['value'] == null ? ($filter['operator'] == '!=' ? 'IS NOT' : 'IS') : $filter['operator'];
 
-              // $value = $filter['value'] == null ? 'NULL' : $filter['value'];
-
               //
-              // NOTE/CHANGED/ADDED 2020-09-15 added support for PDO Params
-              // in conditioned joins
+              // NOTE/IMPORTANT:
+              // At the moment, we explicitly DO NOT support PDO Params in conditions
+              // as we also specify conditions referring to fields instead of values
               //
-              $value = null;
+              $value = $filter['value'] == null ? 'NULL' : $filter['value'];
 
-              if($filter['value'] !== null) {
-                $var = $this->getStatementVariable(\array_keys($params), '_c_'.$filter['field']);
-                $value = ':'.$var;
-                //
-                // TODO: implicit field type determination
-                // TODO: array support (IN-QUERIES)
-                //
-                $params[$var] = $this->getParametrizedValue($filter['value'], 'text');
-              } else {
-                $value = 'NULL';
-              }
+              // //
+              // // NOTE/CHANGED/ADDED 2020-09-15 added support for PDO Params
+              // // in conditioned joins
+              // //
+              // $value = null;
+              //
+              // if($filter['value'] !== null) {
+              //   $var = $this->getStatementVariable(\array_keys($params), '_c_'.$filter['field']);
+              //   $value = ':'.$var;
+              //   //
+              //   // TODO: implicit field type determination
+              //   // TODO: array support (IN-QUERIES)
+              //   //
+              //   $params[$var] = $this->getParametrizedValue($filter['value'], 'text');
+              // } else {
+              //   $value = 'NULL';
+              // }
 
               $joinComponents[] = ($cAlias ? $cAlias.'.' : '') . "{$filter['field']} {$operator} {$value}";
 
