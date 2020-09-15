@@ -1089,9 +1089,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  \codename\core\model   $model          [model currently worked-on]
      * @param  array                  &$tableUsage    [table usage as reference]
      * @param  int                    &$aliasCounter  [alias counter as reference]
+     * @param  array                  &$params
      * @return string                 [query part]
      */
-    public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0, string $parentAlias = null) {
+    public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0, string $parentAlias = null, array &$params = []) {
         if(\count($model->getNestedJoins()) == 0 && \count($model->getSiblingJoins()) == 0) {
             return '';
         }
@@ -1226,13 +1227,46 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             // Determine the specific alias
             // if we're doing a reverse join, current alias is simply wrong
             // at least when using explicit values as condition parts
+            // NOTE/CHANGED 2020-09-15: for custom joins, this is wrong
+            // as the 'opposite site' also doesn't have an fkey reference.
             $cAlias = $nest->getConfig()->get('foreign>'.$joinKey.'>key') == $thisKey ? $alias : $useAlias;
+
+            $cAlias = null;
+            if($nest->getConfig()->get('foreign>'.$joinKey.'>key') == $thisKey) {
+              $cAlias = $alias;
+            } else if($nest->getConfig()->get('foreign>'.$thisKey.'>key')) {
+              $cAlias = $useAlias;
+            } else {
+              // neither this, nor nested model has an fkey ref - this is a custom join!
+              $cAlias = $alias;
+            }
+
 
             // add conditions!
             foreach($join->conditions as $filter) {
               $operator = $filter['value'] == null ? ($filter['operator'] == '!=' ? 'IS NOT' : 'IS') : $filter['operator'];
-              $value = $filter['value'] == null ? 'NULL' : $filter['value'];
-              $joinComponents[] = "{$cAlias}.{$filter['field']} {$operator} {$value}";
+
+              // $value = $filter['value'] == null ? 'NULL' : $filter['value'];
+
+              //
+              // NOTE/CHANGED/ADDED 2020-09-15 added support for PDO Params
+              // in conditioned joins
+              //
+              $value = null;
+
+              if($filter['value'] !== null) {
+                $var = $this->getStatementVariable(\array_keys($params), '_c_'.$filter['field']);
+                $value = ':'.$var;
+                //
+                // TODO: implicit field type determination
+                // TODO: array support (IN-QUERIES)
+                //
+                $params[$var] = $this->getParametrizedValue($filter['value'], 'text');
+              } else {
+                $value = 'NULL';
+              }
+
+              $joinComponents[] = ($cAlias ? $cAlias.'.' : '') . "{$filter['field']} {$operator} {$value}";
 
               // DEBUG Debugging join conditions for discrete models
               // if($nest instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
@@ -1274,7 +1308,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
             $join->currentAlias = $alias;
 
-            $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter, $join->currentAlias);
+            $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter, $join->currentAlias, $params);
         }
 
         // Loop through siblings
@@ -1325,7 +1359,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           }
 
           $ret .= " {$joinMethod} {$sibling->schema}.{$sibling->table} {$aliasAs}{$useIndex} ON {$alias}.{$siblingField} = {$this->table}.{$thisField}";
-          $ret .= $sibling->deepJoin($sibling, $tableUsage, $aliasCounter);
+          $ret .= $sibling->deepJoin($sibling, $tableUsage, $aliasCounter, null, $params);
         }
         return $ret;
     }
@@ -1402,12 +1436,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // As it simply IS part of the used tables.
         //
         $tableUsage = [ "{$this->schema}.{$this->table}" => 1];
-        $deepjoin = $this->deepJoin($this, $tableUsage);
 
         // prepare an array for values to submit as PDO statement parameters
         // done by-ref, so the values are arriving right here after
         // running getFilterQuery()
         $params = [];
+
+        //
+        // NOTE/CHANGED 2020-09-15: allow params in deepJoin() (conditions!)
+        //
+        $deepjoin = $this->deepJoin($this, $tableUsage, $aliasCounter = 0, $parentAlias = null, $params);
 
         //
         // Russian Caviar
