@@ -540,7 +540,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         //     'structure/nesting level' => $structure,
         //     'model' => $join->model->getIdentifier(),
         // ]]));
-        $track[$join->model->getIdentifier()][] = $join->model;
+
+        //
+        // NOTE/CHANGED 2020-09-15: exclude "incompatible" models from tracking
+        // this includes forced virtual joins, as they HAVE to be excluded
+        // to avoid an 'obiwan' or similar error - index-based re-association
+        // for virtual resultsets. We treat a forced virtual join as an 'incompatible' model / 'blackbox'
+        //
+        if($this->compatibleJoin($join->model)) {
+          $track[$join->model->getIdentifier()][] = $join->model;
+        }
 
         //
         // WORKAROUND 2019-06-17
@@ -598,7 +607,19 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               }
             }
           }
-          $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, $structureDive), $trackFields);
+
+          //
+          // NOTE/CHANGED 2020-09-15: handle (in-)compatible joins separately
+          // As stated above, this is for forced virtual joins - we have to treat them as 'incompatible' models
+          // to avoid index confusion. At this point, we reset the tracking/structure dive,
+          // as we're 'virtually' diving into a different model resultset
+          //
+          if($this->compatibleJoin($join->model)) {
+            $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, $structureDive), $trackFields);
+          } else {
+            $result = $join->model->getVirtualFieldResult($result);
+          }
+
 
           //
           // NOTE/CHANGED 2019-09-10: changed handling/behaviour of virtual fields via ::addVirtualField()
@@ -645,6 +666,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
               foreach($this->getNestedJoins() as $join) {
                 if($join->modelField === $config['field']) {
+                  // if($join->model->getForceVirtualJoin()) {
+                  //   continue;
+                  // }
+
+                  // NOTE: as we're looking for the exact model instance
+                  // this won't cause an index problem while using forceVirtualJoins
+                  // as we simply get out of normal tracking (see above)
                   if(count($indexes = array_keys($track[$foreign['model']], $join->model, true)) === 1) {
                     $index = $indexes[0];
                     // DEBUG echo("- index found: $index <br>");

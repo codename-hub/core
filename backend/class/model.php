@@ -2212,8 +2212,13 @@ abstract class model implements \codename\core\model\modelInterface {
         }
 
         // virtual field?
-        if($vKey) {
-
+        if($vKey && !$nest->getForceVirtualJoin()) {
+          //
+          // NOTE/CHANGED 2020-09-15 Forced virtual joins
+          // require us to skip performBareJoin at this point in general
+          // (for both vkey and non-vkey joins)
+          //
+          
           //
           // Skip recursive performBareJoin
           // if we have none coming up next
@@ -2243,7 +2248,12 @@ abstract class model implements \codename\core\model\modelInterface {
           foreach($result as $index => &$r) {
             $r[$vKey] = array_merge( $r[$vKey], $tResult[$index]);
           }
-        } else {
+        } else if(!$nest->getForceVirtualJoin()) {
+          //
+          // NOTE/CHANGED 2020-09-15 Forced virtual joins
+          // require us to skip performBareJoin at this point in general
+          // (for both vkey and non-vkey joins)
+          //
           $result = $nest->performBareJoin($result);
         }
 
