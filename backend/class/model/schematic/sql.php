@@ -1233,8 +1233,16 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
             $cAlias = null;
             if($nest->getConfig()->get('foreign>'.$joinKey.'>key') == $thisKey) {
+              //
+              // Back-reference, validated by checking the existance
+              // of an FKEY config in the nested ref back to THIS model
+              //
               $cAlias = $alias;
-            } else if($nest->getConfig()->get('foreign>'.$thisKey.'>key')) {
+            } else if($this->getConfig()->get('foreign>'.$thisKey.'>key') == $joinKey) {
+              //
+              // Forward reference, validated by checking the existance
+              // of an FKEY config in THIS model to the nested one
+              //
               $cAlias = $useAlias;
             } else {
               // neither this, nor nested model has an fkey ref - this is a custom join!
