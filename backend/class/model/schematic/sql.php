@@ -1279,7 +1279,24 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               //   $value = 'NULL';
               // }
 
-              $joinComponents[] = ($cAlias ? $cAlias.'.' : '') . "{$filter['field']} {$operator} {$value}";
+              $tAlias = $cAlias;
+
+              //
+              // ADDED 2020-09-15 Allow explicit model name for conditions
+              // To allow filters on both sides
+              //
+              if($filter['model_name'] ?? false) {
+                // explicit model override in filter dataset
+                if($filter['model_name'] == $this->getIdentifier()) {
+                  $tAlias = $useAlias;
+                } else if($filter['model_name'] == $nest->getIdentifier()) {
+                  $tAlias = $alias;
+                } else {
+                  throw new exception('INVALID_JOIN_CONDITION_MODEL_NAME', exception::$ERRORLEVEL_ERROR);
+                }
+              }
+
+              $joinComponents[] = ($tAlias ? $tAlias.'.' : '') . "{$filter['field']} {$operator} {$value}";
 
               // DEBUG Debugging join conditions for discrete models
               // if($nest instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
