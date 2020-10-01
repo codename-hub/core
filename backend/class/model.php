@@ -1004,6 +1004,35 @@ abstract class model implements \codename\core\model\modelInterface {
         return $this;
     }
 
+
+    /**
+     * [addFilterPluginCollection description]
+     * @param  \codename\core\model\plugin\filter\filterInterface[]   $filterPlugins [array of filter plugin instances]
+     * @param  string                                 $groupOperator [operator to be used between all collection items]
+     * @param  string                                 $groupName     [filter group name]
+     * @param  string|null                            $conjunction   [conjunction to be used inside a filter group]
+     * @return model
+     */
+    public function addFilterPluginCollection(array $filterPlugins, string $groupOperator = 'AND', string $groupName = 'default', string $conjunction = null) : model {
+      $filterCollection = array();
+      foreach($filterPlugins as $filter) {
+        if($filter instanceof \codename\core\model\plugin\filter\filterInterface
+          || $filter instanceof \codename\core\model\plugin\managedFilterInterface) {
+          $filterCollection[] = $filter;
+        } else {
+          throw new exception('MODEL_INVALID_FILTER_PLUGIN', exception::$ERRORLEVEL_ERROR);
+        }
+      }
+      if(count($filterCollection) > 0) {
+        $this->filterCollections[$groupName][] = array(
+              'operator' => $groupOperator,
+              'filters' => $filterCollection,
+              'conjunction' => $conjunction
+        );
+      }
+      return $this;
+    }
+
     /**
      *
      * {@inheritDoc}

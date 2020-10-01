@@ -2157,6 +2157,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               // value IS indeed a field name
               // TODO: provide getFieldValue($tableAlias) also for fieldfilters
               $filterQuery['query'] = $filter->field->getValue() . ' = ' . $filter->value->getValue();
+            } else if($filter instanceof \codename\core\model\plugin\managedFilterInterface) {
+              $variableNames = $filter->getFilterQueryParameters();
+              $variableNameMap = [];
+              foreach($variableNames as $vName => $vValue) {
+                $variableNameMap[$vName] = $this->getStatementVariable(\array_keys($appliedFilters), $vName);
+                $appliedFilters[$variableNameMap[$vName]] = $this->getParametrizedValue($vValue, '');
+              }
+              $filterQuery['query'] = $filter->getFilterQuery($variableNameMap, $currentAlias);
             }
 
             // only handle, if query set
@@ -2221,30 +2229,40 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 'query' => null
               ];
 
-              if(\is_array($filter->value)) {
-                  // value is an array
-                  $values = array();
-                  $i = 0;
-                  foreach($filter->value as $thisval) {
-                      $var = $this->getStatementVariable(\array_keys($appliedFilters), $filter->getFieldValue($currentAlias), $i++);
-                      $values[] = ':' . $var; // var = PDO Param
-                      $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field));
-                  }
-                  $string = implode(', ', $values);
-                  $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
-                  $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' ( ' . $string . ') ';
-              } else {
-                  // value is a singular value
-                  // NOTE: see other $filter->value == null (equality or identity operator) note and others
-                  if($filter->value === null || (\is_string($filter->value) && \strlen($filter->value) == 0) || $filter->value === 'null') {
-                      // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // var = PDO Param
-                      // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
-                  } else {
-                      $var = $this->getStatementVariable(\array_keys($appliedFilters), $filter->getFieldValue($currentAlias));
-                      $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . $filter->operator . ' ' . ':'.$var.' ';
-                      $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field));
-                  }
+              if($filter instanceof \codename\core\model\plugin\filter\filterInterface) {
+                if(\is_array($filter->value)) {
+                    // value is an array
+                    $values = array();
+                    $i = 0;
+                    foreach($filter->value as $thisval) {
+                        $var = $this->getStatementVariable(\array_keys($appliedFilters), $filter->getFieldValue($currentAlias), $i++);
+                        $values[] = ':' . $var; // var = PDO Param
+                        $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field));
+                    }
+                    $string = implode(', ', $values);
+                    $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
+                    $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' ( ' . $string . ') ';
+                } else {
+                    // value is a singular value
+                    // NOTE: see other $filter->value == null (equality or identity operator) note and others
+                    if($filter->value === null || (\is_string($filter->value) && \strlen($filter->value) == 0) || $filter->value === 'null') {
+                        // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
+                        $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // var = PDO Param
+                        // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
+                    } else {
+                        $var = $this->getStatementVariable(\array_keys($appliedFilters), $filter->getFieldValue($currentAlias));
+                        $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . $filter->operator . ' ' . ':'.$var.' ';
+                        $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field));
+                    }
+                }
+              } else if($filter instanceof \codename\core\model\plugin\managedFilterInterface) {
+                $variableNames = $filter->getFilterQueryParameters();
+                $variableNameMap = [];
+                foreach($variableNames as $vName => $vValue) {
+                  $variableNameMap[$vName] = $this->getStatementVariable(\array_keys($appliedFilters), $vName);
+                  $appliedFilters[$variableNameMap[$vName]] = $this->getParametrizedValue($vValue, '');
+                }
+                $t_filter['query'] = $filter->getFilterQuery($variableNameMap, $currentAlias);
               }
 
               if($t_filter['query'] != null) {
