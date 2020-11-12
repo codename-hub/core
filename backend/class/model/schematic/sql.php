@@ -620,6 +620,20 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $result = $join->model->getVirtualFieldResult($result);
           }
 
+          //
+          // Apply structure dive based modifications
+          //
+          if(count($structureDive) === 0) {
+            foreach($result as &$dataset) {
+              $dive = &$dataset;
+              foreach($structure as $key) {
+                $dive[$key] = $dive[$key] ?? [];
+                $dive = &$dive[$key];
+              }
+              $vData = $join->model->normalizeByFieldlist($dataset);
+              $dive = array_merge($dive ?? [], $vData);
+            }
+          }
 
           //
           // NOTE/CHANGED 2019-09-10: changed handling/behaviour of virtual fields via ::addVirtualField()
