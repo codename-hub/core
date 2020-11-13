@@ -42,6 +42,10 @@ class json extends \codename\core\translate implements \codename\core\translate\
             throw new exception('EXCEPTION_TRANSLATE_JSON_MISSING_DOT', exception::$ERRORLEVEL_ERROR, $keystr);
         }
 
+        if(empty($key[1])) {
+          throw new exception('EXCEPTION_TRANSLATE_JSON_INVALID_KEY_REQUESTED', exception::$ERRORLEVEL_ERROR, $keystr);
+        }
+
         $key[0] = strtolower($key[0]);
         $key[1] = strtoupper($key[1]);
 
