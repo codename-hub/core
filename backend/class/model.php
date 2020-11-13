@@ -631,8 +631,26 @@ abstract class model implements \codename\core\model\modelInterface {
           }
         }
 
+        //
+        // Detect (possible) virtual field configuration right here
+        //
+        $virtualField = null;
+        if(($children = $this->config->get('children')) != null) {
+          foreach($children as $field => $config) {
+            if($config['type'] === 'foreign') {
+              $foreign = $this->config->get('foreign>'.$config['field']);
+              if($this->config->get('datatype>'.$field) == 'virtual') {
+                if($thisKey === $config['field']) {
+                  $virtualField = $field;
+                  break;
+                }
+              }
+            }
+          }
+        }
+
         $class = '\\codename\\core\\model\\plugin\\join\\' . $pluginDriver;
-        array_push($this->nestedModels, new $class($model, $type, $thisKey, $joinKey, $conditions));
+        array_push($this->nestedModels, new $class($model, $type, $thisKey, $joinKey, $conditions, $virtualField));
         // check for already-added ?
 
         return $this;

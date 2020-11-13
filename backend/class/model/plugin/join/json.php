@@ -25,9 +25,10 @@ class json extends \codename\core\model\plugin\join implements \codename\core\mo
     string $type,
     $modelField,
     $referenceField,
-    array $conditions = []
+    array $conditions = [],
+    ?string $virtualField = null
   ) {
-    parent::__CONSTRUCT($model, $type, $modelField, $referenceField, $conditions);
+    parent::__CONSTRUCT($model, $type, $modelField, $referenceField, $conditions, $virtualField);
     $this->joinByArrayKey = $this->model->getPrimarykey() == $referenceField;
   }
 

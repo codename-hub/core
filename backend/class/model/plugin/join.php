@@ -75,16 +75,23 @@ abstract class join extends \codename\core\model\plugin {
   public $currentAlias = null;
 
   /**
+   * [public description]
+   * @var string|null
+   */
+  public $virtualField = null;
+
+  /**
    *
    * {@inheritDoc}
    * @see \codename\core\model_plugin_filter::__CONSTRUCT(string $field, string $value, string $operator)
    */
-  public function __CONSTRUCT(\codename\core\model $model, string $type, $modelField, $referenceField, array $conditions = []) {
+  public function __CONSTRUCT(\codename\core\model $model, string $type, $modelField, $referenceField, array $conditions = [], ?string $virtualField = null) {
       $this->model = $model;
       $this->type = $type;
       $this->referenceField = $referenceField;
       $this->modelField = $modelField;
       $this->conditions = $conditions;
+      $this->virtualField = $virtualField;
       // TODO: perform null check?
       return $this;
   }
