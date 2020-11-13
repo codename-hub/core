@@ -1785,15 +1785,15 @@ abstract class model implements \codename\core\model\modelInterface {
               $fieldAlias = $field->alias !== null ? $field->alias->get() : null;
               if($alias != null) {
                 if($fieldAlias) {
-                  $result[] = $fieldAlias; // [ $alias, $field->field->get() . ' AS ' . $fieldAlias ];
+                  $result[] = $fieldAlias;
                 } else {
-                  $result[] = $field->field->get(); // [ $alias, $field->field->get() ];
+                  $result[] = $field->field->get();
                 }
               } else {
                 if($fieldAlias) {
-                  $result[] = $fieldAlias; // [ $field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get() . ' AS ' . $fieldAlias ];
+                  $result[] = $fieldAlias;
                 } else {
-                  $result[] = $field->field->get(); // [ $field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get() ];
+                  $result[] = $field->field->get();
                 }
               }
             }
@@ -1835,7 +1835,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
       }
 
-      return $result;
+      return array_values($result);
     }
 
     /**
