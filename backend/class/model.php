@@ -1728,7 +1728,114 @@ abstract class model implements \codename\core\model\modelInterface {
           }
         }
       }
+
+      // filter out hidden fields by difference calculation
+      $returnFields = array_diff($returnFields, $this->hiddenFields);
+
       return $returnFields;
+    }
+
+    /**
+     * Returns a list of fields (as strings)
+     * that are part of the current model
+     * or were added dynamically (aliased, function-based or implicit)
+     * and handles hidden fields, too.
+     * @return string[]
+     */
+    protected function getCurrentAliasedFieldlist() : array {
+      $result = array();
+      if(\count($this->fieldlist) == 0 && \count($this->hiddenFields) > 0) {
+        //
+        // Include all fields but specific ones
+        //
+        foreach($this->config->get('field') as $fieldName) {
+          if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
+            if(!in_array($fieldName, $this->hiddenFields)) {
+              $result[] = $fieldName;
+            }
+          }
+        }
+      } else {
+        if(count($this->fieldlist) > 0) {
+          //
+          // Explicit field list
+          //
+          foreach($this->fieldlist as $field) {
+            if($field instanceof \codename\core\model\plugin\calculatedfield\calculatedfieldInterface) {
+              //
+              // Get the field's alias
+              //
+              $result[] = $field->field->get();
+            } else if($field instanceof \codename\core\model\plugin\aggregate\aggregateInterface) {
+              //
+              // aggregate field's alias
+              //
+              $result[] = $field->field->get();
+            } else if($field instanceof \codename\core\model\plugin\fulltext\fulltextInterface) {
+
+              //
+              // fulltext field's alias
+              //
+              $result[] = $field->field->get();
+            } else if($this->config->get('datatype>'.$field->field->get()) !== 'virtual' && (!in_array($field->field->get(), $this->hiddenFields) || $field->alias)) {
+              //
+              // omit virtual fields
+              // they're not part of the DB.
+              //
+              $fieldAlias = $field->alias !== null ? $field->alias->get() : null;
+              if($alias != null) {
+                if($fieldAlias) {
+                  $result[] = $fieldAlias; // [ $alias, $field->field->get() . ' AS ' . $fieldAlias ];
+                } else {
+                  $result[] = $field->field->get(); // [ $alias, $field->field->get() ];
+                }
+              } else {
+                if($fieldAlias) {
+                  $result[] = $fieldAlias; // [ $field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get() . ' AS ' . $fieldAlias ];
+                } else {
+                  $result[] = $field->field->get(); // [ $field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get() ];
+                }
+              }
+            }
+          }
+
+          //
+          // add the rest of the data-model-defined fields
+          // as long as they're not hidden.
+          //
+          foreach($this->config->get('field') as $fieldName) {
+            if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
+              if(!in_array($fieldName, $this->hiddenFields)) {
+                $result[] = $fieldName;
+              }
+            }
+          }
+
+          //
+          // NOTE:
+          // array_unique can be used on arrays that contain objects or sub-arrays
+          // you need to use SORT_REGULAR for this case (!)
+          //
+          $result = array_unique($result, SORT_REGULAR);
+
+        } else {
+          //
+          // No explicit fieldlist
+          // No explicit hidden fields
+          //
+          if(count($this->hiddenFields) === 0) {
+            //
+            // The rest of the fields. Simply using a wildcard
+            //
+            $result = array_merge($result, $this->config->get('field'));
+          } else {
+            // ugh?
+          }
+        }
+
+      }
+
+      return $result;
     }
 
     /**
@@ -2249,13 +2356,14 @@ abstract class model implements \codename\core\model\modelInterface {
         $vKey = null;
         if($this instanceof \codename\core\model\virtualFieldResultInterface && $this->virtualFieldResult) {
           // pick only parts of the arrays
-          if(($children = $this->config->get('children')) !== null) {
-            foreach($children as $vField => $config) {
-              if($config['type'] === 'foreign' && $config['field'] === $join->modelField) {
-                $vKey = $vField;
-              }
-            }
-          }
+          // if(($children = $this->config->get('children')) !== null) {
+          //   foreach($children as $vField => $config) {
+          //     if($config['type'] === 'foreign' && $config['field'] === $join->modelField) {
+          //       $vKey = $vField;
+          //     }
+          //   }
+          // }
+          $vKey = $join->virtualField;
         }
 
         // virtual field?
@@ -2265,7 +2373,7 @@ abstract class model implements \codename\core\model\modelInterface {
           // require us to skip performBareJoin at this point in general
           // (for both vkey and non-vkey joins)
           //
-          
+
           //
           // Skip recursive performBareJoin
           // if we have none coming up next

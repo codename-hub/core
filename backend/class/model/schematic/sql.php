@@ -517,6 +517,57 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     protected $virtualFieldResult = false;
 
     /**
+     * [populateTrackFieldsRecursive description]
+     * @param  array  &$trackFields [description]
+     * @return [type]              [description]
+     */
+    protected function populateTrackFieldsRecursive(array &$trackFields) {
+
+      // Track this model
+      if(count($trackFields) === 0) {
+        $vModelFieldlist = $this->getCurrentAliasedFieldlist();
+        foreach($vModelFieldlist as $field) {
+          $trackFields[$field][] = $this;
+        }
+      }
+
+      foreach($this->getNestedJoins() as $join) {
+        if($join->model instanceof \codename\core\model\schematic\sql) {
+          // $dummy = [];
+          // $vModelFieldlist = $join->model->getCurrentFieldlistNonRecursive(null, $dummy);
+          $vModelFieldlist = $join->model->getCurrentAliasedFieldlist();
+          foreach($vModelFieldlist as $field) {
+            $trackFields[$field][] = $join->model;
+          }
+
+          // // always pick the last array element
+          // foreach($vModelFieldlist as &$fieldComponents) {
+          //   $fieldComponents = $fieldComponents[count($fieldComponents)-1];
+          // }
+
+          // $fields = [];
+          //
+          // if(in_array('*', $vModelFieldlist)) {
+          //   foreach($join->model->getFields() as $field) {
+          //     $fields[] = $field;
+          //   }
+          // }
+          //
+          // $fields = array_merge($fields, $vModelFieldlist);
+          //
+          // foreach($fields as $field) {
+          //   $trackFields[$field][] = $join->model;
+          // }
+
+          // TODO: check for compat
+          if($this->compatibleJoin($join->model)) {
+            $join->model->populateTrackFieldsRecursive($trackFields);
+          }
+        }
+      }
+    }
+
+    /**
      * [getVirtualFieldResult description]
      * @param  array  $result     [description]
      * @param  array  $track      [description]
@@ -525,21 +576,25 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     public function getVirtualFieldResult(array $result, &$track = [], array $structure = [], &$trackFields = []) {
 
-      // DEBUG app::getResponse()->setData('structure', array_merge(app::getResponse()->getData('structure') ?? [], [$structure]));
-      // DEBUG echo("structure1 ".implode('=>', $structure).'<br>');
+      // \codename\core\app::getResponse()->setData('getVirtualFieldResult_trackFields', array_merge(
+      //   \codename\core\app::getResponse()->getData('getVirtualFieldResult_trackFields') ?? [],
+      //   [[
+      //     'thisModel' => $this->getIdentifier(),
+      //     'structure' => $structure,
+      //     'trackFields' => $trackFields,
+      //   ]]
+      // ));
 
-      // app::getResponse()->setData('protocol', array_merge(app::getResponse()->getData('protocol') ?? [], [[
-      //     'structure/nesting level' => $structure,
-      //     'model' => $this->getIdentifier(),
-      // ]]));
+      // Construct field tracking array
+      // by diving into the whole structure beforehand
+      // one single time
+      if(count($trackFields) === 0) {
+        $this->populateTrackFieldsRecursive($trackFields);
+
+        // \codename\core\app::getResponse()->setData('tracKfields',$trackFields);
+      }
 
       foreach($this->getNestedJoins() as $join) {
-
-        // app::getResponse()->setData('structure', array_merge(app::getResponse()->getData('structure') ?? [], [$structure]));
-        // app::getResponse()->setData('protocol', array_merge(app::getResponse()->getData('protocol') ?? [], [[
-        //     'structure/nesting level' => $structure,
-        //     'model' => $join->model->getIdentifier(),
-        // ]]));
 
         //
         // NOTE/CHANGED 2020-09-15: exclude "incompatible" models from tracking
@@ -563,56 +618,58 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         //
         if($join->model instanceof \codename\core\model\schematic\sql) {
           $dummy = [];
-          $vModelFieldlist = $join->model->getCurrentFieldlistNonRecursive(null, $dummy);
 
-          // always pick the last array element
-          foreach($vModelFieldlist as &$fieldComponents) {
-            $fieldComponents = $fieldComponents[count($fieldComponents)-1];
-          }
+          // $vModelFieldlist = $join->model->getCurrentFieldlistNonRecursive(null, $dummy);
+          $vModelFieldlist = $join->model->getCurrentAliasedFieldlist();
 
-          // CHANGED - moved above for further usage
-          // $fields = [];
-
-          if(in_array('*', $vModelFieldlist)) {
-            foreach($join->model->getFields() as $field) {
-              $fields[] = $field;
-            }
-          }
+          // // always pick the last array element
+          // foreach($vModelFieldlist as &$fieldComponents) {
+          //   $fieldComponents = $fieldComponents[count($fieldComponents)-1];
+          // }
+          //
+          // // CHANGED - moved above for further usage
+          // // $fields = [];
+          //
+          // if(in_array('*', $vModelFieldlist)) {
+          //   foreach($join->model->getFields() as $field) {
+          //     $fields[] = $field;
+          //   }
+          // }
 
           $fields = array_merge($fields, $vModelFieldlist);
 
-          foreach($fields as $field) {
-            $trackFields[$field][] = $join->model;
-          }
-
-          // if($join->model->getIdentifier() == 'person') {
-          //   $key = 'model_join '.$this->getIdentifier().'__'.$join->model->getIdentifier();
-          //   \codename\core\app::getResponse()->setData(
-          //     $key,
-          //     array_merge(
-          //       \codename\core\app::getResponse()->getData($key) ?? [],
-          //       [ $vModelFieldlist ]
-          //     )
-          //   );
+          // foreach($fields as $field) {
+          //   // $trackFields[$field][] = $join->model;
           // }
-          // \codename\core\app::getResponse()->setData('trackFields', $trackFields);
-
         }
 
         if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
+
           $structureDive = [];
-          if(($children = $this->config->get('children')) != null) {
-            foreach($children as $field => $config) {
-              if($config['type'] === 'foreign') {
-                $foreign = $this->config->get('foreign>'.$config['field']);
-                if($this->config->get('datatype>'.$field) == 'virtual') {
-                  if($join->modelField === $config['field']) {
-                    $structureDive = [$field];
-                  }
-                }
-              }
+
+          // if virtualFieldResult enabled on this model
+          // use vField config from join plugin
+          if($this->virtualFieldResult) {
+            if($join->virtualField) {
+              $structureDive = [ $join->virtualField ];
             }
           }
+
+          //
+          // replaced by absolute configuration (see above and plugin\join)
+          //
+          // if(($children = $this->config->get('children')) != null) {
+          //   foreach($children as $field => $config) {
+          //     if($config['type'] === 'foreign') {
+          //       $foreign = $this->config->get('foreign>'.$config['field']);
+          //       if($this->config->get('datatype>'.$field) == 'virtual') {
+          //         if($join->modelField === $config['field']) {
+          //           $structureDive = [$field];
+          //         }
+          //       }
+          //     }
+          //   }
+          // }
 
           //
           // NOTE/CHANGED 2020-09-15: handle (in-)compatible joins separately
@@ -626,80 +683,80 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $result = $join->model->getVirtualFieldResult($result);
           }
 
+          // //
+          // // Experimental
+          // // Apply structure dive based modifications
+          // //
+          // if(count($structureDive) === 0) {
           //
-          // Experimental
-          // Apply structure dive based modifications
+          //   // if(!isset($track[$foreign['model']])) {
+          //   //   $track[$foreign['model']] = [];
+          //   // }
+          //   // $index = null;
           //
-          if(count($structureDive) === 0) {
-
-            // if(!isset($track[$foreign['model']])) {
-            //   $track[$foreign['model']] = [];
-            // }
-            // $index = null;
-
-            $index = null;
-            if(count($indexes = array_keys($track[$join->model->getIdentifier()], $join->model, true)) === 1) {
-              $index = $indexes[0];
-            }
-
-            foreach($result as &$dataset) {
-              $dive = &$dataset;
-              foreach($structure as $key) {
-                $dive[$key] = $dive[$key] ?? [];
-                $dive = &$dive[$key];
-              }
-
-              $vData = [];
-              foreach($fields as $modelField) {
-
-                $index = null;
-                if($trackFields[$modelField] ?? false) {
-                  // override index...
-                  if(count($indexes = array_keys($trackFields[$modelField], $join->model, true)) === 1) { // NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
-                    $index = $indexes[0];
-                  }
-                }
-
-                //
-                // Hack from below...
-                //
-                if(isset($dataset[$modelField]) && is_array($dataset[$modelField]) && $join->model->getFieldtype(\codename\core\value\text\modelfield::getInstance($modelField)) !== 'virtual') {
-                  $vData[$modelField] = $dataset[$modelField][$index] ?? null;
-                } else if(array_key_exists($modelField, $dataset)) {
-                  $vData[$modelField] = $dataset[$modelField]; //  ?? null;
-                }
-              }
-              // $vData = $join->model->normalizeByFieldlist($dataset);
-
-              $dive = array_merge($dive ?? [], $vData);
-
-              // $dive['_debug_'.$join->model->getIdentifier()] = [
-              //   'track' => $track,
-              //   'indexes' => array_keys($track[$foreign['model']] ?? [], $join->model, true)
-              // ];
-            }
-          }
-
+          //   $index = null;
+          //   if(count($indexes = array_keys($track[$join->model->getIdentifier()], $join->model, true)) === 1) {
+          //     $index = $indexes[0];
+          //   }
           //
-          // NOTE/CHANGED 2019-09-10: changed handling/behaviour of virtual fields via ::addVirtualField()
-          // if we're on root-level but handling a join
-          // (case: no virtual field for objectdata, but joined table)
-          // NOTE: root model virtual fields are handled outside
-          // NOTE: we're performing a small normalization inside this join handling.
+          //   foreach($result as &$dataset) {
+          //     $dive = &$dataset;
+          //     foreach($structure as $key) {
+          //       $dive[$key] = $dive[$key] ?? [];
+          //       $dive = &$dive[$key];
+          //     }
           //
-          if(count($structure) === 0 && count($structureDive) === 0) {
-            if(count($join->model->getVirtualFields()) > 0) {
-              foreach($result as &$d) {
-                $d = $join->model->normalizeRow($d);
-                $d = $join->model->handleVirtualFields($d);
-              }
-            }
-          }
+          //     $vData = [];
+          //     foreach($fields as $modelField) {
+          //
+          //       $index = null;
+          //       if($trackFields[$modelField] ?? false) {
+          //         // override index...
+          //         if(count($indexes = array_keys($trackFields[$modelField], $join->model, true)) === 1) { // NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
+          //           $index = $indexes[0];
+          //         }
+          //       }
+          //
+          //       //
+          //       // Hack from below...
+          //       //
+          //       if(isset($dataset[$modelField]) && is_array($dataset[$modelField]) && $join->model->getFieldtype(\codename\core\value\text\modelfield::getInstance($modelField)) !== 'virtual') {
+          //         $vData[$modelField] = $dataset[$modelField][$index] ?? null;
+          //       } else if(array_key_exists($modelField, $dataset)) {
+          //         $vData[$modelField] = $dataset[$modelField]; //  ?? null;
+          //       }
+          //     }
+          //     // $vData = $join->model->normalizeByFieldlist($dataset);
+          //
+          //     $dive = array_merge($dive ?? [], $vData);
+          //
+          //     // $dive['_debug_'.$join->model->getIdentifier()] = [
+          //     //   'track' => $track,
+          //     //   'indexes' => array_keys($track[$foreign['model']] ?? [], $join->model, true)
+          //     // ];
+          //   }
+          // }
+          //
+          // //
+          // // NOTE/CHANGED 2019-09-10: changed handling/behaviour of virtual fields via ::addVirtualField()
+          // // if we're on root-level but handling a join
+          // // (case: no virtual field for objectdata, but joined table)
+          // // NOTE: root model virtual fields are handled outside
+          // // NOTE: we're performing a small normalization inside this join handling.
+          // //
+          // if(count($structure) === 0 && count($structureDive) === 0) {
+          //   if(count($join->model->getVirtualFields()) > 0) {
+          //     foreach($result as &$d) {
+          //       $d = $join->model->normalizeRow($d);
+          //       $d = $join->model->handleVirtualFields($d);
+          //     }
+          //   }
+          // }
         }
       }
 
       // \codename\core\app::getResponse()->setData('sql_'.$this->getIdentifier(), $trackFields);
-      // \codename\core\app::getResponse()->setData('sql_', $trackFields);
+      // \codename\core\app::getResponse()->setData('sql_'.microtime(true), $trackFields);
       // TODO, fix, refactor
       // foreach($this->getSiblingJoins() as $join) {
       //   $track[$join->model->getIdentifier()][] = $join->model;
@@ -710,298 +767,606 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
       // DEBUG echo("structure2 ".implode('=>', $structure).'<br>');
 
-      if(($children = $this->config->get('children')) != null) {
-        foreach($children as $field => $config) {
-          if($config['type'] === 'foreign') {
-            $foreign = $this->config->get('foreign>'.$config['field']);
-            if($this->config->get('datatype>'.$field) == 'virtual') {
-              if(!isset($track[$foreign['model']])) {
-                $track[$foreign['model']] = [];
-              }
-              // $index = count($track[$foreign['model']])-1;
+
+      //
+      // Re-normalizing joined data
+      // This is a completely different approach
+      // instead of iterating over all vField/children-supporting models
+      // We iterate over all models - as we have to handle mixed cases, too.
+      //
+      foreach($this->getNestedJoins() as $join) {
+
+        // Re-name/alias the current join model instance
+        $vModel = $join->model;
+        $virtualField = null;
+
+        if($this->virtualFieldResult) {
+          // TODO:
+          // handle $join->virtualField
+          $virtualField = $join->virtualField;
+        }
+
+        $index = null;
+        if(count($indexes = array_keys($track[$vModel->getIdentifier()] ?? [], $vModel, true)) === 1) {
+          $index = $indexes[0];
+        } else {
+          // What happens, if we join the same model instance twice or more?
+        }
+
+        if($index === null) {
+          // index is still null -> model not found in currently nested models
+          // TODO: we might check for virtual field result or so?
+          // continue;
+        }
+
+        // \codename\core\app::getResponse()->setData('getVirtualFieldResult_index_det', array_merge(
+        //   \codename\core\app::getResponse()->getData('getVirtualFieldResult_index_det') ?? [],
+        //   [
+        //     [
+        //       'model' => $this->getIdentifier(),
+        //       'joinModel' => $vModel->getIdentifier(),
+        //       'index' => $index
+        //     ]
+        //   ]
+        // ));
+
+
+        //
+        // for sql-based models: extract fields
+        // for others: set explicitly null
+        // TODO: implement fieldlists for non-sql models
+        //
+        // $vModelFieldlist = null;
+        //
+        // if($vModel instanceof \codename\core\model\schematic\sql) {
+        //   $dummy = [];
+        //   $vModelFieldlist = $vModel->getCurrentFieldlistNonRecursive(null, $dummy);
+        //   // always pick the last array element
+        //   foreach($vModelFieldlist as &$fieldComponents) {
+        //     $fieldComponents = $fieldComponents[count($fieldComponents)-1];
+        //   }
+        // }
+
+        $fields = [];
+
+
+        $vModelFieldlist = $vModel->getCurrentAliasedFieldlist();
+        $fields = $vModelFieldlist;
+        // $dummy = [];
+        // if($vModel instanceof \codename\core\model\schematic\sql) {
+        //   $vModelFieldlist = $vModel->getCurrentFieldlistNonRecursive(null, $dummy);
+        // } else {
+        //   $vModelFieldlist = [];
+        // }
+
+        // // always pick the last array element
+        // foreach($vModelFieldlist as &$fieldComponents) {
+        //   $fieldComponents = $fieldComponents[count($fieldComponents)-1];
+        // }
+        //
+        // foreach($vModelFieldlist as $fieldCandidate) {
+        //   if($fieldCandidate == '*') {
+        //     // If we stumble upon '*',
+        //     // We're simply adding all fields available
+        //     // At the same time, we're skipping '*' itself.
+        //     foreach($vModel->getFields() as $field) {
+        //       $fields[] = $field;
+        //     }
+        //   } else {
+        //     // Otherwise, add each field individually
+        //     $fields[] = $fieldCandidate;
+        //   }
+        // }
+
+        // if(in_array('*', $vModelFieldlist)) {
+        //   // TODO: remove * from fieldlist or iterate, in general.
+        //   foreach($vModel->getFields() as $field) {
+        //     $fields[] = $field;
+        //   }
+        // }
+        // $fields = array_merge($fields, $vModelFieldlist);
+
+        // determine per-field indexes
+        // as we might join the same model
+        // with differing fieldlists
+        $fieldValueIndexes = [];
+
+        // \codename\core\app::getResponse()->setData('protocol_fieldValueIndexes', array_merge(
+        //   \codename\core\app::getResponse()->getData('protocol_fieldValueIndexes') ?? [],
+        //   [
+        //     [
+        //       'action' => 'start',
+        //       'model' => $this->getIdentifier(),
+        //       'joinModel' => $vModel->getIdentifier()
+        //     ]
+        //   ]
+        // ));
+
+        foreach($fields as $modelField) {
+          // \codename\core\app::getResponse()->setData('protocol_fieldValueIndexes', array_merge(
+          //   \codename\core\app::getResponse()->getData('protocol_fieldValueIndexes') ?? [],
+          //   [
+          //     [
+          //       'action' => 'iterate over modelField',
+          //       'model' => $this->getIdentifier(),
+          //       'joinModel' => $vModel->getIdentifier(),
+          //       'modelField' => $modelField,
+          //     ]
+          //   ]
+          // ));
+
+          $index = null;
+
+          if($trackFields[$modelField] ?? false) {
+            if(count($trackFields[$modelField]) === 1) {
+              // There's only a single occurrence of this modelfield
+              // Index is being unset.
               $index = null;
 
-              // DEBUG echo("Determining index for {$foreign['model']} ({$this->getIdentifier()}.{$field})...<br>");
+              // \codename\core\app::getResponse()->setData('protocol_fieldValueIndexes', array_merge(
+              //   \codename\core\app::getResponse()->getData('protocol_fieldValueIndexes') ?? [],
+              //   [
+              //     [
+              //       'action' => '$trackFields[$modelField] was just count of 1',
+              //       'model' => $this->getIdentifier(),
+              //       'joinModel' => $vModel->getIdentifier(),
+              //       'modelField' => $modelField,
+              //       '$trackFields[$modelField]' => $trackFields[$modelField],
+              //       '$trackFields' => $trackFields,
+              //     ]
+              //   ]
+              // ));
+            } else if($vModel->getFieldtype(\codename\core\value\text\modelfield::getInstance($modelField)) === 'virtual') {
+              // Avoid virtual fields
+              // as we're handling them differently
+              // And they're not SQL-native.
+              $index = null; // QUESTION: or false?
 
-              foreach($this->getNestedJoins() as $join) {
-                if($join->modelField === $config['field']) {
-                  // if($join->model->getForceVirtualJoin()) {
-                  //   continue;
-                  // }
+              // \codename\core\app::getResponse()->setData('protocol_fieldValueIndexes', array_merge(
+              //   \codename\core\app::getResponse()->getData('protocol_fieldValueIndexes') ?? [],
+              //   [
+              //     [
+              //       'action' => '$modelField is a virtual field',
+              //       'model' => $this->getIdentifier(),
+              //       'joinModel' => $vModel->getIdentifier(),
+              //       'modelField' => $modelField,
+              //     ]
+              //   ]
+              // ));
+            } else if(count($indexes = array_keys($trackFields[$modelField], $vModel, true)) === 1) { // NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
+              // this is the expected field index
+              // when re-normaling from a FETCH_NAMED PDO result
+              // \codename\core\app::getResponse()->setData('vModel_fieldValueIndexes_search_indexes_'.$this->getIdentifier().'_'.$vModel->getIdentifier(), $indexes);
+              $index = $indexes[0];
 
-                  // NOTE: as we're looking for the exact model instance
-                  // this won't cause an index problem while using forceVirtualJoins
-                  // as we simply get out of normal tracking (see above)
-                  if(count($indexes = array_keys($track[$foreign['model']], $join->model, true)) === 1) {
-                    $index = $indexes[0];
-                    // DEBUG echo("- index found: $index <br>");
-                  }
-                }
-              }
+              // \codename\core\app::getResponse()->setData('protocol_fieldValueIndexes', array_merge(
+              //   \codename\core\app::getResponse()->getData('protocol_fieldValueIndexes') ?? [],
+              //   [
+              //     [
+              //       'action' => '$modelField as a determined indexm found in trackFields[$modelField]',
+              //       'model' => $this->getIdentifier(),
+              //       'joinModel' => $vModel->getIdentifier(),
+              //       'modelField' => $modelField,
+              //     ]
+              //   ]
+              // ));
+            }
+          } else {
+            $index = null;
 
-              // app::getResponse()->setData('protocol', array_merge(app::getResponse()->getData('protocol') ?? [], [[
-              //   'structure/nesting level' => $structure,
-              //   'model' => $this->getIdentifier(),
-              //   'indexIsNull' => $index === null,
-              //   'foreignModel' => $foreign['model'],
-              //   'index' => $index
-              //   ]]));
+            // \codename\core\app::getResponse()->setData('protocol_fieldValueIndexes', array_merge(
+            //   \codename\core\app::getResponse()->getData('protocol_fieldValueIndexes') ?? [],
+            //   [
+            //     [
+            //       'action' => 'trackFields[$modelField] not set',
+            //       'model' => $this->getIdentifier(),
+            //       'joinModel' => $vModel->getIdentifier(),
+            //       'modelField' => $modelField,
+            //     ]
+            //   ]
+            // ));
+          }
 
-              if($index === null) {
-                // index is still null -> model not found in currently nested models
-                continue;
-                // throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_VIRTUALFIELDRESULT_INDEX_UNDETERMINABLE_JOIN_NOT_FOUND', exception::$ERRORLEVEL_ERROR, [
-                //   'child' => $field,
-                //   'model' => $foreign['model'],
-                //   'field' => $config['field']
-                // ]);
-              }
-              $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
+          // \codename\core\app::getResponse()->setData('vModel_fieldValueIndexes_search_'.$this->getIdentifier().'_'.$vModel->getIdentifier().' .'.$modelField, $trackFields[$modelField]);
 
-              // DEBUG
-              // $vModel->tIndex = $index;
-              // $vModel->tIndexes = $indexes ?? null;
-              // app::getResponse()->setData('fieldvModelIndex>'.$field, $index);
+          $fieldValueIndexes[$modelField] = $index;
+        }
 
-              // if((count($result) > 0) && $vModel !== null) {
-              //   echo("Example source dataset entry: ".var_export($result[0][$vModel->getPrimaryKey()],true)."<br><br><br>");
+        // \codename\core\app::getResponse()->setData('getVirtualFieldResult_index_fieldValueIndexes', array_merge(
+        //   \codename\core\app::getResponse()->getData('getVirtualFieldResult_index_fieldValueIndexes') ?? [],
+        //   [
+        //     [
+        //       'model' => $this->getIdentifier(),
+        //       'joinModel' => $vModel->getIdentifier(),
+        //       'fieldValueIndexes' => $fieldValueIndexes
+        //     ]
+        //   ]
+        // ));
+
+        // \codename\core\app::getResponse()->setData('vModel_fieldValueIndexes_'.$vModel->getIdentifier(), $fieldValueIndexes);
+
+        foreach($result as &$dataset) {
+          $vData = [];
+
+          foreach($fields as $modelField) {
+            if(($vIndex = $fieldValueIndexes[$modelField]) !== null) {
+
+              // DEBUG Just a test for vIndex === false when working on virtual field
+              // Doesnt work.
+              // if($vIndex === false) {
+              //     continue;
               // }
 
-
-              //
-              // for sql-based models: extract fields
-              // for others: set explicitly null
-              //
-              $vModelFieldlist = null;
-
-              if($vModel instanceof \codename\core\model\schematic\sql) {
-                $dummy = [];
-                $vModelFieldlist = $vModel->getCurrentFieldlistNonRecursive(null, $dummy);
-                // always pick the last array element
-                foreach($vModelFieldlist as &$fieldComponents) {
-                  $fieldComponents = $fieldComponents[count($fieldComponents)-1];
-                }
-              }
-
-              foreach($result as &$dataset) {
-                if($vModel != null) {
-
-                  // //
-                  // // Actually, we're checking for the existance of the primarykey value in a subset
-                  // // which means, e.g.
-                  // // dataset[some_primary_key] = [0] => ..., [1] => ...
-                  // // if it's a joined result AND an array
-                  // //
-                  // // OR
-                  // //
-                  // // we simply check if its null
-                  // //
-                  // // Both cases mean: there's no subset.
-                  // //
-                  // if(is_array($dataset[$vModel->getPrimaryKey()]) && !isset($dataset[$vModel->getPrimaryKey()][$index])) {
-                  //   $dataset[$field] = null;
-                  //   continue;
-                  // } else if(!is_array($dataset[$vModel->getPrimaryKey()]) && $dataset[$vModel->getPrimaryKey()] === null) {
-                  //   $dataset[$field] = null;
-                  //   continue;
-                  // }
-
-                  $vData = [];
-
-                  // // DEBUG
-                  // $vData['used_index'] = $index;
-                  // $vData['used_rawdata'] = [];
-                  // $vData['used_structure'] = $structure;
-                  // echo("USED INDEX: ".$index ." for field $field<br><br><br>");
-
-                  foreach($vModel->getFields() as $modelField) {
-
-                    //
-                    // handle the trackFields array from above
-                    // which tracks possible PDO FETCH_NAMED indexes per field name
-                    //
-                    $index = null;
-                    if($trackFields[$modelField] ?? false) {
-                      // override index...
-                      if(count($indexes = array_keys($trackFields[$modelField], $vModel, true)) === 1) { // NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
-                        $index = $indexes[0];
-                      }
-                      // else {
-                      //   $indexes = array_keys($trackFields[$modelField], $vModel, true);// NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
-                      //   if(count($indexes) > 1) {
-                      //     throw new exception('BAD', exception::$ERRORLEVEL_DEBUG, [
-                      //       'modelField' => $modelField,
-                      //       'indexes' => array_keys($trackFields[$modelField], $vModel, true)// NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
-                      //     ]);
-                      //   }
-                      // }
-                    }
-
-                    // \codename\core\app::getResponse()->setData('indexes_'.'person_firstname', ($trackFields['person_firstname']));
-                    // \codename\core\app::getResponse()->setData('indexes_'.'person_salutation', ($trackFields['person_salutation']));
-
-                    // if($vModel->getIdentifier() == 'person' /* || $this->getIdentifier() == 'customer'*/ ) {
-                    //   \codename\core\app::getResponse()->setData(
-                    //     'index_chosen',
-                    //     array_merge(
-                    //       \codename\core\app::getResponse()->getData('index_chosen') ?? [],
-                    //       [
-                    //         [
-                    //           'structure' => $structure,
-                    //           'field' => $this->getIdentifier().'.'.$modelField,
-                    //           'index' => $index,
-                    //           'vModelFieldlist' => $vModelFieldlist,
-                    //           'skip' => ($vModelFieldlist !== null && !in_array($modelField, $vModelFieldlist) && !in_array('*', $vModelFieldlist)),
-                    //           'value' => $result[$modelField][$index]
-                    //         ]
-                    //       ]
-                    //     )
-                    //   );
-                    // }
-
-                    //
-                    // we have to compare the fieldlist (actually enabled fields for display)
-                    // either the field is mentioned explicitly in the query
-                    // or we have a wildcard match for the current model (*)
-                    //
-                    if($vModelFieldlist !== null && !in_array($modelField, $vModelFieldlist) && !in_array('*', $vModelFieldlist)) {
-                      continue;
-                    }
-
-                    //
-                    // NOTE:
-                    // We're looping through the fields of the virtual model
-                    // if we detect a field being an array and NOT a virtual field by itself
-                    // this is a PDO-Fetch-Named-Result specialty
-                    // -> Join Results are being mapped onto an indexed array as the respective field
-                    // Otherwise, we simply map the value provided.
-                    //
-                    // we used isset() around $dataset[$modelField]
-                    // which was wrong - because isset evaluates to false
-                    // even if the array value is NULL (which is, in fact, relevant for our framework)
-                    // using it instead just to check for the presence of a value and then for the type (-> array & not virtual)
-                    // otherwise, we do a ternary to work around nonexisting keys
-                    //
-                    if(isset($dataset[$modelField]) && is_array($dataset[$modelField]) && $vModel->getFieldtype(\codename\core\value\text\modelfield::getInstance($modelField)) !== 'virtual') {
-                      $vData[$modelField] = $dataset[$modelField][$index] ?? null;
-                    } else if(array_key_exists($modelField, $dataset)) {
-                      //
-                      // HACK/NOTE:
-                      // this fixes the bug that leaves some 0 and 1 index keys in the resulting array
-                      // possible explanation:
-                      // If we set a null value at this stage, this gets merged (possibly recursively) with the real sub-result
-                      // which causes the real result to appear AND additionally a null entry
-                      //
-                      // e.g.
-                      // [field] => null
-                      // later merge with [field] => [ 1, 2, 3 ]
-                      // results in: [ 1, 2, 3, null ]
-                      //
-                      $vData[$modelField] = $dataset[$modelField]; //  ?? null;
-                    }
-
-
-                    // DEBUG
-                    // $vData['used_rawdata'][$modelField] = $dataset[$modelField] ?? null;
-                  }
-
-                  $vData = $vModel->normalizeRow($vData);
-
-                  // CHANGED 2019-06-05: moved to after-dive
-                  // handle custom virtual fields
-                  // if(count($vModel->getVirtualFields()) > 0) {
-                  //   // foreach($vData as &$d) {
-                  //   $vData = $vModel->handleVirtualFields($vData);
-                  //   // }
-                  // }
-
-                  // Old method, put data to root array
-                  // $dataset[$field] = $vData;
-
-                  // new method: deep dive to set data
-                  $dive = &$dataset;
-                  foreach($structure as $key) {
-                    $dive[$key] = $dive[$key] ?? [];
-                    $dive = &$dive[$key];
-                  }
-                  $dive[$field] = array_merge_recursive($dive[$field] ?? [], $vData);
-
-                  // handle custom virtual fields
-                  // CHANGED 2019-06-05: we have to trigger virtual field handling
-                  // AFTER diving, because we might be missing all the important fields...
-                  if(count($vModel->getVirtualFields()) > 0) {
-                    $dive[$field] = $vModel->handleVirtualFields($dive[$field]);
-                  }
-
-                  // DEBUG
-                  // \codename\core\app::getResponse()->setData(
-                  //   'dive_set',
-                  //   array_merge(
-                  //     \codename\core\app::getResponse()->getData('dive_set') ?? [],
-                  //     [[
-                  //       'structure' => $structure,
-                  //       'field' => $field,
-                  //       'data' => $vData
-                  //     ]]
-                  //   )
-                  // );
-
-                } else {
-                  // app::getResponse()->setData('vModelIsNull>'.$this->getIdentifier(), [$foreign['model'], $index]);
-
-                  // Old method, put data to root array
-                  // $dataset[$field] = null;
-
-                  // new method: deep dive to set data
-                  $dive = &$dataset;
-                  foreach($structure as $key) {
-                    $dive[$key] = $dive[$key] ?? [];
-                    $dive = &$dive[$key];
-                  }
-                  $dive[$field] = null; // array_merge_recursive($dive[$field] ?? [], $vData);
-
-                  // DEBUG
-                  // \codename\core\app::getResponse()->setData(
-                  //   'dive_set',
-                  //   array_merge(
-                  //     \codename\core\app::getResponse()->getData('dive_set') ?? [],
-                  //     [[
-                  //       'structure' => $structure,
-                  //       'field' => $field,
-                  //       'data' => $vData
-                  //     ]]
-                  //   )
-                  // );
-                }
-              }
+              // Use index reference determined above
+              $vData[$modelField] = $dataset[$modelField][$vIndex] ?? null;
+            } else {
+              // Simply use the field value
+              $vData[$modelField] = $dataset[$modelField];
             }
+          }
 
-            // else {
-            //   //
-            //   // non-virtual field?
-            //   // TESTING!
-            //   //
-            //   $index = null;
-            //   if(count($indexes = array_keys($track[$foreign['model']], $join->model, true)) === 1) {
-            //     $index = $indexes[0];
-            //   }
-            //   if($index === null) {
-            //     continue;
-            //   }
-            //   $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
-            //   $vModelFieldlist = null;
-            //   if($vModel instanceof \codename\core\model\schematic\sql) {
-            //     $dummy = [];
-            //     $vModelFieldlist = $vModel->getCurrentFieldlistNonRecursive(null, $dummy);
-            //     // always pick the last array element
-            //     foreach($vModelFieldlist as &$fieldComponents) {
-            //       $fieldComponents = $fieldComponents[count($fieldComponents)-1];
-            //     }
-            //   }
-            //
-            // }
-          // }
-          } else if($config['type'] === 'collection') {
+          $vData = $vModel->normalizeRow($vData);
+
+          // \codename\core\app::getResponse()->setData('vModel_normalizeRow_'.$vModel->getIdentifier(), $vData);
+
+
+          // new method: deep dive to set data
+          $dive = &$dataset;
+          foreach($structure as $key) {
+            $dive[$key] = $dive[$key] ?? [];
+            $dive = &$dive[$key];
+          }
+
+          if($virtualField !== null) {
+            // \codename\core\app::getResponse()->setData('vModel_recursiveMerge_1_'.$vModel->getIdentifier(), [
+            //   'structure' => $structure,
+            //   'vField' => $virtualField,
+            //   'array1' => $dive[$virtualField] ?? [],
+            //   'array2' => $vData
+            // ]);
+            // $dive[$virtualField] = array_merge($dive[$virtualField] ?? [], $vData);
+            // $dive[$virtualField] = array_replace_recursive($dive[$virtualField] ?? [], $vData);
+            // $dive[$virtualField] = array_replace($dive[$virtualField] ?? [], $vData);
+            // $dive[$virtualField] = array_merge($dive[$virtualField] ?? [], $vData);
+
+            // reverse merge
+            $dive[$virtualField] = array_merge($vData, $dive[$virtualField] ?? []);
+
+            // \codename\core\app::getResponse()->setData('vModel_dive_result_w_vField_'.$vModel->getIdentifier(), $dive[$virtualField]);
+          } else {
+            // \codename\core\app::getResponse()->setData('vModel_recursiveMerge_2_'.$vModel->getIdentifier(), [
+            //   'array1' => $dive ?? [],
+            //   'array2' => $vData
+            // ]);
+
+            // reverse merge
+            // $dive = array_merge($vData, $dive ?? []);
+            $dive = array_merge($dive ?? [], $vData ); // regular merge, testing because of calculated fields...
+
+            // $dive = array_replace($dive ?? [], $vData);
+            // $dive = array_merge_recursive($dive ?? [], $vData);
+            // \codename\core\app::getResponse()->setData('vModel_dive_result_wo_vField_'.$vModel->getIdentifier(), $dive);
+          }
+
+
+          // \codename\core\app::getResponse()->setData('vModel_dive_result_'.$vModel->getIdentifier(), $dive);
+
+          // handle custom virtual fields
+          // CHANGED 2019-06-05: we have to trigger virtual field handling
+          // AFTER diving, because we might be missing all the important fields...
+          // CHANGED 2020-11-13: we additionally have to check for vModel being 'compatible'
+          // e.g. JSON datamodel's virtual fields won't be handled here.
+          if($this->compatibleJoin($vModel) && count($vModel->getVirtualFields()) > 0) {
+            if($virtualField !== null) {
+              $dive[$virtualField] = $vModel->handleVirtualFields($dive[$virtualField]);
+            } else {
+              $dive = $vModel->handleVirtualFields($dive);
+            }
+          }
+        }
+
+
+
+      }
+
+
+
+
+
+
+      if(($children = $this->config->get('children')) != null) {
+        foreach($children as $field => $config) {
+          // if($config['type'] === 'foreign') {
+          //   $foreign = $this->config->get('foreign>'.$config['field']);
+          //   if($this->config->get('datatype>'.$field) == 'virtual') {
+          //     if(!isset($track[$foreign['model']])) {
+          //       $track[$foreign['model']] = [];
+          //     }
+          //     // $index = count($track[$foreign['model']])-1;
+          //     $index = null;
+          //
+          //     // DEBUG echo("Determining index for {$foreign['model']} ({$this->getIdentifier()}.{$field})...<br>");
+          //
+          //     foreach($this->getNestedJoins() as $join) {
+          //       if($join->modelField === $config['field']) {
+          //         // if($join->model->getForceVirtualJoin()) {
+          //         //   continue;
+          //         // }
+          //
+          //         // NOTE: as we're looking for the exact model instance
+          //         // this won't cause an index problem while using forceVirtualJoins
+          //         // as we simply get out of normal tracking (see above)
+          //         if(count($indexes = array_keys($track[$foreign['model']], $join->model, true)) === 1) {
+          //           $index = $indexes[0];
+          //           // DEBUG echo("- index found: $index <br>");
+          //         }
+          //       }
+          //     }
+          //
+          //     // app::getResponse()->setData('protocol', array_merge(app::getResponse()->getData('protocol') ?? [], [[
+          //     //   'structure/nesting level' => $structure,
+          //     //   'model' => $this->getIdentifier(),
+          //     //   'indexIsNull' => $index === null,
+          //     //   'foreignModel' => $foreign['model'],
+          //     //   'index' => $index
+          //     //   ]]));
+          //
+          //     if($index === null) {
+          //       // index is still null -> model not found in currently nested models
+          //       continue;
+          //       // throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_VIRTUALFIELDRESULT_INDEX_UNDETERMINABLE_JOIN_NOT_FOUND', exception::$ERRORLEVEL_ERROR, [
+          //       //   'child' => $field,
+          //       //   'model' => $foreign['model'],
+          //       //   'field' => $config['field']
+          //       // ]);
+          //     }
+          //     $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
+          //
+          //     // DEBUG
+          //     // $vModel->tIndex = $index;
+          //     // $vModel->tIndexes = $indexes ?? null;
+          //     // app::getResponse()->setData('fieldvModelIndex>'.$field, $index);
+          //
+          //     // if((count($result) > 0) && $vModel !== null) {
+          //     //   echo("Example source dataset entry: ".var_export($result[0][$vModel->getPrimaryKey()],true)."<br><br><br>");
+          //     // }
+          //
+          //
+          //     //
+          //     // for sql-based models: extract fields
+          //     // for others: set explicitly null
+          //     //
+          //     $vModelFieldlist = null;
+          //
+          //     if($vModel instanceof \codename\core\model\schematic\sql) {
+          //       $dummy = [];
+          //       $vModelFieldlist = $vModel->getCurrentFieldlistNonRecursive(null, $dummy);
+          //       // always pick the last array element
+          //       foreach($vModelFieldlist as &$fieldComponents) {
+          //         $fieldComponents = $fieldComponents[count($fieldComponents)-1];
+          //       }
+          //     }
+          //
+          //     foreach($result as &$dataset) {
+          //       if($vModel != null) {
+          //
+          //         // //
+          //         // // Actually, we're checking for the existance of the primarykey value in a subset
+          //         // // which means, e.g.
+          //         // // dataset[some_primary_key] = [0] => ..., [1] => ...
+          //         // // if it's a joined result AND an array
+          //         // //
+          //         // // OR
+          //         // //
+          //         // // we simply check if its null
+          //         // //
+          //         // // Both cases mean: there's no subset.
+          //         // //
+          //         // if(is_array($dataset[$vModel->getPrimaryKey()]) && !isset($dataset[$vModel->getPrimaryKey()][$index])) {
+          //         //   $dataset[$field] = null;
+          //         //   continue;
+          //         // } else if(!is_array($dataset[$vModel->getPrimaryKey()]) && $dataset[$vModel->getPrimaryKey()] === null) {
+          //         //   $dataset[$field] = null;
+          //         //   continue;
+          //         // }
+          //
+          //         $vData = [];
+          //
+          //         // // DEBUG
+          //         // $vData['used_index'] = $index;
+          //         // $vData['used_rawdata'] = [];
+          //         // $vData['used_structure'] = $structure;
+          //         // echo("USED INDEX: ".$index ." for field $field<br><br><br>");
+          //
+          //         foreach($vModel->getFields() as $modelField) {
+          //
+          //           //
+          //           // handle the trackFields array from above
+          //           // which tracks possible PDO FETCH_NAMED indexes per field name
+          //           //
+          //           $index = null;
+          //           if($trackFields[$modelField] ?? false) {
+          //             // override index...
+          //             if(count($indexes = array_keys($trackFields[$modelField], $vModel, true)) === 1) { // NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
+          //               $index = $indexes[0];
+          //             }
+          //             // else {
+          //             //   $indexes = array_keys($trackFields[$modelField], $vModel, true);// NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
+          //             //   if(count($indexes) > 1) {
+          //             //     throw new exception('BAD', exception::$ERRORLEVEL_DEBUG, [
+          //             //       'modelField' => $modelField,
+          //             //       'indexes' => array_keys($trackFields[$modelField], $vModel, true)// NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
+          //             //     ]);
+          //             //   }
+          //             // }
+          //           }
+          //
+          //           // \codename\core\app::getResponse()->setData('indexes_'.'person_firstname', ($trackFields['person_firstname']));
+          //           // \codename\core\app::getResponse()->setData('indexes_'.'person_salutation', ($trackFields['person_salutation']));
+          //
+          //           // if($vModel->getIdentifier() == 'person' /* || $this->getIdentifier() == 'customer'*/ ) {
+          //           //   \codename\core\app::getResponse()->setData(
+          //           //     'index_chosen',
+          //           //     array_merge(
+          //           //       \codename\core\app::getResponse()->getData('index_chosen') ?? [],
+          //           //       [
+          //           //         [
+          //           //           'structure' => $structure,
+          //           //           'field' => $this->getIdentifier().'.'.$modelField,
+          //           //           'index' => $index,
+          //           //           'vModelFieldlist' => $vModelFieldlist,
+          //           //           'skip' => ($vModelFieldlist !== null && !in_array($modelField, $vModelFieldlist) && !in_array('*', $vModelFieldlist)),
+          //           //           'value' => $result[$modelField][$index]
+          //           //         ]
+          //           //       ]
+          //           //     )
+          //           //   );
+          //           // }
+          //
+          //           //
+          //           // we have to compare the fieldlist (actually enabled fields for display)
+          //           // either the field is mentioned explicitly in the query
+          //           // or we have a wildcard match for the current model (*)
+          //           //
+          //           if($vModelFieldlist !== null && !in_array($modelField, $vModelFieldlist) && !in_array('*', $vModelFieldlist)) {
+          //             continue;
+          //           }
+          //
+          //           //
+          //           // NOTE:
+          //           // We're looping through the fields of the virtual model
+          //           // if we detect a field being an array and NOT a virtual field by itself
+          //           // this is a PDO-Fetch-Named-Result specialty
+          //           // -> Join Results are being mapped onto an indexed array as the respective field
+          //           // Otherwise, we simply map the value provided.
+          //           //
+          //           // we used isset() around $dataset[$modelField]
+          //           // which was wrong - because isset evaluates to false
+          //           // even if the array value is NULL (which is, in fact, relevant for our framework)
+          //           // using it instead just to check for the presence of a value and then for the type (-> array & not virtual)
+          //           // otherwise, we do a ternary to work around nonexisting keys
+          //           //
+          //           if(isset($dataset[$modelField]) && is_array($dataset[$modelField]) && $vModel->getFieldtype(\codename\core\value\text\modelfield::getInstance($modelField)) !== 'virtual') {
+          //             $vData[$modelField] = $dataset[$modelField][$index] ?? null;
+          //           } else if(array_key_exists($modelField, $dataset)) {
+          //             //
+          //             // HACK/NOTE:
+          //             // this fixes the bug that leaves some 0 and 1 index keys in the resulting array
+          //             // possible explanation:
+          //             // If we set a null value at this stage, this gets merged (possibly recursively) with the real sub-result
+          //             // which causes the real result to appear AND additionally a null entry
+          //             //
+          //             // e.g.
+          //             // [field] => null
+          //             // later merge with [field] => [ 1, 2, 3 ]
+          //             // results in: [ 1, 2, 3, null ]
+          //             //
+          //             $vData[$modelField] = $dataset[$modelField]; //  ?? null;
+          //           }
+          //
+          //
+          //           // DEBUG
+          //           // $vData['used_rawdata'][$modelField] = $dataset[$modelField] ?? null;
+          //         }
+          //
+          //         $vData = $vModel->normalizeRow($vData);
+          //
+          //         // CHANGED 2019-06-05: moved to after-dive
+          //         // handle custom virtual fields
+          //         // if(count($vModel->getVirtualFields()) > 0) {
+          //         //   // foreach($vData as &$d) {
+          //         //   $vData = $vModel->handleVirtualFields($vData);
+          //         //   // }
+          //         // }
+          //
+          //         // Old method, put data to root array
+          //         // $dataset[$field] = $vData;
+          //
+          //         // new method: deep dive to set data
+          //         $dive = &$dataset;
+          //         foreach($structure as $key) {
+          //           $dive[$key] = $dive[$key] ?? [];
+          //           $dive = &$dive[$key];
+          //         }
+          //         $dive[$field] = array_merge_recursive($dive[$field] ?? [], $vData);
+          //
+          //         // handle custom virtual fields
+          //         // CHANGED 2019-06-05: we have to trigger virtual field handling
+          //         // AFTER diving, because we might be missing all the important fields...
+          //         if(count($vModel->getVirtualFields()) > 0) {
+          //           $dive[$field] = $vModel->handleVirtualFields($dive[$field]);
+          //         }
+          //
+          //         // DEBUG
+          //         // \codename\core\app::getResponse()->setData(
+          //         //   'dive_set',
+          //         //   array_merge(
+          //         //     \codename\core\app::getResponse()->getData('dive_set') ?? [],
+          //         //     [[
+          //         //       'structure' => $structure,
+          //         //       'field' => $field,
+          //         //       'data' => $vData
+          //         //     ]]
+          //         //   )
+          //         // );
+          //
+          //       } else {
+          //         // app::getResponse()->setData('vModelIsNull>'.$this->getIdentifier(), [$foreign['model'], $index]);
+          //
+          //         // Old method, put data to root array
+          //         // $dataset[$field] = null;
+          //
+          //         // new method: deep dive to set data
+          //         $dive = &$dataset;
+          //         foreach($structure as $key) {
+          //           $dive[$key] = $dive[$key] ?? [];
+          //           $dive = &$dive[$key];
+          //         }
+          //         $dive[$field] = null; // array_merge_recursive($dive[$field] ?? [], $vData);
+          //
+          //         // DEBUG
+          //         // \codename\core\app::getResponse()->setData(
+          //         //   'dive_set',
+          //         //   array_merge(
+          //         //     \codename\core\app::getResponse()->getData('dive_set') ?? [],
+          //         //     [[
+          //         //       'structure' => $structure,
+          //         //       'field' => $field,
+          //         //       'data' => $vData
+          //         //     ]]
+          //         //   )
+          //         // );
+          //       }
+          //     }
+          //   }
+          //
+          //   // else {
+          //   //   //
+          //   //   // non-virtual field?
+          //   //   // TESTING!
+          //   //   //
+          //   //   $index = null;
+          //   //   if(count($indexes = array_keys($track[$foreign['model']], $join->model, true)) === 1) {
+          //   //     $index = $indexes[0];
+          //   //   }
+          //   //   if($index === null) {
+          //   //     continue;
+          //   //   }
+          //   //   $vModel = count($track[$foreign['model']]) > 0 ? $track[$foreign['model']][$index] : null;
+          //   //   $vModelFieldlist = null;
+          //   //   if($vModel instanceof \codename\core\model\schematic\sql) {
+          //   //     $dummy = [];
+          //   //     $vModelFieldlist = $vModel->getCurrentFieldlistNonRecursive(null, $dummy);
+          //   //     // always pick the last array element
+          //   //     foreach($vModelFieldlist as &$fieldComponents) {
+          //   //       $fieldComponents = $fieldComponents[count($fieldComponents)-1];
+          //   //     }
+          //   //   }
+          //   //
+          //   // }
+          // // }
+          // } else if($config['type'] === 'collection') {
+          if($config['type'] === 'collection') {
 
             // check for active collectionmodel / plugin
             if(isset($this->collectionPlugins[$field])) {
@@ -1108,6 +1473,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       //     }
       //   }
       // }
+
+      // \codename\core\app::getResponse()->setData('trackFields', $trackFields);
+
       return $result;
     }
 
