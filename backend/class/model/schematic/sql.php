@@ -551,6 +551,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           $track[$join->model->getIdentifier()][] = $join->model;
         }
 
+        // general field storage
+        // for all used fields
+        // which may differ from ALL fields of this model
+        $fields = [];
+
         //
         // WORKAROUND 2019-06-17
         // for handling field indexes in joins
@@ -565,7 +570,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $fieldComponents = $fieldComponents[count($fieldComponents)-1];
           }
 
-          $fields = [];
+          // CHANGED - moved above for further usage
+          // $fields = [];
 
           if(in_array('*', $vModelFieldlist)) {
             foreach($join->model->getFields() as $field) {
@@ -621,17 +627,56 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           }
 
           //
+          // Experimental
           // Apply structure dive based modifications
           //
           if(count($structureDive) === 0) {
+
+            // if(!isset($track[$foreign['model']])) {
+            //   $track[$foreign['model']] = [];
+            // }
+            // $index = null;
+
+            $index = null;
+            if(count($indexes = array_keys($track[$join->model->getIdentifier()], $join->model, true)) === 1) {
+              $index = $indexes[0];
+            }
+
             foreach($result as &$dataset) {
               $dive = &$dataset;
               foreach($structure as $key) {
                 $dive[$key] = $dive[$key] ?? [];
                 $dive = &$dive[$key];
               }
-              $vData = $join->model->normalizeByFieldlist($dataset);
+
+              $vData = [];
+              foreach($fields as $modelField) {
+
+                $index = null;
+                if($trackFields[$modelField] ?? false) {
+                  // override index...
+                  if(count($indexes = array_keys($trackFields[$modelField], $join->model, true)) === 1) { // NOTE/CHANGED: $vModel was $join->model before - which is an iteration variable from above!
+                    $index = $indexes[0];
+                  }
+                }
+
+                //
+                // Hack from below...
+                //
+                if(isset($dataset[$modelField]) && is_array($dataset[$modelField]) && $join->model->getFieldtype(\codename\core\value\text\modelfield::getInstance($modelField)) !== 'virtual') {
+                  $vData[$modelField] = $dataset[$modelField][$index] ?? null;
+                } else if(array_key_exists($modelField, $dataset)) {
+                  $vData[$modelField] = $dataset[$modelField]; //  ?? null;
+                }
+              }
+              // $vData = $join->model->normalizeByFieldlist($dataset);
+
               $dive = array_merge($dive ?? [], $vData);
+
+              // $dive['_debug_'.$join->model->getIdentifier()] = [
+              //   'track' => $track,
+              //   'indexes' => array_keys($track[$foreign['model']] ?? [], $join->model, true)
+              // ];
             }
           }
 
