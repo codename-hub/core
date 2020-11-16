@@ -1740,6 +1740,11 @@ abstract class model implements \codename\core\model\modelInterface {
      * that are part of the current model
      * or were added dynamically (aliased, function-based or implicit)
      * and handles hidden fields, too.
+     *
+     * By the way, virtual fields are *not* returned by this function
+     * As the framework defines virtual fields as only to be existant
+     * if the corresponding join is also used.
+     *
      * @return string[]
      */
     protected function getCurrentAliasedFieldlist() : array {
@@ -1778,6 +1783,7 @@ abstract class model implements \codename\core\model\modelInterface {
               //
               $result[] = $field->field->get();
             } else if($this->config->get('datatype>'.$field->field->get()) !== 'virtual' && (!in_array($field->field->get(), $this->hiddenFields) || $field->alias)) {
+
               //
               // omit virtual fields
               // they're not part of the DB.
@@ -1825,9 +1831,13 @@ abstract class model implements \codename\core\model\modelInterface {
           //
           if(count($this->hiddenFields) === 0) {
             //
-            // The rest of the fields. Simply using a wildcard
+            // The rest of the fields. Skip virtual fields
             //
-            $result = array_merge($result, $this->config->get('field'));
+            foreach($this->config->get('field') as $fieldName) {
+              if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
+                $result[] = $fieldName;
+              }
+            }
           } else {
             // ugh?
           }
