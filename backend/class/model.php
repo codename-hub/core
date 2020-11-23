@@ -515,7 +515,7 @@ abstract class model implements \codename\core\model\modelInterface {
           throw new exception('EXCEPTION_MODEL_ADDCOLLECTIONMODEL_INCOMPATIBLE', exception::$ERRORLEVEL_ERROR, [$collectionConfig['model'], $model->getIdentifier()]);
         }
 
-        $modelFieldInstance = \codename\core\value\text\modelfield::getInstance($modelField);
+        $modelFieldInstance = $this->getModelfieldInstance($modelField);
 
         // Finally, add model
         $this->collectionPlugins[$modelFieldInstance->get()] = new \codename\core\model\plugin\collection(
@@ -867,7 +867,7 @@ abstract class model implements \codename\core\model\modelInterface {
         }
         foreach($this->getFields() as $field) {
             if(array_key_exists($field, $data)) {
-                $this->fieldSet(\codename\core\value\text\modelfield::getInstance($field), $data[$field]);
+                $this->fieldSet($this->getModelfieldInstance($field), $data[$field]);
             }
         }
         return $this;
@@ -887,9 +887,9 @@ abstract class model implements \codename\core\model\modelInterface {
             throw new \codename\core\exception(self::EXCEPTION_ENTRYSETFLAG_NOFLAGSINMODEL, \codename\core\exception::$ERRORLEVEL_FATAL, null);
         }
 
-        $flag = $this->fieldGet(\codename\core\value\text\modelfield::getInstance($this->table . '_flag'));
+        $flag = $this->fieldGet($this->getModelfieldInstance($this->table . '_flag'));
         $flag |= $flagval;
-        $this->fieldSet(\codename\core\value\text\modelfield::getInstance($this->table . '_flag'), $flag);
+        $this->fieldSet($this->getModelfieldInstance($this->table . '_flag'), $flag);
         return $this;
     }
 
@@ -906,9 +906,9 @@ abstract class model implements \codename\core\model\modelInterface {
         if(!$this->config->exists('flag')) {
             throw new \codename\core\exception(self::EXCEPTION_ENTRYUNSETFLAG_NOFLAGSINMODEL, \codename\core\exception::$ERRORLEVEL_FATAL, null);
         }
-        $flag = $this->fieldGet(\codename\core\value\text\modelfield::getInstance($this->table . '_flag'));
+        $flag = $this->fieldGet($this->getModelfieldInstance($this->table . '_flag'));
         $flag &= ~$flagval;
-        $this->fieldSet(\codename\core\value\text\modelfield::getInstance($this->table . '_flag'), $flag);
+        $this->fieldSet($this->getModelfieldInstance($this->table . '_flag'), $flag);
         return $this;
     }
 
@@ -1004,9 +1004,9 @@ abstract class model implements \codename\core\model\modelInterface {
             if(\count($value) === 0) {
                 return $this;
             }
-            \array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
+            \array_push($this->filter, new $class($this->getModelfieldInstance($field), $value, $operator, $conjunction));
         } else {
-            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            $modelfieldInstance = $this->getModelfieldInstance($field);
             \array_push($this->filter, new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $conjunction));
         }
         return $this;
@@ -1063,9 +1063,9 @@ abstract class model implements \codename\core\model\modelInterface {
             // if(count($value) == 0) {
             //     return $this;
             // }
-            array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
+            array_push($this->filter, new $class($this->getModelfieldInstance($field), $value, $operator, $conjunction));
         } else {
-            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            $modelfieldInstance = $this->getModelfieldInstance($field);
             array_push($this->filter, new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $conjunction));
         }
         return $this;
@@ -1085,9 +1085,9 @@ abstract class model implements \codename\core\model\modelInterface {
           if(count($value) == 0) {
               return $this;
           }
-          array_push($this->aggregateFilter, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $conjunction));
+          array_push($this->aggregateFilter, new $class($this->getModelfieldInstance($field), $value, $operator, $conjunction));
       } else {
-          $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+          $modelfieldInstance = $this->getModelfieldInstance($field);
           array_push($this->aggregateFilter, new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $conjunction));
       }
       return $this;
@@ -1110,7 +1110,7 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function addFieldFilter(string $field, string $otherField, string $operator = '=', string $conjuction = null) : model {
         $class = '\\codename\\core\\model\\plugin\\fieldfilter\\' . $this->getType();
-        array_push($this->filter, new $class(\codename\core\value\text\modelfield::getInstance($field), \codename\core\value\text\modelfield::getInstance($otherField), $operator, $conjuction));
+        array_push($this->filter, new $class($this->getModelfieldInstance($field), $this->getModelfieldInstance($otherField), $operator, $conjuction));
         return $this;
     }
 
@@ -1154,9 +1154,9 @@ abstract class model implements \codename\core\model\modelInterface {
             if(count($value) == 0) {
                 continue;
             }
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $filter_conjunction));
+            array_push($filterCollection, new $class($this->getModelfieldInstance($field), $value, $operator, $filter_conjunction));
         } else {
-            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            $modelfieldInstance = $this->getModelfieldInstance($field);
             array_push($filterCollection, new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $filter_conjunction));
         }
       }
@@ -1182,9 +1182,9 @@ abstract class model implements \codename\core\model\modelInterface {
             if(count($value) == 0) {
                 continue;
             }
-            array_push($filterCollection, new $class(\codename\core\value\text\modelfield::getInstance($field), $value, $operator, $filter_conjunction));
+            array_push($filterCollection, new $class($this->getModelfieldInstance($field), $value, $operator, $filter_conjunction));
         } else {
-            $modelfieldInstance = \codename\core\value\text\modelfield::getInstance($field);
+            $modelfieldInstance = $this->getModelfieldInstance($field);
             array_push($filterCollection, new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $filter_conjunction));
         }
       }
@@ -1209,7 +1209,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @see \codename\core\model_interface::addDefaultfilter($field, $value, $operator)
      */
     public function addDefaultfilter(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
-        $field = \codename\core\value\text\modelfield::getInstance($field);
+        $field = $this->getModelfieldInstance($field);
         // if(!$this->fieldExists($field)) {
         //     throw new \codename\core\exception(self::EXCEPTION_ADDDEFAULTFILTER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
         // }
@@ -1234,7 +1234,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @see \codename\core\model_interface::addDefaultfilter($field, $value, $operator)
      */
     public function addDefaultfilterlist(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
-        $field = \codename\core\value\text\modelfield::getInstance($field);
+        $field = $this->getModelfieldInstance($field);
         // if(!$this->fieldExists($field)) {
         //     throw new \codename\core\exception(self::EXCEPTION_ADDDEFAULTFILTER_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
         // }
@@ -1259,7 +1259,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @see \codename\core\model_interface::addOrder($field, $order)
      */
     public function addOrder(string $field, string $order = 'ASC') : model {
-        $field = \codename\core\value\text\modelfield::getInstance($field);
+        $field = $this->getModelfieldInstance($field);
         if(!$this->fieldExists($field)) {
             // check for existance of a calculated field!
             $found = false;
@@ -1302,13 +1302,13 @@ abstract class model implements \codename\core\model\modelInterface {
             return $this;
         }
 
-        $field = \codename\core\value\text\modelfield::getInstance($field);
+        $field = $this->getModelfieldInstance($field);
         if(!$this->fieldExists($field)) {
             throw new \codename\core\exception(self::EXCEPTION_ADDFIELD_FIELDNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
         }
 
         $class = '\\codename\\core\\model\\plugin\\field\\' . $this->getType();
-        $alias = $alias ? \codename\core\value\text\modelfield::getInstance($alias) : null;
+        $alias = $alias ? $this->getModelfieldInstance($alias) : null;
         $this->fieldlist[] = new $class($field, $alias);
         if (!$alias && in_array($field->getValue(), $this->hiddenFields)) {
           $fieldKey = array_search($field->getValue(), $this->hiddenFields);
@@ -1383,7 +1383,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @inheritDoc
      */
     public function addGroup(string $field) : model {
-      $field = \codename\core\value\text\modelfield::getInstance($field);
+      $field = $this->getModelfieldInstance($field);
       $aliased = false;
       if(!$this->fieldExists($field)) {
         $foundInFieldlist = false;
@@ -1417,7 +1417,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @inheritDoc
      */
     public function addCalculatedField(string $field, string $calculation) : model {
-      $field = \codename\core\value\text\modelfield::getInstance($field);
+      $field = $this->getModelfieldInstance($field);
       // only check for EXISTANCE of the fieldname, cancel if so - we don't want duplicates!
       if($this->fieldExists($field)) {
         throw new \codename\core\exception(self::EXCEPTION_ADDCALCULATEDFIELD_FIELDALREADYEXISTS, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
@@ -1433,7 +1433,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @return model         [description]
      */
     public function removeCalculatedField(string $field) : model {
-      $field = \codename\core\value\text\modelfield::getInstance($field);
+      $field = $this->getModelfieldInstance($field);
       $this->fieldlist = array_filter($this->fieldlist, function($item) use ($field) {
         if($item instanceof \codename\core\model\plugin\calculatedfield) {
           if($item->field->get() == $field->get()) {
@@ -1454,8 +1454,8 @@ abstract class model implements \codename\core\model\modelInterface {
      * @return model                   [description]
      */
     public function addAggregateField(string $field, string $calculationType, string $fieldBase) : model {
-      $field = \codename\core\value\text\modelfield::getInstance($field);
-      $fieldBase = \codename\core\value\text\modelfield::getInstance($fieldBase);
+      $field = $this->getModelfieldInstance($field);
+      $fieldBase = $this->getModelfieldInstance($fieldBase);
       // only check for EXISTANCE of the fieldname, cancel if so - we don't want duplicates!
       if($this->fieldExists($field)) {
         throw new \codename\core\exception(self::EXCEPTION_ADDAGGREGATEFIELD_FIELDALREADYEXISTS, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
@@ -1473,7 +1473,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @return model          [description]
      */
     public function addFulltextField(string $field, string $value, $fields) : model {
-      $field = \codename\core\value\text\modelfield::getInstance($field);
+      $field = $this->getModelfieldInstance($field);
       if(!is_array($fields)) {
         $fields = explode(',', $fields);
       }
@@ -1482,7 +1482,7 @@ abstract class model implements \codename\core\model\modelInterface {
       }
       $thisFields = [];
       foreach($fields as $resultField) {
-        $thisFields[] = \codename\core\value\text\modelfield::getInstance(trim($resultField));
+        $thisFields[] = $this->getModelfieldInstance(trim($resultField));
       }
       $class = '\\codename\\core\\model\\plugin\\fulltext\\' . $this->getType();
       $this->fieldlist[] = new $class($field, $value, $thisFields);
@@ -1966,7 +1966,7 @@ abstract class model implements \codename\core\model\modelInterface {
               }
             }
 
-            if (count($errors = app::getValidator($this->getFieldtype(\codename\core\value\text\modelfield::getInstance($field)))->reset()->validate($data[$field])) > 0) {
+            if (count($errors = app::getValidator($this->getFieldtype($this->getModelfieldInstance($field)))->reset()->validate($data[$field])) > 0) {
                 $this->errorstack->addError($field, 'FIELD_INVALID', $errors);
             }
         }
@@ -2109,7 +2109,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
             // Otherwise the field exists in the data object
             if(\array_key_exists($field, $data)) {
-                // $myData[$field] = $this->importField(\codename\core\value\text\modelfield::getInstance($field), $data[$field]);
+                // $myData[$field] = $this->importField($this->getModelfieldInstance($field), $data[$field]);
                 $myData[$field] = $this->importFieldImproved($field, $data[$field]);
             }
 
@@ -2570,6 +2570,24 @@ abstract class model implements \codename\core\model\modelInterface {
     protected $normalizeModelFieldTypeVirtualCache = array();
 
     /**
+     * [getModelfieldInstance description]
+     * @param  string                            $field [description]
+     * @return \codename\core\value\text\modelfield        [description]
+     */
+    protected function getModelfieldInstance(string $field): \codename\core\value\text\modelfield {
+      return \codename\core\value\text\modelfield::getInstance($field);
+    }
+
+    /**
+     * [getModelfieldVirtualInstance description]
+     * @param  string                            $field [description]
+     * @return \codename\core\value\text\modelfield        [description]
+     */
+    protected function getModelfieldVirtualInstance(string $field): \codename\core\value\text\modelfield {
+      return \codename\core\value\text\modelfield\virtual::getInstance($field);
+    }
+
+    /**
      * Normalizes a single row of a dataset
      * @param array $dataset
      */
@@ -2596,7 +2614,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
             // determine virtuality status of the field
             if(!isset($this->normalizeModelFieldTypeVirtualCache[$field])) {
-              $tVirtualModelField = \codename\core\value\text\modelfield\virtual::getInstance($field);
+              $tVirtualModelField = $this->getModelfieldVirtualInstance($field);
               $this->normalizeModelFieldTypeCache[$field] = $this->getFieldtype($tVirtualModelField);
               $this->normalizeModelFieldTypeVirtualCache[$field] = $this->normalizeModelFieldTypeCache[$field] === 'virtual';
             }
@@ -2608,9 +2626,9 @@ abstract class model implements \codename\core\model\modelInterface {
             ///
             if(!isset($this->normalizeModelFieldCache[$field])) {
               if($this->normalizeModelFieldTypeVirtualCache[$field]) {
-                $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield\virtual::getInstance($field);
+                $this->normalizeModelFieldCache[$field] = $this->getModelfieldVirtualInstance($field);
               } else {
-                $this->normalizeModelFieldCache[$field] = \codename\core\value\text\modelfield::getInstance($field);
+                $this->normalizeModelFieldCache[$field] = $this->getModelfieldInstance($field);
               }
             }
 
