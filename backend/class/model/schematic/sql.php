@@ -594,7 +594,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         if($this->compatibleJoin($join->model)) {
           $track[$join->model->getIdentifier()][] = $join->model;
         }
-        
+
         if($join->model instanceof \codename\core\model\virtualFieldResultInterface) {
 
           $structureDive = [];
@@ -1150,8 +1150,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
             // CHANGED 2020-11-26: set alias or fallback to table name, by default
             // To ensure correct duplicate field name handling across multiple tables
+            // CHANGED again: we have to leave this null, if no alias.
+            // This crashes filter methods, as it overrides the alias in any aspect.
             // NOTE: we might have to include schema name, too.
-            $join->currentAlias = $alias ?? $nest->table;
+            $join->currentAlias = $alias; // ?? $nest->table;
 
             // DEBUG Deepjoin debugging, especially for discrete models
             // \codename\core\app::getResponse()->setData('dbg_deepjoin_'.$this->getIdentifier(), [
@@ -1351,11 +1353,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         // CHANGED 2020-11-26: set root table name, by default (mainAlias)
         // To ensure correct duplicate field name handling across multiple tables
-        $mainAlias = "{$this->schema}.{$this->table}";
-        // $mainAlias = null;
-        // if($tableUsage["{$this->schema}.{$this->table}"] > 1) {
         // $mainAlias = "{$this->schema}.{$this->table}";
-        // }
+        // CHANGED again: we HAVE to omit setting the mainAlias by default
+        // As this crashes queries using pre-set schema names
+        $mainAlias = null;
+        if($tableUsage["{$this->schema}.{$this->table}"] > 1) {
+          $mainAlias = "{$this->schema}.{$this->table}";
+        }
 
         $query .= $this->getFilterQuery($params, $mainAlias);
 
