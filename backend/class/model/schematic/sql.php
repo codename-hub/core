@@ -1148,6 +1148,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $ret .= " {$joinMethod} {$nest->schema}.{$nest->table} {$aliasAs}{$useIndex} ON $joinComponentsString";
             }
 
+            // CHANGED 2020-11-26: set alias or fallback to table name, by default
+            // To ensure correct duplicate field name handling across multiple tables
+            // NOTE: we might have to include schema name, too.
+            $join->currentAlias = $alias ?? $nest->table;
+
             // DEBUG Deepjoin debugging, especially for discrete models
             // \codename\core\app::getResponse()->setData('dbg_deepjoin_'.$this->getIdentifier(), [
             //   '$cAlias' => $cAlias,
@@ -1155,8 +1160,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             //   '$useAlias' => $useAlias,
             //   '$join->currentAlias' => $join->currentAlias,
             // ]);
-
-            $join->currentAlias = $alias;
 
             $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter, $join->currentAlias, $params);
         }
@@ -1345,11 +1348,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // Provide current main table specifier
         // as pseudo-alias
         // to fix multiple usage of the same model
-        //
-        $mainAlias = null;
-        if($tableUsage["{$this->schema}.{$this->table}"] > 1) {
-          $mainAlias = "{$this->schema}.{$this->table}";
-        }
+
+        // CHANGED 2020-11-26: set root table name, by default (mainAlias)
+        // To ensure correct duplicate field name handling across multiple tables
+        $mainAlias = "{$this->schema}.{$this->table}";
+        // $mainAlias = null;
+        // if($tableUsage["{$this->schema}.{$this->table}"] > 1) {
+        // $mainAlias = "{$this->schema}.{$this->table}";
+        // }
 
         $query .= $this->getFilterQuery($params, $mainAlias);
 
