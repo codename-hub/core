@@ -1479,8 +1479,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 $parts[] = $field . ' = ' . ':'.$var;
             }
         }
-        // NOTE: double entry, see line 1242
-        $parts[] = $this->table . "_modified = now()";
+
+        if($this->saveUpdateSetModifiedTimestamp) {
+          $parts[] = $this->table . "_modified = now()";
+        }
         $query .= implode(',', $parts);
 
         $var = $this->getStatementVariable(array_keys($param), $this->getPrimarykey());
@@ -1499,6 +1501,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         return $query;
 
     }
+
+    /**
+     * Whether to set *_modified field automatically
+     * during update
+     * @var bool
+     */
+    protected $saveUpdateSetModifiedTimestamp = true;
 
     /**
      * [protected description]
@@ -1730,7 +1739,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $parts[] = $field . ' = ' . ':'.$var;
           }
       }
-      $parts[] = $this->table . "_modified = now()";
+
+      if($this->saveUpdateSetModifiedTimestamp) {
+        $parts[] = $this->table . "_modified = now()";
+      }
       $query .= implode(',', $parts);
 
       // $params = array();
