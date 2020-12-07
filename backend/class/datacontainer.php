@@ -34,18 +34,18 @@ class datacontainer {
             return;
         }
         if(strpos($key, '>') !== false) {
-            if($this->isDefined($key)) {
-                $this->data[$key] = $data;
-            } else {
-              $myConfig = &$this->data;
-              foreach(explode('>', $key) as $myKey) {
-                  if($myConfig !== null && !array_key_exists($myKey, $myConfig)) {
-                      $myConfig[$myKey] = null;
-                  }
-                  $myConfig = &$myConfig[$myKey];
-              }
-              $myConfig = $data;
+            // NOTE/CHANGED 2020-12-07: ::setData no longer sets literal '>' keys
+            // As this caused a general functionality disadvantage
+            // ::isDefined returned true for already set sub-keys
+            // and therefore, continued to set literals.
+            $myConfig = &$this->data;
+            foreach(explode('>', $key) as $myKey) {
+                if($myConfig !== null && !array_key_exists($myKey, $myConfig)) {
+                    $myConfig[$myKey] = null;
+                }
+                $myConfig = &$myConfig[$myKey];
             }
+            $myConfig = $data;
         } else {
             $this->data[$key] = $data;
         }
