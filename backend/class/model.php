@@ -2242,7 +2242,7 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     protected function fieldExists(\codename\core\value\text\modelfield $field) : bool {
       if($field->getTable() != null) {
-        if($field->getTable() == $this->table) {
+        if($field->getTable() == ($this->table ?? null)) {
           return in_array($field->get(), $this->getFields());
         } else {
           foreach($this->getNestedJoins() as $join) {
