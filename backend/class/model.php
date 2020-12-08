@@ -1775,7 +1775,7 @@ abstract class model implements \codename\core\model\modelInterface {
       $returnFields = [];
       if(count($fields) > 0) {
         foreach($fields as $field) {
-          if($field->alias) {
+          if($field->alias ?? false) {
             $returnFields[] = $field->alias->get();
           } else {
             $returnFields[] = $field->field->get();
