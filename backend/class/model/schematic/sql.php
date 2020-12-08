@@ -822,7 +822,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $vData[$modelField] = $dataset[$modelField][$vIndex] ?? null;
             } else {
               // Simply use the field value
-              $vData[$modelField] = $dataset[$modelField];
+              $vData[$modelField] = $dataset[$modelField] ?? null;
             }
           }
 
