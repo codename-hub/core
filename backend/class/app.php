@@ -260,7 +260,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         }
 
         // Make Exceptions out of PHP Errors
-        set_error_handler(function ($err_severity, $err_msg, $err_file, $err_line, array $err_context) {
+        set_error_handler(function ($err_severity, $err_msg, $err_file, $err_line) {
           //
           // https://www.php.net/manual/de/language.operators.errorcontrol.php
           // This function simply exits, if we've got a suppressed error reporting
