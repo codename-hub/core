@@ -1058,16 +1058,8 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function addFilterList(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
         $class = '\\codename\\core\\model\\plugin\\filterlist\\' . $this->getType();
-        if(is_array($value)) {
-            // NOTE: if array is empty, must set false, otherwise return all data
-            // if(count($value) == 0) {
-            //     return $this;
-            // }
-            array_push($this->filter, new $class($this->getModelfieldInstance($field), $value, $operator, $conjunction));
-        } else {
-            $modelfieldInstance = $this->getModelfieldInstance($field);
-            array_push($this->filter, new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $conjunction));
-        }
+        // NOTE: the value becomes into model\schematic\sql checked
+        array_push($this->filter, new $class($this->getModelfieldInstance($field), $value, $operator, $conjunction));
         return $this;
     }
 
