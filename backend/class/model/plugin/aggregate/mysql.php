@@ -22,6 +22,9 @@ class mysql extends \codename\core\model\plugin\aggregate implements \codename\c
       case 'count':
         $sql = 'COUNT('.$tableAlias.$this->fieldBase->get().')';
         break;
+      case 'count_distinct':
+        $sql = 'COUNT(DISTINCT '.$tableAlias.$this->fieldBase->get().')';
+        break;
       case 'sum':
         $sql = 'SUM('.$tableAlias.$this->fieldBase->get().')';
         break;
