@@ -49,6 +49,8 @@ class sqlite extends \codename\core\database {
 
           $this->connection->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false);
           $this->connection->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+          $this->connection->setAttribute(\PDO::ATTR_STATEMENT_CLASS, [\codename\core\extendedPdoStatement::class, [ $this->connection ] ]);
       }
       catch (\PDOException $e) {
           throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONNECTIONERROR, \codename\core\exception::$ERRORLEVEL_FATAL, $e);
