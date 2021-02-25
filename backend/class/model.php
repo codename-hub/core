@@ -2850,9 +2850,13 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     protected function delimitImproved(string $field, $value = null) {
       $fieldtype = $this->fieldTypeCache[$field] ?? $this->fieldTypeCache[$field] = $this->getFieldtypeImproved($field);
-      if(($value === null) || (\is_string($value) && \strlen($value) == 0)) {
+
+      // CHANGED 2020-12-30 removed \is_string($value) && \strlen($value) == 0
+      // Which converted '' to NULL - which is simply wrong.
+      if($value === null) {
         return null;
       }
+
       // if(strpos($fieldtype, 'text') !== false || strpos($fieldtype, 'ject_') !== false || strpos($fieldtype, 'structure') !== false) {
       //     return "" . $value . "";
       // }
@@ -2880,6 +2884,11 @@ abstract class model implements \codename\core\model\modelInterface {
         }
         return false;
       }
+      if(strpos($fieldtype, 'text') === 0) {
+        if(\is_string($value) && \strlen($value) == 0) {
+          return null;
+        }
+      }
       return $value;
     }
 
@@ -2892,9 +2901,13 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     protected function delimit(\codename\core\value\text\modelfield $field, $value = null) {
         $fieldtype = $this->getFieldtype($field);
-        if(($value === null) || (\is_string($value) && \strlen($value) == 0)) {
+
+        // CHANGED 2020-12-30 removed \is_string($value) && \strlen($value) == 0
+        // Which converted '' to NULL - which is simply wrong.
+        if($value === null) {
           return null;
         }
+
         // if(strpos($fieldtype, 'text') !== false || strpos($fieldtype, 'ject_') !== false || strpos($fieldtype, 'structure') !== false) {
         //     return "" . $value . "";
         // }
@@ -2921,6 +2934,11 @@ abstract class model implements \codename\core\model\modelInterface {
                 return true;
             }
             return false;
+        }
+        if(strpos($fieldtype, 'text') === 0) {
+          if(\is_string($value) && \strlen($value) == 0) {
+            return null;
+          }
         }
         return $value;
     }
