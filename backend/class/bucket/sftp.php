@@ -58,6 +58,7 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
 
         if(count($errors = app::getValidator('structure_config_bucket_sftp')->validate($data)) > 0) {
             $this->errorstack->addError('CONFIGURATION', 'CONFIGURATION_INVALID', $errors);
+            throw new exception('EXCEPTION_BUCKET_SFTP_INVALID_CONFIG', exception::$ERRORLEVEL_ERROR, $this->errorstack->getErrors());
             return $this;
         }
 
@@ -68,7 +69,11 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
         $host = $data['sftpserver']['host'];
         $port = $data['sftpserver']['port'];
 
-        $this->sshConnection = @ssh2_connect($host, $port);
+        try {
+          $this->sshConnection = ssh2_connect($host, $port);
+        } catch (\Exception $e) {
+          throw new \codename\core\sensitiveException($e);
+        }
 
         if(isset($data['public']) && $data['public']) {
             $this->baseurl = $data['baseurl'];
@@ -176,11 +181,11 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
         if($this->method === self::METHOD_SFTP) {
           // Local stream
           if (!($localStream = @fopen($localfile, 'r'))) {
-              throw new exception("Unable to open local file for reading: {$localfile}");
+              throw new exception("Unable to open local file for reading: {$localfile}", exception::$ERRORLEVEL_ERROR);
           }
           // Remote stream
           if (!($remoteStream = @fopen("ssh2.sftp://{$this->connection}/{$this->basedir}{$remotefile}", 'w'))) {
-              throw new exception("Unable to open remote file for writing: {$this->basedir}{$remotefile}");
+              throw new exception("Unable to open remote file for writing: {$this->basedir}{$remotefile}", exception::$ERRORLEVEL_ERROR);
           }
           // Write from our remote stream to our local stream
           $read = 0;
@@ -190,7 +195,7 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
               $read += strlen($buffer);
               // Write to our local file
               if (fwrite($remoteStream, $buffer) === FALSE) {
-                  throw new exception("Unable to write to local file: {$this->basedir}{$remotefile}");
+                  throw new exception("Unable to write to local file: {$this->basedir}{$remotefile}", exception::$ERRORLEVEL_ERROR);
               }
           }
           // Close our streams
@@ -239,11 +244,11 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
         if($this->method === self::METHOD_SFTP) {
           // Remote stream
           if (!($remoteStream = @fopen("ssh2.sftp://{$this->connection}/{$this->basedir}{$remotefile}", 'r'))) {
-              throw new exception("Unable to open remote file: {$this->basedir}{$remotefile}");
+              throw new exception("Unable to open remote file: {$this->basedir}{$remotefile}", exception::$ERRORLEVEL_ERROR);
           }
           // Local stream
           if (!($localStream = @fopen($localfile, 'w'))) {
-              throw new exception("Unable to open local file for writing: {$localfile}");
+              throw new exception("Unable to open local file for writing: {$localfile}", exception::$ERRORLEVEL_ERROR);
           }
           // Write from our remote stream to our local stream
           $read = 0;
@@ -253,7 +258,7 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
               $read += strlen($buffer);
               // Write to our local file
               if (fwrite($localStream, $buffer) === FALSE) {
-                  throw new exception("Unable to write to local file: {$localfile}");
+                  throw new exception("Unable to write to local file: {$localfile}", exception::$ERRORLEVEL_ERROR);
               }
           }
           // Close our streams
@@ -304,7 +309,7 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
 
         $handle = @opendir("ssh2.sftp://{$this->connection}/{$this->basedir}{$directory}");
         if ($handle === false) {
-          throw new exception("Unable to open remote directory");
+          throw new exception("Unable to open remote directory", exception::$ERRORLEVEL_ERROR);
         }
 
         $files = array();
