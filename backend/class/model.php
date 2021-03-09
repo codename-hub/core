@@ -2886,7 +2886,7 @@ abstract class model implements \codename\core\model\modelInterface {
       }
       if(strpos($fieldtype, 'text') === 0) {
         if(\is_string($value) && \strlen($value) == 0) {
-          return '';
+          return null;
         }
       }
       return $value;
@@ -2937,7 +2937,7 @@ abstract class model implements \codename\core\model\modelInterface {
         }
         if(strpos($fieldtype, 'text') === 0) {
           if(\is_string($value) && \strlen($value) == 0) {
-            return '';
+            return null;
           }
         }
         return $value;
