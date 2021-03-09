@@ -1969,7 +1969,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // NOTE: $filter->value == null (equality operator, compared to NULL) may evaluate to TRUE if you're passing in a negative boolean (!)
                   // instead, we're now using the identity operator === to explicitly check for a real NULL
                   // @see http://www.php.net/manual/en/types.comparisons.php
-                  if(($filter->value === null) || (\is_string($filter->value) && (\strlen($filter->value) === 0)) || ($filter->value === 'null')) {
+
+                  // CHANGED 2020-12-30 removed \is_string($filter->value) && \strlen($filter->value) == 0 || $filter->value === 'null'
+                  // Which converted '' or 'null' to NULL - which is simply wrong or legacy code.
+                  if($filter->value === null) {
                       // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
                       $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // no param!
                       // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
@@ -2087,7 +2090,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 } else {
                     // value is a singular value
                     // NOTE: see other $filter->value == null (equality or identity operator) note and others
-                    if($filter->value === null || (\is_string($filter->value) && \strlen($filter->value) == 0) || $filter->value === 'null') {
+                    // CHANGED 2020-12-30 removed \is_string($filter->value) && \strlen($filter->value) == 0 || $filter->value === 'null'
+                    // Which converted '' or 'null' to NULL - which is simply wrong or legacy code.
+                    if($filter->value === null) {
                         // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
                         $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // var = PDO Param
                         // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
