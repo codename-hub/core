@@ -2879,6 +2879,9 @@ abstract class model implements \codename\core\model\modelInterface {
         return (int) $value;
       }
       if($fieldtype == 'boolean') {
+        if(\is_string($value) && \strlen($value) == 0) {
+          return null;
+        }
         if($value) {
           return true;
         }
@@ -2930,6 +2933,9 @@ abstract class model implements \codename\core\model\modelInterface {
             return (int) $value;
         }
         if($fieldtype == 'boolean') {
+            if(\is_string($value) && \strlen($value) == 0) {
+              return null;
+            }
             if($value) {
                 return true;
             }
