@@ -944,9 +944,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                 // This is needed in the case of ONE/the first join of this derived table
                 //
                 $aliasAs = $nest->table;
-                $alias = implode('.', array_filter([ $nest->schema, $nest->table ]));
+                $alias = $nest->getTableIdentifier(); // implode('.', array_filter([ $nest->schema, $nest->table ]));
               } else {
-                $alias = "{$nest->schema}.{$nest->table}";
+                $alias = $nest->getTableIdentifier(); // "{$nest->schema}.{$nest->table}";
               }
             }
 
@@ -1009,7 +1009,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
             $joinComponents = [];
 
-            $useAlias = $parentAlias ?? $this->table;
+            $useAlias = $parentAlias ?? $this->getTableIdentifier(); // $this->table;
 
             if($thisKey === null && $joinKey === null) {
               // only rely on conditions
@@ -1145,7 +1145,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             if($nest->isDiscreteModel() && $nest instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
               $ret .= " {$joinMethod} {$nest->getDiscreteModelQuery()} {$aliasAs}{$useIndex} ON $joinComponentsString";
             } else {
-              $ret .= " {$joinMethod} {$nest->schema}.{$nest->table} {$aliasAs}{$useIndex} ON $joinComponentsString";
+              $ret .= " {$joinMethod} {$nest->getTableIdentifier()} {$aliasAs}{$useIndex} ON $joinComponentsString";
             }
 
             // CHANGED 2020-11-26: set alias or fallback to table name, by default
@@ -1272,6 +1272,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
+     * [getTableIdentifier description]
+     * @return string [description]
+     */
+    protected function getTableIdentifier(): string {
+      return $this->schema . '.' . $this->table;
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\model_interface::search()
@@ -1335,7 +1343,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         if($this->isDiscreteModel() && $this instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
           $query .= ' FROM ' . $this->getDiscreteModelQuery() . ' AS '. $this->table . ' '; // directly apply table alias
         } else {
-          $query .= ' FROM ' . $this->schema . '.' . $this->table . ' ';
+          $query .= ' FROM ' . $this->getTableIdentifier() . ' ';
         }
 
         if($this->useIndex ?? false && count($this->useIndex) > 0) {
@@ -1452,7 +1460,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           $raw = $data;
         }
 
-        $query = 'UPDATE ' . $this->schema . '.' . $this->table .' SET ';
+        $query = 'UPDATE ' . $this->getTableIdentifier() .' SET ';
         $parts = [];
 
         foreach ($this->config->get('field') as $field) {
@@ -1481,7 +1489,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
 
         if($this->saveUpdateSetModifiedTimestamp) {
-          $parts[] = $this->table . "_modified = now()";
+          $parts[] = $this->table . "_modified = ".$this->saveUpdateSetModifiedTimestampStatement;
         }
         $query .= implode(',', $parts);
 
@@ -1510,6 +1518,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     protected $saveUpdateSetModifiedTimestamp = true;
 
     /**
+     * Statement/SQL to use for setting current datetime to _modified fields
+     * @var string
+     */
+    protected $saveUpdateSetModifiedTimestampStatement = 'now()';
+
+    /**
      * [protected description]
      * @var \codename\core\value\text\modelfield[]
      */
@@ -1527,7 +1541,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // TEMPORARY: SAVE LOG DISABLED
         // $this->saveLog('CREATE', $data);
 
-        $query = 'INSERT INTO ' . $this->schema . '.' . $this->table .' ';
+        $query = 'INSERT INTO ' . $this->getTableIdentifier() .' ';
         $query .= ' (';
         $index = 0;
         foreach ($this->config->get('field') as $field) {
@@ -1711,7 +1725,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       if(count($this->filter) == 0) {
           throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_UPDATE_NO_FILTERS_DEFINED', exception::$ERRORLEVEL_FATAL);
       }
-      $query = 'UPDATE ' . $this->schema . '.' . $this->table .' SET ';
+      $query = 'UPDATE ' . $this->getTableIdentifier() .' SET ';
       $parts = [];
 
       $param = array();
@@ -1741,7 +1755,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       }
 
       if($this->saveUpdateSetModifiedTimestamp) {
-        $parts[] = $this->table . "_modified = now()";
+        $parts[] = $this->table . "_modified = ".$this->saveUpdateSetModifiedTimestampStatement;
       }
       $query .= implode(',', $parts);
 
@@ -1753,7 +1767,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       // and submit each to timemachine
       //
       if($this->useTimemachine()) {
-        $timemachineQuery = "SELECT {$this->getPrimaryKey()} FROM " . $this->schema . "." . $this->table . ' ';
+        $timemachineQuery = "SELECT {$this->getPrimaryKey()} FROM " . $this->getTableIdentifier() . ' ';
         // NOTE: we have to use a separate array for this
         // as we're also storing bound params of the update data in $param above
         $timemachineFilterQueryParams = [];
@@ -1807,7 +1821,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $tm->saveState($primaryKey, [], true); // supply empty array and deletion flag
             }
 
-            $query = "DELETE FROM " . $this->schema . "." . $this->table . " WHERE " . $this->getPrimarykey() . " = " . $primaryKey;
+            $query = "DELETE FROM " . $this->getTableIdentifier() . " WHERE " . $this->getPrimarykey() . " = " . $primaryKey;
             $this->doQuery($query);
             return $this;
         }
@@ -1829,7 +1843,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // New method: use the filterquery to construct a single query delete statement
         //
 
-        $query = "DELETE FROM " . $this->schema . "." . $this->table . ' ';
+        $query = "DELETE FROM " . $this->getTableIdentifier() . ' ';
 
         // from search()
         // prepare an array for values to submit as PDO statement parameters
@@ -1845,7 +1859,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // and submit each to timemachine
         //
         if($this->useTimemachine()) {
-          $timemachineQuery = "SELECT {$this->getPrimaryKey()} FROM " . $this->schema . "." . $this->table . ' ';
+          $timemachineQuery = "SELECT {$this->getPrimaryKey()} FROM " . $this->getTableIdentifier() . ' ';
           $timemachineQuery .= $filterQuery;
           $timemachineQueryResponse = $this->internalQuery($timemachineQuery, $params);
           $timemachineResult = $this->db->getResult();
