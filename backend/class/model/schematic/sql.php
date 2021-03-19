@@ -30,6 +30,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     protected $storeConnection = true;
 
     /**
+     * returns the cache key to be used for the config
+     * @return string
+     */
+    protected function getModelconfigCacheKey(): string {
+      if($this->schema && $this->table) {
+        return $this->schema.'_'.$this->table;
+      } else {
+        throw new exception('EXCEPTION_MODELCONFIG_CACHE_KEY_MISSING_DATA', exception::$ERRORLEVEL_FATAL);
+      }
+    }
+
+    /**
      * Creates and configures the instance of the model. Fallback connection is 'default' database
      * @param string|null $connection  [Name of the connection in the app configuration file]
      * @param string $schema      [Schema to use the model for]
@@ -45,7 +57,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         	$this->db = app::getDb($connection, $this->storeConnection);
         }
 
-        $config = app::getCache()->get('MODELCONFIG_', get_class($this));
+        $config = app::getCache()->get('MODELCONFIG_', $this->getModelconfigCacheKey());
         if(is_array($config)) {
             $this->config = new \codename\core\config($config);
 
@@ -80,7 +92,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
            throw new exception('EXCEPTION_MODEL_CONFIG_MISSING_FIELD', exception::$ERRORLEVEL_FATAL, "{$this->table}_modified");
         }
 
-        app::getCache()->set('MODELCONFIG_', get_class($this), $this->config->get());
+        app::getCache()->set('MODELCONFIG_', $this->getModelconfigCacheKey(), $this->config->get());
         return $this;
     }
 
