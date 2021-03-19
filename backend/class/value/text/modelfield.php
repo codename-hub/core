@@ -16,12 +16,12 @@ class modelfield extends \codename\core\value\text {
     {
       parent::__construct($value);
       $exp = explode('.', $value);
-      if(sizeof($exp) == 1) {
+      if(count($exp) === 1) {
         $this->field = $exp[0];
-      } elseif(sizeof($exp) == 2) {
+      } elseif(count($exp) === 2) {
         $this->table = $exp[0];
         $this->field = $exp[1];
-      } elseif(sizeof($exp) == 3) {
+      } elseif(count($exp) === 3) {
         $this->schema = $exp[0];
         $this->table = $exp[1];
         $this->field = $exp[2];
