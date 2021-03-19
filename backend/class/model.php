@@ -1251,7 +1251,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @see \codename\core\model_interface::addOrder($field, $order)
      */
     public function addOrder(string $field, string $order = 'ASC') : model {
-        $field = $this->getModelfieldInstance($field);
+        $field = $this->getModelfieldInstanceRecursive($field) ?? $this->getModelfieldInstance($field);
         if(!$this->fieldExists($field)) {
             // check for existance of a calculated field!
             $found = false;
@@ -2568,6 +2568,49 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     protected function getModelfieldInstance(string $field): \codename\core\value\text\modelfield {
       return \codename\core\value\text\modelfield::getInstance($field);
+    }
+
+    /**
+     * Returns a modelfield instance or null
+     * by traversing the current nested join tree
+     * and identifying the correct schema and table
+     *
+     * @param  string                               $field [description]
+     * @return \codename\core\value\text\modelfield|null
+     */
+    protected function getModelfieldInstanceRecursive(string $field): ?\codename\core\value\text\modelfield {
+      $initialInstance = $this->getModelfieldInstance($field);
+
+      // Already defined (schema+table+field)
+      if($initialInstance->getSchema()) {
+        return $initialInstance;
+      }
+
+      if(!$initialInstance->getSchema() || !$initialInstance->getTable()) {
+        // Schema or even table not defined, search for it.
+        if($initialInstance->getTable()) {
+          // table is already defined, compare to current model and perform checks
+          if($initialInstance->getTable() == $this->table) {
+            if(in_array($initialInstance->get(), $this->getFields())) {
+              return $this->getModelfieldInstance($this->schema.'.'.$this->table.'.'.$initialInstance->get());
+            }
+          }
+        } else {
+          // search by field only
+          if(in_array($initialInstance->get(), $this->getFields())) {
+            return $this->getModelfieldInstance($this->schema.'.'.$this->table.'.'.$initialInstance->get());
+          }
+        }
+      }
+
+      // Traverse tree
+      foreach($this->getNestedJoins() as $join) {
+        if($instance = $join->model->getModelfieldInstanceRecursive($field)) {
+          return $instance;
+        }
+      }
+
+      return null;
     }
 
     /**
