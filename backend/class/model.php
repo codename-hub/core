@@ -1855,6 +1855,15 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+    * Enables virtual field result functionality on this model instance
+    * @param  bool                 $state [description]
+    * @return \codename\core\model        [description]
+    */
+    public function setVirtualFieldResult(bool $state) : \codename\core\model {
+      return $this;
+    }
+
+    /**
      * returns an array of virtual fields (names) currently configured
      * @return array [description]
      */
