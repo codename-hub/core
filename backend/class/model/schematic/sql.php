@@ -85,6 +85,49 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
+     * @inheritDoc
+     */
+    protected function getType(): string
+    {
+      return $this->db->driver;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function initServicingInstance()
+    {
+      $testModules = [
+        'sql_'.$this->getType(),
+        'sql',
+      ];
+
+      foreach($testModules as $module) {
+        try {
+          $class = \codename\core\app::getInheritedClass('model_servicing_sql_'.$this->getType());
+          $this->servicingInstance = new $class();
+          return;
+        } catch (\Exception $e) {
+        }
+      }
+
+      if($this->servicingInstance === null) {
+        throw new exception('EXCEPTON_MODEL_FAILED_INIT_SERVICING_INSTANCE', exception::$ERRORLEVEL_FATAL);
+      }
+    }
+
+    /**
+     * [getServicingSqlInstance description]
+     * @return \codename\core\model\servicing\sql [description]
+     */
+    protected function getServicingSqlInstance(): \codename\core\model\servicing\sql {
+      if($this->servicingInstance === null) {
+        $this->initServicingInstance();
+      }
+      return $this->servicingInstance;
+    }
+
+    /**
      * Exception thrown when a model is missing a field that is required by the framework
      * (e.g. _created and/or _modified)
      * @var string
@@ -1272,11 +1315,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
-     * [getTableIdentifier description]
-     * @return string [description]
+     * Returns a db-specific identifier (e.g. schema.table for the current model)
+     * or, if schema and model are specified, for a different schema+table
+     * @param  string|null $schema [name of schema]
+     * @param  string|null $model  [name of schema]
+     * @return string         [description]
      */
-    protected function getTableIdentifier(): string {
-      return $this->schema . '.' . $this->table;
+    protected function getTableIdentifier(?string $schema = null, ?string $model = null): string {
+      if($schema || $model) {
+        return $this->getServicingSqlInstance()->getTableIdentifierParametrized($schema, $model);
+      } else {
+        return $this->getServicingSqlInstance()->getTableIdentifier($this);
+      }
     }
 
     /**
@@ -1489,7 +1539,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
 
         if($this->saveUpdateSetModifiedTimestamp) {
-          $parts[] = $this->table . "_modified = ".$this->saveUpdateSetModifiedTimestampStatement;
+          $parts[] = $this->table . "_modified = ".$this->getServicingSqlInstance()->getSaveUpdateSetModifiedTimestampStatement($this);
         }
         $query .= implode(',', $parts);
 
@@ -1516,12 +1566,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @var bool
      */
     protected $saveUpdateSetModifiedTimestamp = true;
-
-    /**
-     * Statement/SQL to use for setting current datetime to _modified fields
-     * @var string
-     */
-    protected $saveUpdateSetModifiedTimestampStatement = 'now()';
 
     /**
      * [protected description]
@@ -1755,7 +1799,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       }
 
       if($this->saveUpdateSetModifiedTimestamp) {
-        $parts[] = $this->table . "_modified = ".$this->saveUpdateSetModifiedTimestampStatement;
+        $parts[] = $this->table . "_modified = ".$this->getServicingSqlInstance()->getSaveUpdateSetModifiedTimestampStatement($this);
       }
       $query .= implode(',', $parts);
 
@@ -2358,17 +2402,21 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $order .= ($appliedOrders > 0) ? ', ' : ' ORDER BY ';
             $identifier = array();
 
-            if($myOrder->field->getSchema() != null) {
-              $identifier[] = $myOrder->field->getSchema();
-            }
-            if($myOrder->field->getTable() != null) {
-              $identifier[] = $myOrder->field->getTable();
-            }
-            if($myOrder->field->get() != null) {
-              $identifier[] = $myOrder->field->get();
-            }
+            $schema = $myOrder->field->getSchema();
+            $table = $myOrder->field->getTable();
+            $field = $myOrder->field->get();
 
-            $order .= implode('.', $identifier) . ' ' . $myOrder->direction . ' ';
+            $specifier = [];
+            if($schema && $table) {
+              $specifier[] = $this->getServicingSqlInstance()->getTableIdentifierParametrized($schema, $table);
+            } else if($table) {
+              $specifier[] = $table;
+            } else {
+              // might be local alias
+            }
+            $specifier[] = $field;
+
+            $order .= implode('.', $specifier) . ' ' . $myOrder->direction . ' ';
             $appliedOrders++;
         }
 
@@ -2460,6 +2508,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         return $text;
     }
 
+    /**
+     * custom wrapping override due to PG's case sensitivity
+     * @param  string $identifier [description]
+     * @return string             [description]
+     */
+    protected function wrapIdentifier(string $identifier): string {
+      return $this->getServicingSqlInstance()->wrapIdentifier($identifier);
+    }
 
     /**
      * retrieves the fieldlist of this model
@@ -2479,9 +2535,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
             if(!in_array($fieldName, $this->hiddenFields)) {
               if($alias != null) {
-                $result[] = array($alias, $fieldName);
+                $result[] = array($alias, $this->wrapIdentifier($fieldName));
               } else {
-                $result[] = array($this->schema, $this->table, $fieldName);
+                $result[] = array($this->getTableIdentifier($this->schema, $this->table), $this->wrapIdentifier($fieldName));
               }
             }
           }
@@ -2523,15 +2579,15 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $fieldAlias = $field->alias !== null ? $field->alias->get() : null;
               if($alias != null) {
                 if($fieldAlias) {
-                  $result[] = [ $alias, $field->field->get() . ' AS ' . $fieldAlias ];
+                  $result[] = [ $alias, $this->wrapIdentifier($field->field->get()) . ' AS ' . $this->wrapIdentifier($fieldAlias) ];
                 } else {
-                  $result[] = [ $alias, $field->field->get() ];
+                  $result[] = [ $alias, $this->wrapIdentifier($field->field->get()) ];
                 }
               } else {
                 if($fieldAlias) {
-                  $result[] = [ $field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get() . ' AS ' . $fieldAlias ];
+                  $result[] = [ $this->getTableIdentifier($field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table), $this->wrapIdentifier($field->field->get()) . ' AS ' . $this->wrapIdentifier($fieldAlias) ];
                 } else {
-                  $result[] = [ $field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get() ];
+                  $result[] = [ $this->getTableIdentifier($field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table), $this->wrapIdentifier($field->field->get()) ];
                 }
               }
             }
@@ -2545,9 +2601,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
               if(!in_array($fieldName, $this->hiddenFields)) {
                 if($alias != null) {
-                  $result[] = array($alias, $fieldName);
+                  $result[] = array($alias, $this->wrapIdentifier($fieldName));
                 } else {
-                  $result[] = array($this->schema, $this->table, $fieldName);
+                  $result[] = array($this->getTableIdentifier($this->schema, $this->table), $this->wrapIdentifier($fieldName));
                 }
               }
             }
@@ -2572,13 +2628,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             if($alias != null) {
               $result[] = array($alias, '*');
             } else {
-              $result[] = array($this->schema, $this->table, '*');
+              $result[] = array($this->getTableIdentifier($this->schema, $this->table), '*');
             }
           } else {
             // ugh?
           }
         }
-
       }
 
       return $result;

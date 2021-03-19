@@ -952,6 +952,20 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * Initiates a servicing instance for this model
+     * @return void
+     */
+    protected function initServicingInstance() {
+      // no implementation for base model
+    }
+
+    /**
+     * [protected description]
+     * @var model\servicing
+     */
+    protected $servicingInstance = null;
+
+    /**
      * model data passed during initialization
      * @var \codename\core\config
      */
