@@ -72,7 +72,7 @@ class sqlite extends \codename\core\database {
     public function query(string $query, array $params = array())
     {
       if($this->emulationMode) {
-        $query = preg_replace('/([A-Z_a-z0-9]+\.[A-Z_a-z0-9]+)/', '"$1"', $query);
+        // $query = preg_replace('/([A-Z_a-z0-9]+\.[A-Z_a-z0-9]+)/', '"$1"', $query);
         $query = str_ireplace('NOW()', "strftime('%Y-%m-%d %H:%M:%S','now')", $query);
       }
       // $query = preg_replace('/(d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/', 'strftime(\'%s\', \'$1\')', $query);
