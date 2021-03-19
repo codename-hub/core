@@ -1,4 +1,10 @@
-<phpunit bootstrap="tests/autoload.php">
+<?xml version="1.0"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="tests/autoload.php" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
+  <coverage processUncoveredFiles="true">
+    <include>
+      <directory suffix=".php">backend/class/</directory>
+    </include>
+  </coverage>
   <testsuites>
     <testsuite name="All Tests">
       <directory suffix=".php">tests</directory>
@@ -7,9 +13,4 @@
       <directory suffix=".php">tests/validator</directory>
     </testsuite>
   </testsuites>
-  <filter>
-    <whitelist processUncoveredFilesFromWhitelist="true">
-      <directory suffix=".php">backend/class/</directory>
-    </whitelist>
-  </filter>
 </phpunit>
