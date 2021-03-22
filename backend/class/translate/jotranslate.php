@@ -2,15 +2,15 @@
 namespace codename\core\translate;
 
 class jotranslate extends \codename\core\translate implements \codename\core\translate\translateInterface {
-    
+
     /**
      * Contains the jotranslate client instance
      * @var \codename\core\api\codename\jotranslate
      */
     protected $instance = null;
-    
+
     /**
-     * Creates instance 
+     * Creates instance
      * @param array $data
      * @return \codename\core\translate\jotranslate
      */
@@ -27,5 +27,13 @@ class jotranslate extends \codename\core\translate implements \codename\core\tra
     protected function getTranslation(string $key) : string {
         return $this->instance->translate(strtoupper($key));
     }
-    
+
+    /**
+     * @inheritDoc
+     */
+    public function getAllTranslations(string $prefix): ?array
+    {
+      throw new \LogicException('Not implemented'); // TODO
+    }
+
 }
