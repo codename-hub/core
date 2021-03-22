@@ -67,5 +67,10 @@ class datacontainerTest extends base {
 
     $datacontainer->setData('null_value', null);
     $this->assertTrue($datacontainer->isDefined('null_value'));
+
+    $this->assertNull($datacontainer->getData('nonexisting'));
+    $this->assertNull($datacontainer->getData('nonexisting>nonexisting_subkey'));
+
+    $this->assertEmpty($datacontainer->setData('', 'test'));
   }
 }
