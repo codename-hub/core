@@ -11,10 +11,10 @@ class datacontainerTest extends base {
    */
   public function testDatacontainer(): void {
     $datacontainer = new \codename\core\datacontainer([
-      'string' => 'abc',
+      'string'  => 'abc',
       'integer' => 123,
-      'array' => [ 'abc', 123 ],
-      'nested' => [
+      'array'   => [ 'abc', 123 ],
+      'nested'  => [
         'string'  => 'def',
         'integer' => 123
       ]
@@ -38,12 +38,34 @@ class datacontainerTest extends base {
 
     $datacontainer->addData([
       'integer' => 456,
-      'nested' => [
+      'nested'  => [
         'changed' => true
       ]
     ]);
 
     $this->assertEquals(456, $datacontainer->getData('integer'));
     $this->assertEquals([ 'changed' => true ], $datacontainer->getData('nested'));
+
+    $datacontainer->setData('string', 'ghi');
+    $datacontainer->unsetData('nested2');
+
+    $this->assertEquals([
+      'string'  => 'ghi',
+      'integer' => 456,
+      'array'   => [ 'abc', 123 ],
+      'nested'  => [
+        'changed' => true
+      ]
+    ], $datacontainer->getData());
+
+    $this->assertTrue($datacontainer->isDefined('string'));
+    $this->assertTrue($datacontainer->isDefined('nested>changed'));
+
+    $this->assertFalse($datacontainer->isDefined('nested2'));
+    $this->assertFalse($datacontainer->isDefined('nonexisting'));
+    $this->assertFalse($datacontainer->isDefined('nonexisting>nonexisting_subkey'));
+
+    $datacontainer->setData('null_value', null);
+    $this->assertTrue($datacontainer->isDefined('null_value'));
   }
 }
