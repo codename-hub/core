@@ -14,10 +14,8 @@ class virtualFieldsTest extends base {
     $app = $this->createApp();
     $app->getAppstack();
 
-    define('CORE_ENVIRONMENT', 'vfields');
-
-    $this->setEnvironmentConfig([
-      'vfields' => [
+    static::setEnvironmentConfig([
+      'test' => [
         'database' => [
           'default' => [
             'driver' => 'sqlite',
@@ -45,7 +43,7 @@ class virtualFieldsTest extends base {
       ]
     ]);
 
-    $this->createModel('schema1', 'model1', [
+    static::createModel('schema1', 'model1', [
       'field' => [
         'model1_id',
         'model1_created',
@@ -68,7 +66,7 @@ class virtualFieldsTest extends base {
     // A secondary model with a reference to model1
     // including a virtual field that may display/represent a model1-dataset
     //
-    $this->createModel('schema2', 'model2', [
+    static::createModel('schema2', 'model2', [
       'field' => [
         'model2_id',
         'model2_created',
@@ -119,7 +117,7 @@ class virtualFieldsTest extends base {
     // A secondary model with a reference to model1
     // including a virtual field that may display/represent a model1-dataset
     //
-    $this->createModel('schema3', 'model3', [
+    static::createModel('schema3', 'model3', [
       'field' => [
         'model3_id',
         'model3_created',
@@ -147,7 +145,7 @@ class virtualFieldsTest extends base {
       'connection' => 'default'
     ]);
 
-    $this->architect('vfieldstest', 'codename', 'vfields');
+    static::architect('vfieldstest', 'codename', 'test');
   }
 
   /**

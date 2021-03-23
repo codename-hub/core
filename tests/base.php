@@ -11,10 +11,20 @@ use codename\core\app;
 abstract class base extends \PHPUnit\Framework\TestCase {
 
   /**
+   * @inheritDoc
+   */
+  public static function tearDownAfterClass(): void
+  {
+    // Reset instances to cleanup possible clients
+    // e.g. database connections
+    $_REQUEST['instances'] = [];
+  }
+
+  /**
    * allows setting the current environment config
    * @param array $config [description]
    */
-  protected function setEnvironmentConfig(array $config) {
+  protected static function setEnvironmentConfig(array $config) {
     $configInstance = new \codename\core\config($config);
     overrideableApp::__overrideEnvironmentConfig($configInstance);
   }
@@ -23,7 +33,7 @@ abstract class base extends \PHPUnit\Framework\TestCase {
    * creates a pseudo app instance
    * @return \codename\core\app
    */
-  protected function createApp(): \codename\core\app {
+  protected static function createApp(): \codename\core\app {
     return new overrideableApp();
   }
 
@@ -34,8 +44,8 @@ abstract class base extends \PHPUnit\Framework\TestCase {
    * @param  array  $config [description]
    * @return void
    */
-  protected function createModel(string $schema, string $model, array $config) {
-    $this->models[$model] = [
+  protected static function createModel(string $schema, string $model, array $config) {
+    static::$models[$model] = [
       'schema' => $schema,
       'model'  => $model,
       'config' => $config,
@@ -47,10 +57,20 @@ abstract class base extends \PHPUnit\Framework\TestCase {
    * @param  string $model [description]
    * @return \codename\core\model
    */
-  protected function getModel(string $model): \codename\core\model {
-    $modelData = $this->models[$model];
+  protected static function getModelStatic(string $model): \codename\core\model {
+    $modelData = static::$models[$model];
     return new sqlModel($modelData['schema'], $modelData['model'], $modelData['config']);
   }
+
+  /**
+   * [getModel description]
+   * @param  string               $model [description]
+   * @return \codename\core\model        [description]
+   */
+  protected function getModel(string $model): \codename\core\model {
+    return static::getModelStatic($model);
+  }
+
 
   /**
    * Executes architect steps (building models/data structures)
@@ -59,12 +79,12 @@ abstract class base extends \PHPUnit\Framework\TestCase {
    * @param  string $envName [description]
    * @return void
    */
-  protected function architect(string $app, string $vendor, string $envName) {
+  protected static function architect(string $app, string $vendor, string $envName) {
     $dbDoc = new overrideableDbDoc('test', 'codename');
     $architectEnv = new \codename\architect\config\environment(app::getEnvironment()->get(), $envName);
 
     $modeladapters = [];
-    foreach($this->models as $model) {
+    foreach(static::$models as $model) {
       $modeladapters[] = $dbDoc->getModelAdapter($model['schema'], $model['model'], $model['config'], $architectEnv);
     }
 
@@ -78,7 +98,7 @@ abstract class base extends \PHPUnit\Framework\TestCase {
    * models in this environment/test case
    * @var array
    */
-  private $models = [];
+  protected static $models = [];
 
 }
 
@@ -103,7 +123,6 @@ class overrideableApp extends \codename\core\app {
     ]);
     return $value;
   }
-
 
   /**
    * Overrides/provides an environment config

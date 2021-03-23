@@ -1,28 +1,44 @@
 <?php
-namespace codename\core\tests;
+namespace codename\core\tests\model;
+
+use codename\core\tests\base;
 
 /**
- * Test some model plugins functionality
+ * Base model class performing cross-platform/technology tests with model classes
  */
-class modelPluginsTest extends base {
+abstract class abstractModelTest extends base {
+
+  /**
+   * should return a database config for 'default' connection
+   * @return array
+   */
+  protected abstract function getDefaultDatabaseConfig(): array;
+
+  /**
+   * [protected description]
+   * @var bool
+   */
+  protected static $initialized = false;
 
   /**
    * @inheritDoc
    */
   protected function setUp(): void
   {
-    $app = $this->createApp();
+    // avoid re-init
+    if(static::$initialized) {
+      return;
+    }
+
+    static::$initialized = true;
+
+    $app = static::createApp();
     $app->getAppstack();
 
-    define('CORE_ENVIRONMENT', 'modelplugins');
-
-    $this->setEnvironmentConfig([
-      'modelplugins' => [
+    static::setEnvironmentConfig([
+      'test' => [
         'database' => [
-          'default' => [
-            'driver' => 'sqlite',
-            'database_file' => ':memory:',
-          ]
+          'default' => $this->getDefaultDatabaseConfig(),
         ],
         'cache' => [
           'default' => [
@@ -45,7 +61,7 @@ class modelPluginsTest extends base {
       ]
     ]);
 
-    $this->createModel('testschema', 'testdata', [
+    static::createModel('testschema', 'testdata', [
       'field' => [
         'testdata_id',
         'testdata_created',
@@ -72,15 +88,17 @@ class modelPluginsTest extends base {
       'connection' => 'default'
     ]);
 
-    $this->architect('modelpluginstest', 'codename', 'modelplugins');
+    static::architect('modeltest', 'codename', 'test');
+
+    static::createTestData();
   }
 
   /**
-   * Tests saving virtual field data with enabled models
-   * @return void
+   * [createTestData description]
    */
-  public function testAggregatePlugins() {
-    $testdataModel = $this->getModel('testdata');
+  protected static function createTestData(): void {
+
+    $testdataModel = static::getModelStatic('testdata');
 
     $entries = [
       [
@@ -116,7 +134,12 @@ class modelPluginsTest extends base {
     foreach($entries as $dataset) {
       $testdataModel->save($dataset);
     }
+  }
 
+  /**
+   * [testOrderLimitOffset description]
+   */
+  public function testOrderLimitOffset() {
     // Generic model features
     // Offset [& Limit & Order]
     $testLimitModel = $this->getModel('testdata');
@@ -126,7 +149,9 @@ class modelPluginsTest extends base {
     $res = $testLimitModel->search()->getResult();
     $this->assertCount(1, $res);
     $this->assertEquals(2,$res[0]['testdata_id']);
+  }
 
+  public function testAggregateCount() {
     //
     // Aggregate: count plugin
     //
@@ -139,7 +164,9 @@ class modelPluginsTest extends base {
     // w/ simple filter added
     $testCountModel->addFilter('testdata_datetime', '2020-01-01', '>=');
     $this->assertEquals(3, $testCountModel->search()->getResult()[0]['entries_count']);
+  }
 
+  public function testAggregateCountDistinct() {
     //
     // Aggregate: count_distinct plugin
     //
@@ -153,7 +180,9 @@ class modelPluginsTest extends base {
     $testCountDistinctModel
       ->addFilter('testdata_datetime', '2021-03-23', '>=');
     $this->assertEquals(1, $testCountDistinctModel->search()->getResult()[0]['entries_count']);
+  }
 
+  public function testAggregateSum() {
     //
     // Aggregate: sum plugin
     //
@@ -170,8 +199,9 @@ class modelPluginsTest extends base {
     // no entries matching filter
     $testSumModel->addFilter('testdata_datetime', '2019-01-01', '<=');
     $this->assertEquals(0, $testSumModel->search()->getResult()[0]['entries_sum']);
+  }
 
-
+  public function testAggregateAvg() {
     //
     // Aggregate: avg plugin
     //
@@ -188,7 +218,9 @@ class modelPluginsTest extends base {
     // no entries matching filter
     $testSumModel->addFilter('testdata_datetime', '2019-01-01', '<=');
     $this->assertEquals(0, $testSumModel->search()->getResult()[0]['entries_avg']);
+  }
 
+  public function testAggregateDatetimeYear() {
     //
     // Aggregate DateTime plugin
     //
@@ -199,7 +231,12 @@ class modelPluginsTest extends base {
     $yearRes = $testYearModel->search()->getResult();
     $this->assertEquals([2021, 2021, 2021, 2019], array_column($yearRes, 'entries_year1'));
     $this->assertEquals([2021, 2021, 2021, 2019], array_column($yearRes, 'entries_year2'));
+  }
 
+  public function testAggregateGroupedSumOrderByAggregateField() {
+    $testYearModel = $this->getModel('testdata');
+    $testYearModel->addAggregateField('entries_year1', 'year', 'testdata_datetime');
+    $testYearModel->addAggregateField('entries_year2', 'year', 'testdata_date');
     // add a grouping modifier (WARNING, instance modified)
     // introduce additional summing
     // and order by calculated/aggregate field
@@ -212,18 +249,22 @@ class modelPluginsTest extends base {
     $this->assertEquals(42,   $yearGroupedRes[0]['entries_sum']);
     $this->assertEquals(2021, $yearGroupedRes[1]['entries_year1']);
     $this->assertEquals(6,    $yearGroupedRes[1]['entries_sum']);
+  }
 
-    // //
-    // // Aggregate Quarter plugin
-    // //
-    // $testQuarterModel = $this->getModel('testdata');
-    // $testQuarterModel->addAggregateField('entries_quarter1', 'quarter', 'testdata_datetime');
-    // $testQuarterModel->addAggregateField('entries_quarter2', 'year', 'testdata_date');
-    // $testQuarterModel->addOrder('testdata_id', 'ASC');
-    // $res = $testQuarterModel->search()->getResult();
-    // $this->assertEquals([2021, 2021, 2021, 2019], array_column($res, 'entries_quarter1'));
-    // $this->assertEquals([2021, 2021, 2021, 2019], array_column($res, 'entries_quarter2'));
+  public function testAggregateDatetimeQuarter() {
+    //
+    // Aggregate Quarter plugin
+    //
+    $testQuarterModel = $this->getModel('testdata');
+    $testQuarterModel->addAggregateField('entries_quarter1', 'quarter', 'testdata_datetime');
+    $testQuarterModel->addAggregateField('entries_quarter2', 'year', 'testdata_date');
+    $testQuarterModel->addOrder('testdata_id', 'ASC');
+    $res = $testQuarterModel->search()->getResult();
+    $this->assertEquals([1, 1, 1, 1], array_column($res, 'entries_quarter1'));
+    $this->assertEquals([1, 1, 1, 1], array_column($res, 'entries_quarter2'));
+  }
 
+  public function testAggregateDatetimeMonth() {
     //
     // Aggregate DateTime plugin
     //
@@ -234,9 +275,12 @@ class modelPluginsTest extends base {
     $res = $testMonthModel->search()->getResult();
     $this->assertEquals([3, 3, 3, 1], array_column($res, 'entries_month1'));
     $this->assertEquals([3, 3, 3, 1], array_column($res, 'entries_month2'));
+  }
 
+  public function testAggregateFilterSimple() {
     // Aggregate Filter
     $testAggregateFilterMonthModel = $this->getModel('testdata');
+
     $testAggregateFilterMonthModel->addAggregateField('entries_month1', 'month', 'testdata_datetime');
     $testAggregateFilterMonthModel->addAggregateField('entries_month2', 'month', 'testdata_date');
     $testAggregateFilterMonthModel->addAggregateFilter('entries_month1', 3, '>=');
@@ -250,4 +294,23 @@ class modelPluginsTest extends base {
     $this->assertEquals([3, 3, 3], array_column($res, 'entries_month2'));
   }
 
+  public function testAggregateFilterValueArray() {
+
+    $this->addWarning('Aggregate filters with IN() / array as filter value is not supported yet - field type determination pending!');
+    $this->expectException(\TypeError::class);
+
+    // Aggregate Filter
+    $testAggregateFilterMonthModel = $this->getModel('testdata');
+    $testAggregateFilterMonthModel->addAggregateField('entries_month1', 'month', 'testdata_datetime');
+    $testAggregateFilterMonthModel->addAggregateField('entries_month2', 'month', 'testdata_date');
+    $testAggregateFilterMonthModel->addAggregateFilter('entries_month1', [1, 3]);
+    $testAggregateFilterMonthModel->addAggregateFilter('entries_month2', [1, 3]);
+
+    // WARNING: sqlite doesn't support HAVING without GROUP BY
+    $testAggregateFilterMonthModel->addGroup('testdata_id');
+
+    $res = $testAggregateFilterMonthModel->search()->getResult();
+    $this->assertEquals([3, 3, 3], array_column($res, 'entries_month1'));
+    $this->assertEquals([3, 3, 3], array_column($res, 'entries_month2'));
+  }
 }
