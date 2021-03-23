@@ -137,6 +137,35 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testSuccessfulCreateAndDeleteTransaction description]
+   */
+  public function testSuccessfulCreateAndDeleteTransaction(): void {
+    $testTransactionModel = $this->getModel('testdata');
+
+    $transaction = new \codename\core\transaction('test', [ $testTransactionModel ]);
+    $transaction->start();
+
+    // insert a new entry
+    $testTransactionModel->save([
+      'testdata_integer'  => 999,
+    ]);
+    $id = $testTransactionModel->lastInsertId();
+
+    // load the new dataset in the transaction
+    $newDataset = $testTransactionModel->load($id);
+    $this->assertEquals(999, $newDataset['testdata_integer']);
+
+    // delete it
+    $testTransactionModel->delete($id);
+
+    // end transaction, as if nothing happened
+    $transaction->end();
+
+    // Make sure it hasn't changed
+    $this->assertEquals(4, $testTransactionModel->getCount());
+  }
+
+  /**
    * [testOrderLimitOffset description]
    */
   public function testOrderLimitOffset(): void {
