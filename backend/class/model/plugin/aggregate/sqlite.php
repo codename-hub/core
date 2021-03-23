@@ -32,16 +32,16 @@ class sqlite extends \codename\core\model\plugin\aggregate implements \codename\
         $sql = 'AVG('.$tableAlias.$this->fieldBase->get().')';
         break;
       case 'year':
-        $sql = 'strftime(\'%Y\','.$tableAlias.$this->fieldBase->get().')';
+        $sql = 'CAST(strftime(\'%Y\','.$tableAlias.$this->fieldBase->get().') as integer)';
         break;
       // case 'quarter':
       //   $sql = 'QUARTER('.$tableAlias.$this->fieldBase->get().')';
       //   break;
       case 'month':
-        $sql = 'strftime(\'%m\','.$tableAlias.$this->fieldBase->get().')';
+        $sql = 'CAST(strftime(\'%m\','.$tableAlias.$this->fieldBase->get().') as integer)';
         break;
       case 'day':
-        $sql = 'strftime(\'%d\','.$tableAlias.$this->fieldBase->get().')';
+        $sql = 'CAST(strftime(\'%d\','.$tableAlias.$this->fieldBase->get().') as integer)';
         break;
       // case 'timestampdiff-year':
       //   $sql = 'TIMESTAMPDIFF(YEAR, '.$tableAlias.$this->fieldBase->get().', CURDATE())';

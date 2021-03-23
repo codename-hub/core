@@ -117,6 +117,16 @@ class modelPluginsTest extends base {
       $testdataModel->save($dataset);
     }
 
+    // Generic model features
+    // Offset [& Limit & Order]
+    $testLimitModel = $this->getModel('testdata');
+    $testLimitModel->addOrder('testdata_id', 'ASC');
+    $testLimitModel->setLimit(1);
+    $testLimitModel->setOffset(1);
+    $res = $testLimitModel->search()->getResult();
+    $this->assertCount(1, $res);
+    $this->assertEquals(2,$res[0]['testdata_id']);
+
     //
     // Aggregate: count plugin
     //
@@ -225,6 +235,19 @@ class modelPluginsTest extends base {
     $this->assertEquals([3, 3, 3, 1], array_column($res, 'entries_month1'));
     $this->assertEquals([3, 3, 3, 1], array_column($res, 'entries_month2'));
 
+    // Aggregate Filter
+    $testAggregateFilterMonthModel = $this->getModel('testdata');
+    $testAggregateFilterMonthModel->addAggregateField('entries_month1', 'month', 'testdata_datetime');
+    $testAggregateFilterMonthModel->addAggregateField('entries_month2', 'month', 'testdata_date');
+    $testAggregateFilterMonthModel->addAggregateFilter('entries_month1', 3, '>=');
+    $testAggregateFilterMonthModel->addAggregateFilter('entries_month2', 3, '>=');
+
+    // WARNING: sqlite doesn't support HAVING without GROUP BY
+    $testAggregateFilterMonthModel->addGroup('testdata_id');
+
+    $res = $testAggregateFilterMonthModel->search()->getResult();
+    $this->assertEquals([3, 3, 3], array_column($res, 'entries_month1'));
+    $this->assertEquals([3, 3, 3], array_column($res, 'entries_month2'));
   }
 
 }
