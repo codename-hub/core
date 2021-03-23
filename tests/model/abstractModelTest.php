@@ -25,15 +25,15 @@ abstract class abstractModelTest extends base {
    */
   protected function setUp(): void
   {
+    $app = static::createApp();
+    $app->getAppstack();
+
     // avoid re-init
     if(static::$initialized) {
       return;
     }
 
     static::$initialized = true;
-
-    $app = static::createApp();
-    $app->getAppstack();
 
     static::setEnvironmentConfig([
       'test' => [
