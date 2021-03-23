@@ -1370,7 +1370,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         //
         // NOTE/CHANGED 2020-09-15: allow params in deepJoin() (conditions!)
         //
-        $deepjoin = $this->deepJoin($this, $tableUsage, $aliasCounter = 0, $parentAlias = null, $params);
+        $aliasCounter = 0;
+        $deepjoin = $this->deepJoin($this, $tableUsage, $aliasCounter, $parentAlias = null, $params);
 
         //
         // Russian Caviar
