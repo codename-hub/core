@@ -139,7 +139,7 @@ abstract class abstractModelTest extends base {
   /**
    * [testOrderLimitOffset description]
    */
-  public function testOrderLimitOffset() {
+  public function testOrderLimitOffset(): void {
     // Generic model features
     // Offset [& Limit & Order]
     $testLimitModel = $this->getModel('testdata');
@@ -151,7 +151,10 @@ abstract class abstractModelTest extends base {
     $this->assertEquals(2,$res[0]['testdata_id']);
   }
 
-  public function testAggregateCount() {
+  /**
+   * [testAggregateCount description]
+   */
+  public function testAggregateCount(): void {
     //
     // Aggregate: count plugin
     //
@@ -166,7 +169,10 @@ abstract class abstractModelTest extends base {
     $this->assertEquals(3, $testCountModel->search()->getResult()[0]['entries_count']);
   }
 
-  public function testAggregateCountDistinct() {
+  /**
+   * [testAggregateCountDistinct description]
+   */
+  public function testAggregateCountDistinct(): void {
     //
     // Aggregate: count_distinct plugin
     //
@@ -182,7 +188,10 @@ abstract class abstractModelTest extends base {
     $this->assertEquals(1, $testCountDistinctModel->search()->getResult()[0]['entries_count']);
   }
 
-  public function testAggregateSum() {
+  /**
+   * [testAggregateSum description]
+   */
+  public function testAggregateSum(): void {
     //
     // Aggregate: sum plugin
     //
@@ -201,7 +210,10 @@ abstract class abstractModelTest extends base {
     $this->assertEquals(0, $testSumModel->search()->getResult()[0]['entries_sum']);
   }
 
-  public function testAggregateAvg() {
+  /**
+   * [testAggregateAvg description]
+   */
+  public function testAggregateAvg(): void {
     //
     // Aggregate: avg plugin
     //
@@ -220,7 +232,10 @@ abstract class abstractModelTest extends base {
     $this->assertEquals(0, $testSumModel->search()->getResult()[0]['entries_avg']);
   }
 
-  public function testAggregateDatetimeYear() {
+  /**
+   * [testAggregateDatetimeYear description]
+   */
+  public function testAggregateDatetimeYear(): void {
     //
     // Aggregate DateTime plugin
     //
@@ -233,7 +248,10 @@ abstract class abstractModelTest extends base {
     $this->assertEquals([2021, 2021, 2021, 2019], array_column($yearRes, 'entries_year2'));
   }
 
-  public function testAggregateGroupedSumOrderByAggregateField() {
+  /**
+   * [testAggregateGroupedSumOrderByAggregateField description]
+   */
+  public function testAggregateGroupedSumOrderByAggregateField(): void {
     $testYearModel = $this->getModel('testdata');
     $testYearModel->addAggregateField('entries_year1', 'year', 'testdata_datetime');
     $testYearModel->addAggregateField('entries_year2', 'year', 'testdata_date');
@@ -251,7 +269,10 @@ abstract class abstractModelTest extends base {
     $this->assertEquals(6,    $yearGroupedRes[1]['entries_sum']);
   }
 
-  public function testAggregateDatetimeQuarter() {
+  /**
+   * [testAggregateDatetimeQuarter description]
+   */
+  public function testAggregateDatetimeQuarter(): void {
     //
     // Aggregate Quarter plugin
     //
@@ -264,7 +285,10 @@ abstract class abstractModelTest extends base {
     $this->assertEquals([1, 1, 1, 1], array_column($res, 'entries_quarter2'));
   }
 
-  public function testAggregateDatetimeMonth() {
+  /**
+   * [testAggregateDatetimeMonth description]
+   */
+  public function testAggregateDatetimeMonth(): void {
     //
     // Aggregate DateTime plugin
     //
@@ -277,7 +301,10 @@ abstract class abstractModelTest extends base {
     $this->assertEquals([3, 3, 3, 1], array_column($res, 'entries_month2'));
   }
 
-  public function testAggregateFilterSimple() {
+  /**
+   * [testAggregateFilterSimple description]
+   */
+  public function testAggregateFilterSimple(): void {
     // Aggregate Filter
     $testAggregateFilterMonthModel = $this->getModel('testdata');
 
@@ -294,7 +321,10 @@ abstract class abstractModelTest extends base {
     $this->assertEquals([3, 3, 3], array_column($res, 'entries_month2'));
   }
 
-  public function testAggregateFilterValueArray() {
+  /**
+   * [testAggregateFilterValueArray description]
+   */
+  public function testAggregateFilterValueArray(): void {
 
     $this->addWarning('Aggregate filters with IN() / array as filter value is not supported yet - field type determination pending!');
     $this->expectException(\TypeError::class);
