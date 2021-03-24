@@ -92,6 +92,113 @@ abstract class abstractModelTest extends base {
       'connection' => 'default'
     ]);
 
+    static::createModel('vfields', 'customer', [
+      'field' => [
+        'customer_id',
+        'customer_created',
+        'customer_modified',
+        'customer_no',
+        'customer_person_id',
+        'customer_person',
+        'customer_contactentries',
+      ],
+      'primary' => [
+        'customer_id'
+      ],
+      'unique' => [
+        'customer_no',
+      ],
+      'required' => [
+        'customer_no'
+      ],
+      'children' => [
+        'customer_person' => [
+          'type'  => 'foreign',
+          'field' => 'customer_person_id'
+        ],
+        'customer_contactentries' => [
+          'type'  => 'collection',
+        ]
+      ],
+      'collection' => [
+        'customer_contactentries' => [
+          'schema'  => 'vfields',
+          'model'   => 'contactentry',
+          'key'     => 'contactentry_customer_id'
+        ]
+      ],
+      'foreign' => [
+        'customer_person_id' => [
+          'schema'  => 'vfields',
+          'model'   => 'person',
+          'key'     => 'person_id'
+        ]
+      ],
+      'datatype' => [
+        'customer_id'             => 'number_natural',
+        'customer_created'        => 'text_timestamp',
+        'customer_modified'       => 'text_timestamp',
+        'customer_no'             => 'text',
+        'customer_person_id'      => 'number_natural',
+        'customer_person'         => 'virtual',
+        'customer_contactentries' => 'virtual'
+      ],
+      'connection' => 'default'
+    ]);
+
+    static::createModel('vfields', 'contactentry', [
+      'field' => [
+        'contactentry_id',
+        'contactentry_created',
+        'contactentry_modified',
+        'contactentry_name',
+        'contactentry_telephone',
+        'contactentry_customer_id',
+      ],
+      'primary' => [
+        'contactentry_id'
+      ],
+      'foreign' => [
+        'contactentry_customer_id' => [
+          'schema'  => 'vfields',
+          'model'   => 'customer',
+          'key'     => 'customer_id'
+        ]
+      ],
+      'datatype' => [
+        'contactentry_id'         => 'number_natural',
+        'contactentry_created'    => 'text_timestamp',
+        'contactentry_modified'   => 'text_timestamp',
+        'contactentry_name'       => 'text',
+        'contactentry_telephone'  => 'text_telephone',
+        'contactentry_customer_id'=> 'number_natural',
+      ],
+      'connection' => 'default'
+    ]);
+
+    static::createModel('vfields', 'person', [
+      'field' => [
+        'person_id',
+        'person_created',
+        'person_modified',
+        'person_firstname',
+        'person_lastname',
+        'person_birthdate',
+      ],
+      'primary' => [
+        'person_id'
+      ],
+      'datatype' => [
+        'person_id'         => 'number_natural',
+        'person_created'    => 'text_timestamp',
+        'person_modified'   => 'text_timestamp',
+        'person_firstname'  => 'text',
+        'person_lastname'   => 'text',
+        'person_birthdate'  => 'text_date',
+      ],
+      'connection' => 'default'
+    ]);
+
     static::createModel('timemachine', 'timemachine', [
       'field' => [
         'timemachine_id',
@@ -174,6 +281,48 @@ abstract class abstractModelTest extends base {
     foreach($entries as $dataset) {
       $testdataModel->save($dataset);
     }
+  }
+
+  /**
+   * [testVirtualFieldSaving description]
+   */
+  public function testVirtualFieldSaving(): void {
+
+    $customerModel = $this->getModel('customer')->setVirtualFieldResult(true)
+      ->addModel($personModel = $this->getModel('person'))
+      ->addCollectionModel($contactentryModel = $this->getModel('contactentry'));
+
+    $dataset = [
+      'customer_no' => 'K1000',
+      'customer_person' => [
+        'person_firstname'  => 'John',
+        'person_lastname'   => 'Doe',
+        'person_birthdate'  => '1970-01-01',
+      ],
+      'customer_contactentries' => [
+        [ 'contactentry_name' => 'Phone', 'contactentry_telephone' => '+49123123123' ]
+      ]
+    ];
+
+    $this->assertTrue($customerModel->isValid($dataset));
+
+    $customerModel->saveWithChildren($dataset);
+    $id = $customerModel->lastInsertId();
+
+    $dataset = $customerModel->load($id);
+
+    $this->assertEquals('K1000', $dataset['customer_no']);
+    $this->assertEquals('John', $dataset['customer_person']['person_firstname']);
+    $this->assertEquals('Doe', $dataset['customer_person']['person_lastname']);
+    $this->assertEquals('Phone', $dataset['customer_contactentries'][0]['contactentry_name']);
+    $this->assertEquals('+49123123123', $dataset['customer_contactentries'][0]['contactentry_telephone']);
+
+    $this->assertNotNull($dataset['customer_id']);
+    $this->assertNotNull($dataset['customer_person']['person_id']);
+    $this->assertNotNull($dataset['customer_contactentries'][0]['contactentry_id']);
+
+    $this->assertEquals($dataset['customer_person_id'], $dataset['customer_person']['person_id']);
+    $this->assertEquals($dataset['customer_contactentries'][0]['contactentry_customer_id'], $dataset['customer_id']);
   }
 
   /**

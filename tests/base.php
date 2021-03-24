@@ -80,13 +80,16 @@ abstract class base extends \PHPUnit\Framework\TestCase {
    * @return void
    */
   protected static function architect(string $app, string $vendor, string $envName) {
-    $dbDoc = new overrideableDbDoc('test', 'codename');
+    $dbDoc = new overrideableDbDoc($app, $vendor);
     $architectEnv = new \codename\architect\config\environment(app::getEnvironment()->get(), $envName);
 
     $modeladapters = [];
     foreach(static::$models as $model) {
       $modeladapters[] = $dbDoc->getModelAdapter($model['schema'], $model['model'], $model['config'], $architectEnv);
     }
+
+    // NOTE: if dbDoc fails due to misconfigured models,
+    // this will fail here, too
 
     $dbDoc->setModelAdapters($modeladapters);
 
