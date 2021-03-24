@@ -414,6 +414,106 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testFieldAlias description]
+   */
+  public function testFieldAliasWithFilter(): void  {
+    $model = $this->getModel('testdata');
+    $res = $model
+      ->hideAllFields()
+      ->addField('testdata_text', 'aliased_text')
+      ->addFilter('testdata_integer', 3)
+      ->addFilter('aliased_text', 'foo')
+      ->search()->getResult();
+
+    $this->assertCount(1, $res);
+    $this->assertEquals([ 'aliased_text' => 'foo'], $res[0]);
+  }
+
+  /**
+   * [testNormalizeData description]
+   * @return [type] [description]
+   */
+  public function testNormalizeData() {
+    $originalDataset = [
+      'testdata_datetime' => '2021-04-01 11:22:33',
+      'testdata_text'     => 'normalizeTest',
+      'testdata_date'     => '2021-01-01',
+    ];
+
+    $normalizeMe = $originalDataset;
+    $normalizeMe['crapkey'] = 'crap';
+
+    $model = $this->getModel('testdata');
+    $normalized = $model->normalizeData($normalizeMe);
+    $this->assertEquals($originalDataset, $normalized);
+  }
+
+  /**
+   * [testValidate description]
+   * @return [type] [description]
+   */
+  public function testValidateSimple() {
+    $dataset = [
+      'testdata_datetime' => '2021-13-01 11:22:33',
+      'testdata_text'     => [ 'abc' => true ],
+      'testdata_date'     => '0000-01-01',
+    ];
+
+    $model = $this->getModel('testdata');
+    $this->assertFalse($model->isValid($dataset));
+
+    $validationErrors = $model->validate($dataset)->getErrors();
+    $this->assertCount(2, $validationErrors); // actually, we should have 3
+  }
+
+  /**
+   * Test model::entry* wrapper functions
+   * NOTE: they might interfere with regular queries
+   */
+  public function testEntryFunctions(): void {
+    $entryModel = $this->getModel('testdata'); // model used for testing entry* functions
+    $model = $this->getModel('testdata'); // model used for querying
+
+    $dataset = [
+      'testdata_datetime' => '2021-04-01 11:22:33',
+      'testdata_text'     => 'entryMakeTest',
+      'testdata_date'     => '2021-01-01',
+      'testdata_number'   => 12345.6789,
+      'testdata_integer'  => 222,
+    ];
+
+    $entryModel->entryMake($dataset);
+
+    $entryModel->entryValidate(); // TODO: do something with the validation result?
+
+    $entryModel->entrySave();
+    $id = $entryModel->lastInsertId();
+    $entryModel->reset();
+
+    $model->hideAllFields()
+      ->addField('testdata_datetime')
+      ->addField('testdata_text')
+      ->addField('testdata_date')
+      ->addField('testdata_number')
+      ->addField('testdata_integer')
+      ;
+    $queriedDataset = $model->load($id);
+    $this->assertEquals($dataset, $queriedDataset);
+
+    $entryModel->entryLoad($id);
+    $entryModel->entryUpdate([
+      'testdata_text' => 'updated',
+    ]);
+    $entryModel->entrySave();
+
+    $modifiedDataset = $model->load($id);
+    $this->assertEquals('updated', $modifiedDataset['testdata_text']);
+
+    $entryModel->entryDelete();
+    $this->assertEmpty($model->load($id));
+  }
+
+  /**
    * Basic Timemachine functionality
    */
   public function testTimemachineDelta(): void {
