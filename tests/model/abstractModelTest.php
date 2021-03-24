@@ -1,6 +1,10 @@
 <?php
 namespace codename\core\tests\model;
 
+use codename\core\exception;
+
+use codename\core\model\timemachineModelInterface;
+
 use codename\core\tests\base;
 
 /**
@@ -87,6 +91,42 @@ abstract class abstractModelTest extends base {
       ],
       'connection' => 'default'
     ]);
+
+    static::createModel('timemachine', 'timemachine', [
+      'field' => [
+        'timemachine_id',
+        'timemachine_created',
+        'timemachine_modified',
+        'timemachine_model',
+        'timemachine_ref',
+        'timemachine_data',
+        'timemachine_source',
+        'timemachine_user_id',
+      ],
+      'primary' => [
+        'timemachine_id'
+      ],
+      'required' => [
+        'timemachine_model',
+        'timemachine_ref',
+        'timemachine_data',
+      ],
+      'index' => [
+        [ 'timemachine_model', 'timemachine_ref' ],
+      ],
+      'datatype' => [
+        'timemachine_id'        => 'number_natural',
+        'timemachine_created'   => 'text_timestamp',
+        'timemachine_modified'  => 'text_timestamp',
+        'timemachine_model'     => 'text',
+        'timemachine_ref'       => 'number_natural',
+        'timemachine_data'      => 'structure',
+        'timemachine_source'    => 'text',
+        'timemachine_user_id'   => 'number_natural'
+      ],
+      'connection' => 'default'
+    ]);
+
 
     static::architect('modeltest', 'codename', 'test');
 
@@ -371,5 +411,168 @@ abstract class abstractModelTest extends base {
     $res = $testAggregateFilterMonthModel->search()->getResult();
     $this->assertEquals([3, 3, 3], array_column($res, 'entries_month1'));
     $this->assertEquals([3, 3, 3], array_column($res, 'entries_month2'));
+  }
+
+  /**
+   * Basic Timemachine functionality
+   */
+  public function testTimemachineDelta(): void {
+    $testdataTm = $this->getTimemachineEnabledModel('testdata');
+
+    $testdataTm->save([
+      'testdata_id'       => 1,
+      'testdata_integer'  => 888,
+    ]);
+
+    $timemachine = new \codename\core\timemachine($testdataTm);
+    $history = $timemachine->getHistory(1);
+
+    $delta = $timemachine->getDeltaData(1, 0);
+    $this->assertEquals([ 'testdata_integer' => 3], $delta);
+
+    $bigbangState = $timemachine->getHistoricData(1, 0);
+    $this->assertEquals(3, $bigbangState['testdata_integer']);
+
+    // restore via delta
+    $testdataTm->save(array_merge([
+      'testdata_id'       => 1,
+    ], $delta));
+  }
+
+  /**
+   * [getModel description]
+   * @param  string $model [description]
+   * @return \codename\core\model
+   */
+  protected static function getTimemachineEnabledModelStatic(string $model): \codename\core\model {
+    $modelData = static::$models[$model];
+    $instance = new timemachineEnabledSqlModel($modelData['schema'], $modelData['model'], $modelData['config']);
+
+    $tmModelData = static::$models['timemachine'];
+    $tmModel = new timemachineModel($tmModelData['schema'], $tmModelData['model'], $tmModelData['config']);
+    $instance->setTimemachineModelInstance($tmModel);
+
+    $tmSecondaryInstance = new timemachineEnabledSqlModel($modelData['schema'], $modelData['model'], $modelData['config']);
+    $tmSecondaryInstance->setTimemachineModelInstance($tmModel);
+    overrideableTimemachine::storeInstance($tmSecondaryInstance);
+    return $instance;
+  }
+
+  /**
+   * [getModel description]
+   * @param  string               $model [description]
+   * @return \codename\core\model        [description]
+   */
+  protected function getTimemachineEnabledModel(string $model): \codename\core\model {
+    return static::getTimemachineEnabledModelStatic($model);
+  }
+}
+
+/**
+ * Overridden timemachine class
+ * that allows setting an instance directly (and skip app::getModel internally)
+ * - needed for these 'staged' unit tests
+ */
+class overrideableTimemachine extends \codename\core\timemachine {
+  /**
+   * [storeInstance description]
+   * @param  \codename\core\model  $modelInstance [description]
+   * @param  string $app           [description]
+   * @param  string $vendor        [description]
+   * @return [type]                [description]
+   */
+  public static function storeInstance(\codename\core\model $modelInstance, string $app = '', string $vendor = '') {
+    $capableModelName = $modelInstance->getIdentifier();
+    $identifier = $capableModelName.'-'.$vendor.'-'.$app;
+    self::$instances[$identifier] = new self($modelInstance);
+  }
+
+}
+
+class timemachineEnabledSqlModel extends \codename\core\tests\sqlModel
+  implements \codename\core\model\timemachineInterface {
+
+  /**
+   * @inheritDoc
+   */
+  public function isTimemachineEnabled(): bool
+  {
+    return true;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function getTimemachineModel(): \codename\core\model
+  {
+    return $this->timemachineModelInstance; //  new timemachine();
+  }
+
+  protected $timemachineModelInstance = null;
+
+  public function setTimemachineModelInstance(\codename\core\model\timemachineModelInterface $instance) {
+    $this->timemachineModelInstance = $instance;
+  }
+}
+
+class timemachineModel extends \codename\core\tests\sqlModel
+  implements timemachineModelInterface {
+
+  /**
+   * @inheritDoc
+   */
+  public function save(array $data) : \codename\core\model
+  {
+    if($data[$this->getPrimarykey()]) {
+      throw new exception('TIMEMACHINE_UPDATE_DENIED', exception::$ERRORLEVEL_FATAL);
+    } else {
+      $data = array_replace($data, $this->getIdentity());
+      return parent::save($data);
+    }
+  }
+
+  /**
+   * current identity, null if not retrieved yet
+   * @var array|null
+   */
+  protected $identity = null;
+
+  /**
+   * Get identity parameters for injecting
+   * into the timemachine dataset
+   * @return array
+   */
+  protected function getIdentity () : array {
+    if(!$this->identity) {
+      $this->identity = [
+        'timemachine_source' => 'unittest',
+        'timemachine_user_id' => 123,
+      ];
+    }
+    return $this->identity;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function getModelField(): string
+  {
+    return 'timemachine_model';
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function getRefField(): string
+  {
+    return 'timemachine_ref';
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function getDataField(): string
+  {
+    return 'timemachine_data';
   }
 }
