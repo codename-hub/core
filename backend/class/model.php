@@ -470,8 +470,9 @@ abstract class model implements \codename\core\model\modelInterface {
      * [addCollectionModel description]
      * @param \codename\core\model $model      [description]
      * @param string|null          $modelField [description]
+     * @return \codename\core\model
      */
-    public function addCollectionModel(\codename\core\model $model, string $modelField = null) {
+    public function addCollectionModel(\codename\core\model $model, string $modelField = null) : \codename\core\model {
       if($this->config->exists('collection')) {
 
         $collectionConfig = null;
@@ -532,7 +533,12 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
-     * @todo DOCUMENTATION
+     * [addModel description]
+     * @param  \codename\core\model   $model          [description]
+     * @param  string                 $type           [description]
+     * @param  string|null            $modelField     [description]
+     * @param  string|null            $referenceField [description]
+     * @return \codename\core\model                 [description]
      */
     public function addModel(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT, string $modelField = null, string $referenceField = null) : \codename\core\model {
 
