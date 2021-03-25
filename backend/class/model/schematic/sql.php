@@ -2487,6 +2487,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         if ($limit->limit > 0) {
             return " LIMIT " . $limit->limit . " ";
         }
+        return '';
     }
 
     /**
