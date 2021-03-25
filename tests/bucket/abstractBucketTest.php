@@ -83,6 +83,16 @@ abstract class abstractBucketTest extends base {
   }
 
   /**
+   * [testFilePushAlreadyExists description]
+   */
+  public function testFilePushAlreadyExists(): void {
+    $bucket = $this->getBucket();
+    $this->assertTrue($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'pushed_file_existing.ext'));
+    $this->assertFalse($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'pushed_file_existing.ext'));
+    $this->assertTrue($bucket->fileDelete('pushed_file_existing.ext'));
+  }
+
+  /**
    * [testFilePullSuccessful description]
    */
   public function testFilePullSuccessful(): void {
@@ -90,6 +100,17 @@ abstract class abstractBucketTest extends base {
     $pulledPath = sys_get_temp_dir().'/testFilePullSuccessful';
     $this->assertTrue($bucket->filePull('testfile.ext', $pulledPath));
     $this->assertEquals(file_get_contents(__DIR__.'/testdata/testfile.ext'), file_get_contents($pulledPath));
+    $this->assertTrue(unlink($pulledPath));
+  }
+
+  /**
+   * [testFilePullAlreadyExists description]
+   */
+  public function testFilePullAlreadyExists(): void {
+    $bucket = $this->getBucket();
+    $pulledPath = sys_get_temp_dir().'/testFilePullAlreadyExists';
+    $this->assertTrue($bucket->filePull('testfile.ext', $pulledPath));
+    $this->assertFalse($bucket->filePull('testfile.ext', $pulledPath));
     $this->assertTrue(unlink($pulledPath));
   }
 
