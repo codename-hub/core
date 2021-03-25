@@ -37,7 +37,7 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
     public function __construct(array $data) {
         $this->errorstack = new \codename\core\errorstack('BUCKET');
 
-        if(count($errors = app::getValidator('structure_config_bucket_local')->validate($data)) > 0) {
+        if(count($errors = app::getValidator('structure_config_bucket_local')->reset()->validate($data)) > 0) {
             $this->errorstack->addError('CONFIGURATION', 'CONFIGURATION_INVALID', $errors);
             throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONFIGURATIONINVALID, 4, $errors);
         }
