@@ -4,6 +4,9 @@
     <include>
       <directory suffix=".php">backend/class/</directory>
     </include>
+    <report>
+      <html outputDirectory=".phpunit/coverage-html" />
+    </report>
   </coverage>
   <testsuites>
     <testsuite name="All Tests">
