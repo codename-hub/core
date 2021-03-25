@@ -74,7 +74,8 @@ abstract class abstractModelTest extends base {
         'testdata_text',
         'testdata_date',
         'testdata_number',
-        'testdata_integer'
+        'testdata_integer',
+        'testdata_structure',
       ],
       'primary' => [
         'testdata_id'
@@ -87,7 +88,8 @@ abstract class abstractModelTest extends base {
         'testdata_text'     => 'text',
         'testdata_date'     => 'text_date',
         'testdata_number'   => 'number',
-        'testdata_integer'  => 'number_natural'
+        'testdata_integer'  => 'number_natural',
+        'testdata_structure'=> 'structure',
       ],
       'connection' => 'default'
     ]);
@@ -184,9 +186,24 @@ abstract class abstractModelTest extends base {
         'person_firstname',
         'person_lastname',
         'person_birthdate',
+        'person_parent_id',
+        'person_parent',
       ],
       'primary' => [
         'person_id'
+      ],
+      'children' => [
+        'person_parent' => [
+          'type'  => 'foreign',
+          'field' => 'person_parent_id'
+        ],
+      ],
+      'foreign' => [
+        'person_parent_id' => [
+          'schema'  => 'vfields',
+          'model'   => 'person',
+          'key'     => 'person_id'
+        ]
       ],
       'datatype' => [
         'person_id'         => 'number_natural',
@@ -195,6 +212,8 @@ abstract class abstractModelTest extends base {
         'person_firstname'  => 'text',
         'person_lastname'   => 'text',
         'person_birthdate'  => 'text_date',
+        'person_parent_id'  => 'number_natural',
+        'person_parent'     => 'virtual'
       ],
       'connection' => 'default'
     ]);
@@ -253,28 +272,32 @@ abstract class abstractModelTest extends base {
         'testdata_datetime' => '2021-03-22 12:34:56',
         'testdata_date'     => '2021-03-22',
         'testdata_number'   => 3.14,
-        'testdata_integer'  => 3
+        'testdata_integer'  => 3,
+        'testdata_structure'=> [ 'foo' => 'bar' ],
       ],
       [
         'testdata_text'     => 'bar',
         'testdata_datetime' => '2021-03-22 12:34:56',
         'testdata_date'     => '2021-03-22',
         'testdata_number'   => 4.25,
-        'testdata_integer'  => 2
+        'testdata_integer'  => 2,
+        'testdata_structure'=> [ 'foo' => 'baz' ],
       ],
       [
         'testdata_text'     => 'foo',
         'testdata_datetime' => '2021-03-23 23:34:56',
         'testdata_date'     => '2021-03-23',
         'testdata_number'   => 5.36,
-        'testdata_integer'  => 1
+        'testdata_integer'  => 1,
+        'testdata_structure'=> [ 'boo' => 'far' ],
       ],
       [
         'testdata_text'     => 'bar',
         'testdata_datetime' => '2019-01-01 00:00:01',
         'testdata_date'     => '2019-01-01',
         'testdata_number'   => 0.99,
-        'testdata_integer'  => 42
+        'testdata_integer'  => 42,
+        'testdata_structure'=> [ 'bar' => 'foo' ],
       ],
     ];
 
@@ -286,10 +309,13 @@ abstract class abstractModelTest extends base {
   /**
    * [testVirtualFieldSaving description]
    */
-  public function testVirtualFieldSaving(): void {
+  public function testVirtualFieldResultSaving(): void {
 
     $customerModel = $this->getModel('customer')->setVirtualFieldResult(true)
-      ->addModel($personModel = $this->getModel('person'))
+      ->addModel(
+        $personModel = $this->getModel('person')->setVirtualFieldResult(true)
+          ->addModel($parentPersonModel = $this->getModel('person'))
+      )
       ->addCollectionModel($contactentryModel = $this->getModel('contactentry'));
 
     $dataset = [
@@ -298,6 +324,11 @@ abstract class abstractModelTest extends base {
         'person_firstname'  => 'John',
         'person_lastname'   => 'Doe',
         'person_birthdate'  => '1970-01-01',
+        'person_parent' => [
+          'person_firstname'  => 'Maria',
+          'person_lastname'   => 'Ada',
+          'person_birthdate'  => null,
+        ]
       ],
       'customer_contactentries' => [
         [ 'contactentry_name' => 'Phone', 'contactentry_telephone' => '+49123123123' ]
@@ -317,12 +348,62 @@ abstract class abstractModelTest extends base {
     $this->assertEquals('Phone', $dataset['customer_contactentries'][0]['contactentry_name']);
     $this->assertEquals('+49123123123', $dataset['customer_contactentries'][0]['contactentry_telephone']);
 
+    $this->assertEquals('Maria', $dataset['customer_person']['person_parent']['person_firstname']);
+    $this->assertEquals('Ada', $dataset['customer_person']['person_parent']['person_lastname']);
+    $this->assertEquals(null, $dataset['customer_person']['person_parent']['person_birthdate']);
+
     $this->assertNotNull($dataset['customer_id']);
     $this->assertNotNull($dataset['customer_person']['person_id']);
     $this->assertNotNull($dataset['customer_contactentries'][0]['contactentry_id']);
 
     $this->assertEquals($dataset['customer_person_id'], $dataset['customer_person']['person_id']);
     $this->assertEquals($dataset['customer_contactentries'][0]['contactentry_customer_id'], $dataset['customer_id']);
+  }
+
+  /**
+   * test saving (expect a crash) when having two models joined ambiguously
+   * in virtual field result mode
+   */
+  public function testVirtualFieldResultSavingFailedAmbiguousJoins(): void {
+    $customerModel = $this->getModel('customer')->setVirtualFieldResult(true)
+      ->addModel($personModel = $this->getModel('person'))
+      ->addModel($personModel = $this->getModel('person')) // double joined
+      ->addCollectionModel($contactentryModel = $this->getModel('contactentry'));
+
+    $dataset = [
+      'customer_no' => 'K1001',
+      'customer_person' => [
+        'person_firstname'  => 'John',
+        'person_lastname'   => 'Doe',
+        'person_birthdate'  => '1970-01-01',
+      ],
+      'customer_contactentries' => [
+        [ 'contactentry_name' => 'Phone', 'contactentry_telephone' => '+49123123123' ]
+      ]
+    ];
+
+    $this->assertTrue($customerModel->isValid($dataset));
+
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage('EXCEPTION_MODEL_SCHEMATIC_SQL_CHILDREN_AMBIGUOUS_JOINS');
+
+    $customerModel->saveWithChildren($dataset);
+  }
+
+  /**
+   * tests a runtime-based virtual field
+   */
+  public function testVirtualFieldQuery() {
+    $model = $this->getModel('testdata')->setVirtualFieldResult(true);
+    $model->addVirtualField('virtual_field', function($dataset) {
+      return $dataset['testdata_id'];
+    });
+    $res = $model->search()->getResult();
+
+    $this->assertCount(4, $res);
+    foreach($res as $r) {
+      $this->assertEquals($r['testdata_id'], $r['virtual_field']);
+    }
   }
 
   /**
@@ -367,6 +448,48 @@ abstract class abstractModelTest extends base {
     $res = $testLimitModel->search()->getResult();
     $this->assertCount(1, $res);
     $this->assertEquals(2,$res[0]['testdata_id']);
+  }
+
+  /**
+   * Tests setting limit & offset twice (reset)
+   * as only ONE limit and offset is allowed at a time
+   */
+  public function testLimitOffsetReset(): void {
+    $model = $this->getModel('testdata');
+    $model->addOrder('testdata_id', 'ASC');
+    $model->setLimit(1);
+    $model->setOffset(1);
+    $model->setLimit(0);
+    $model->setOffset(0);
+    $res = $model->search()->getResult();
+    $this->assertCount(4, $res);
+  }
+
+  /**
+   * Tests updating a structure field (simple)
+   */
+  public function testStructureData(): void {
+    $model = $this->getModel('testdata');
+    $testdata = $model->load(1);
+    $model->save([
+      $model->getPrimarykey() => $testdata[$model->getPrimarykey()],
+      'testdata_structure'    => [ 'changed' => true ],
+    ]);
+    $updated = $model->load(1);
+    $this->assertEquals([ 'changed' => true ], $updated['testdata_structure']);
+    $model->save($testdata);
+    $restored = $model->load(1);
+    $this->assertEquals($testdata['testdata_structure'], $restored['testdata_structure']);
+  }
+
+  /**
+   * tests model::getCount() when having a grouped query
+   * should return the final count of results
+   */
+  public function testGroupedGetCount(): void {
+    $model = $this->getModel('testdata');
+    $model->addGroup('testdata_text');
+    $this->assertEquals(2, $model->getCount());
   }
 
   /**
