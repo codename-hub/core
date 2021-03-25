@@ -6,15 +6,6 @@ use codename\core\tests\bucket\abstractBucketTest;
 class localTest extends abstractBucketTest {
 
   /**
-   * @inheritDoc
-   */
-  public static function setUpBeforeClass(): void
-  {
-    parent::setUpBeforeClass();
-    static::$localTmpDir = sys_get_temp_dir() . '/bucket-local-test-'.time().'/';
-  }
-
-  /**
    * Suffix to be used for local test bucket
    * @var string
    */
@@ -23,20 +14,10 @@ class localTest extends abstractBucketTest {
   /**
    * @inheritDoc
    */
-  public function getBucket(?array $config = null): \codename\core\bucket
+  public static function setUpBeforeClass(): void
   {
-    $config = $config ?? [
-      // Default config
-      'basedir' => static::$localTmpDir,
-      'public'  => false,
-    ];
-
-    // create the local temp folder, if it doesn't exist yet.
-    if(!is_dir($config['basedir'])) {
-      mkdir($config['basedir'], 0777, true);
-    }
-
-    return new \codename\core\bucket\local($config);
+    parent::setUpBeforeClass();
+    static::$localTmpDir = sys_get_temp_dir() . '/bucket-local-test-'.time().'/';
   }
 
   /**
@@ -56,5 +37,31 @@ class localTest extends abstractBucketTest {
     }
     rmdir(static::$localTmpDir);
   }
+
+  /**
+   * @inheritDoc
+   */
+  public function getBucket(?array $config = null): \codename\core\bucket
+  {
+    // print_r([ 'getBucket' => $config ]);
+    if($config === null) {
+      //
+      // Default test bucket
+      //
+      $config = [
+        // Default config
+        'basedir' => static::$localTmpDir,
+        'public'  => false,
+      ];
+
+      // create the local temp folder, if it doesn't exist yet.
+      if(!is_dir($config['basedir'])) {
+        mkdir($config['basedir'], 0777, true);
+      }
+    }
+
+    return new \codename\core\bucket\local($config);
+  }
+
 
 }

@@ -48,6 +48,15 @@ abstract class abstractBucketTest extends base {
   public abstract function getBucket(?array $config = null): \codename\core\bucket;
 
   /**
+  * [testInvalidEmptyConfiguration description]
+  */
+  public function testInvalidEmptyConfiguration(): void {
+    $this->expectException(\codename\core\exception::class);
+    // Simply pass an empty configuration array
+    $bucket = $this->getBucket([]);
+  }
+
+  /**
    * [testFileAvailableFalse description]
    */
   public function testFileAvailableFalse(): void {
