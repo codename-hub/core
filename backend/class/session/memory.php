@@ -20,7 +20,7 @@ class memory extends \codename\core\session implements \codename\core\session\se
     public function __construct(array $data = array())
     {
       parent::__construct($data);
-      $this->datacontainer = new \codename\core\datacontainer($data);
+      $this->datacontainer = new \codename\core\datacontainer([]);
     }
     /**
      *
@@ -38,7 +38,7 @@ class memory extends \codename\core\session implements \codename\core\session\se
      * @see \codename\core\session_interface::destroy()
      */
     public function destroy() {
-      $this->datacontainer = null;
+      $this->datacontainer = new \codename\core\datacontainer();
         return;
     }
 

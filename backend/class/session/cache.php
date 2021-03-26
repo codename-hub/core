@@ -11,37 +11,40 @@ use \codename\core\app;
 class cache extends \codename\core\session {
 
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \codename\core\session_interface::start($data)
      */
     public function __construct(array $data) {
         return $this;
     }
-    
+
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \codename\core\session\sessionInterface::start()
      */
     public function start(array $data) : \codename\core\session {
-        app::getCache()->set("SESSION", $this->getCachegroup(), $data);
+        app::getCache()->set($this->getCacheGroup(), $this->getCacheKey(), $data);
         return $this;
     }
-    
+
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \codename\core\session\sessionInterface::destroy()
      */
     public function destroy() {
-        app::getCache()->clearKey($this->getCachegroup(), "SESSION");
+        app::getCache()->clearKey($this->getCacheGroup(), $this->getCacheKey());
+        // reset internal data array
+        // to be rebuild on next call
+        $this->data = null;
         return;
     }
-    
+
     private function makeData() {
         if(is_null($this->data) || count($this->data) == 0) {
-            $this->data = app::getCache()->get("SESSION", $this->getCachegroup());
+            $this->data = app::getCache()->get($this->getCacheGroup(), $this->getCacheKey());
         }
         return $this->data;
     }
@@ -54,7 +57,7 @@ class cache extends \codename\core\session {
      */
     public function getData(string $key = '') {
         $this->makeData();
-        
+
         if(strlen($key) == 0) {
             return $this->data;
         }
@@ -76,14 +79,14 @@ class cache extends \codename\core\session {
 
         return $myConfig;
     }
-    
+
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \codename\core\session::setData()
      */
     public function setData(string $key, $value) {
-        $data = app::getCache()->get($this->getCachegroup(), "SESSION");
+        $data = app::getCache()->get($this->getCacheGroup(), $this->getCacheKey());
         if(!is_array($data)) {
             return null;
         }
@@ -94,23 +97,26 @@ class cache extends \codename\core\session {
             return null;
         }
         $data[$key] = $value;
-        app::getCache()->set($this->getCachegroup(), "SESSION", $data);
+        app::getCache()->set($this->getCacheGroup(), $this->getCacheKey(), $data);
+        // reset internal data array
+        // to be rebuild on next call
+        $this->data = null;
         return;
     }
-    
+
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \codename\core\session::isDefined()
      */
     public function isDefined(string $key) : bool {
-        $data = app::getCache()->get($this->getCachegroup(), "SESSION");
+        $data = app::getCache()->get($this->getCacheGroup(), $this->getCacheKey());
         if(!is_array($data)) {
             return false;
         }
         return array_key_exists($key, $data);
     }
-    
+
     /**
      * @todo DOCUMENTATION
      */
@@ -119,14 +125,23 @@ class cache extends \codename\core\session {
         $this->data = $data;
         return (is_array($data) && count($data) != 0);
     }
-    
+
     /**
-     * Returns the cache group for sessions.
-     * <br />Contains the application name
+     * Returns the cache key for sessions.
+     * Contains the application name and some kind of session identifier
+     * (e.g. cookie value)
      * @return string
      */
-    protected function getCachegroup() : string{
+    protected function getCacheKey() : string{
         return "SESSION_" . app::getApp() . "_" . $_COOKIE['PHPSESSID'];
+    }
+
+    /**
+     * Returns the cache group name for sessions (e.g. a prefix)
+     * @return string [description]
+     */
+    protected function getCacheGroup(): string {
+      return 'SESSION';
     }
 
     /**
