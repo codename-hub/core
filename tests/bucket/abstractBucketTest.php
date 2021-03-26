@@ -158,4 +158,58 @@ abstract class abstractBucketTest extends base {
     $this->assertFalse($bucket->fileMove('non-existant.ext', 'non-existant2.ext'));
   }
 
+  /**
+   * [testDirListSuccessful description]
+   */
+  public function testDirListSuccessful(): void {
+    $bucket = $this->getBucket();
+
+    $this->assertTrue($bucket->dirAvailable(''));
+    $res = $bucket->dirList('');
+
+    $this->assertCount(2, $res);
+
+    foreach($res as $r) {
+      if($r == 'subdir') {
+        $this->assertFalse($bucket->isFile($r));
+      } else if($r == 'testfile.ext') {
+        $this->assertTrue($bucket->isFile($r));
+      } else {
+        $this->addWarning('Unexpected extra file: ' . $r);
+      }
+    }
+  }
+
+  /**
+   * [testDirListNestedSuccessful description]
+   */
+  public function testDirListNestedSuccessful(): void {
+    $bucket = $this->getBucket();
+
+    // first, place a file in the subdir
+    $this->assertTrue($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'subdir/testDirListNestedSuccessful'));
+
+    $this->assertTrue($bucket->dirAvailable('subdir'));
+    $res = $bucket->dirList('subdir');
+
+    $this->assertCount(1, $res);
+    $this->assertEquals('subdir/testDirListNestedSuccessful', $res[0]);
+
+    // delete the test file afterwards
+    $this->assertTrue($bucket->fileDelete('subdir/testDirListNestedSuccessful'));
+  }
+
+
+
+  /**
+   * [testDirListNonexisting description]
+   */
+  public function testDirListNonexisting(): void {
+    $bucket = $this->getBucket();
+    $this->assertFalse($bucket->dirAvailable('nonexisting'));
+    $res = $bucket->dirList('nonexisting');
+    $this->assertEmpty($res);
+
+  }
+
 }
