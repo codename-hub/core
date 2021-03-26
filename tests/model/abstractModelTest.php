@@ -75,6 +75,7 @@ abstract class abstractModelTest extends base {
         'testdata_date',
         'testdata_number',
         'testdata_integer',
+        'testdata_boolean',
         'testdata_structure',
       ],
       'primary' => [
@@ -89,6 +90,7 @@ abstract class abstractModelTest extends base {
         'testdata_date'     => 'text_date',
         'testdata_number'   => 'number',
         'testdata_integer'  => 'number_natural',
+        'testdata_boolean'  => 'boolean',
         'testdata_structure'=> 'structure',
       ],
       'connection' => 'default'
@@ -274,6 +276,7 @@ abstract class abstractModelTest extends base {
         'testdata_number'   => 3.14,
         'testdata_integer'  => 3,
         'testdata_structure'=> [ 'foo' => 'bar' ],
+        'testdata_boolean'  => true,
       ],
       [
         'testdata_text'     => 'bar',
@@ -282,6 +285,7 @@ abstract class abstractModelTest extends base {
         'testdata_number'   => 4.25,
         'testdata_integer'  => 2,
         'testdata_structure'=> [ 'foo' => 'baz' ],
+        'testdata_boolean'  => true,
       ],
       [
         'testdata_text'     => 'foo',
@@ -290,6 +294,7 @@ abstract class abstractModelTest extends base {
         'testdata_number'   => 5.36,
         'testdata_integer'  => 1,
         'testdata_structure'=> [ 'boo' => 'far' ],
+        'testdata_boolean'  => false,
       ],
       [
         'testdata_text'     => 'bar',
@@ -298,12 +303,84 @@ abstract class abstractModelTest extends base {
         'testdata_number'   => 0.99,
         'testdata_integer'  => 42,
         'testdata_structure'=> [ 'bar' => 'foo' ],
+        'testdata_boolean'  => false,
       ],
     ];
 
     foreach($entries as $dataset) {
       $testdataModel->save($dataset);
     }
+  }
+
+  /**
+   * [testSetConfigExplicitConnectionValid description]
+   */
+  public function testSetConfigExplicitConnectionValid(): void {
+    $model = $this->getModel('testdata');
+    $model->setConfig('default', 'testschema', 'testdata');
+    $dataset = $model->load(1);
+    $this->assertEquals(1, $dataset['testdata_id']);
+  }
+
+  /**
+   * [testSetConfigExplicitConnectionInvalid description]
+   */
+  public function testSetConfigExplicitConnectionInvalid(): void {
+    $this->expectException(\codename\core\exception::class);
+    // TODO: right now we expect EXCEPTION_GETDATA_REQUESTEDKEYINTYPENOTFOUND message
+    // but this might change soon
+    $model = $this->getModel('testdata');
+    $model->setConfig('nonexisting_connection', 'testschema', 'testdata');
+  }
+
+  /**
+   * [testSetConfigInvalidValues description]
+   */
+  public function testSetConfigInvalidValues(): void {
+    $this->expectException(\codename\core\exception::class);
+    // TODO: specify the exception message
+    $model = $this->getModel('testdata');
+    $model->setConfig('default', 'nonexisting_schema', 'nonexisting_model');
+  }
+
+  /**
+   * [testModelconfigInvalidWithoutCreatedAndModifiedField description]
+   */
+  public function testModelconfigInvalidWithoutCreatedAndModifiedField(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage(\codename\core\model\schematic\sql::EXCEPTION_MODEL_CONFIG_MISSING_FIELD);
+    new \codename\core\tests\sqlModel('nonexisting', 'without_created_and_modified', [
+      'field' => [
+        'without_created_and_modified_id',
+      ],
+      'primary' => [
+        'without_created_and_modified_id'
+      ],
+      'datatype' => [
+        'without_created_and_modified_id' => 'number_natural',
+      ]
+    ]);
+  }
+
+  /**
+   * [testModelconfigInvalidWithoutModifiedField description]
+   */
+  public function testModelconfigInvalidWithoutModifiedField(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage(\codename\core\model\schematic\sql::EXCEPTION_MODEL_CONFIG_MISSING_FIELD);
+    new \codename\core\tests\sqlModel('nonexisting', 'without_modified', [
+      'field' => [
+        'without_modified_id',
+        'without_modified_created',
+      ],
+      'primary' => [
+        'without_modified_id'
+      ],
+      'datatype' => [
+        'without_modified_id' => 'number_natural',
+        'without_modified_created' => 'text_timestamp',
+      ]
+    ]);
   }
 
   /**
@@ -361,6 +438,55 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testVirtualFieldResultCollectionHandling description]
+   */
+  public function testVirtualFieldResultCollectionHandling(): void {
+    $customerModel = $this->getModel('customer')->setVirtualFieldResult(true)
+      ->addCollectionModel($contactentryModel = $this->getModel('contactentry'));
+
+    $dataset = [
+      'customer_no' => 'K1002',
+      'customer_contactentries' => [
+        [ 'contactentry_name' => 'Entry1', 'contactentry_telephone' => '+49123123123' ],
+        [ 'contactentry_name' => 'Entry2', 'contactentry_telephone' => '+49234234234' ],
+        [ 'contactentry_name' => 'Entry3', 'contactentry_telephone' => '+49345345345' ],
+      ]
+    ];
+
+    $customerModel->saveWithChildren($dataset);
+    $id = $customerModel->lastInsertId();
+
+    $customer = $customerModel->load($id);
+    $this->assertCount(3, $customer['customer_contactentries']);
+
+    // delete the middle contactentry
+    unset($customer['customer_contactentries'][1]);
+
+    // store PKEYs of other entries
+    $contactentryIds = array_column($customer['customer_contactentries'], 'contactentry_id');
+    $customerModel->saveWithChildren($customer);
+
+    $customerModified = $customerModel->load($id);
+    $this->assertCount(2, $customerModified['customer_contactentries']);
+
+    $contactentryIdsVerify = array_column($customerModified['customer_contactentries'], 'contactentry_id');
+
+    // assert the IDs haven't changed
+    $this->assertEquals($contactentryIds, $contactentryIdsVerify);
+
+    // assert nothing happens if a null value is provided or being unset
+    $customerUnsetCollection = $customerModified;
+    unset($customerUnsetCollection['customer_contactentries']);
+    $customerModel->saveWithChildren($customerUnsetCollection);
+    $this->assertEquals($customerModified['customer_contactentries'], $customerModel->load($id)['customer_contactentries']);
+
+    $customerNullCollection = $customerModified;
+    $customerNullCollection['customer_contactentries'] = null;
+    $customerModel->saveWithChildren($customerNullCollection);
+    $this->assertEquals($customerModified['customer_contactentries'], $customerModel->load($id)['customer_contactentries']);
+  }
+
+  /**
    * test saving (expect a crash) when having two models joined ambiguously
    * in virtual field result mode
    */
@@ -404,6 +530,35 @@ abstract class abstractModelTest extends base {
     foreach($res as $r) {
       $this->assertEquals($r['testdata_id'], $r['virtual_field']);
     }
+  }
+
+  /**
+   * [testInvalidFilterOperator description]
+   */
+  public function testInvalidFilterOperator(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage('EXCEPTION_INVALID_OPERATOR');
+    $model = $this->getModel('testdata');
+    $model->addFilter('testdata_integer', 42, '%&/');
+  }
+
+  /**
+   * [testLikeFilters description]
+   */
+  public function testLikeFilters(): void {
+    $model = $this->getModel('testdata');
+
+    // NOTE: this is case sensitive on PG
+    $res = $model
+      ->addFilter('testdata_text', 'F%', 'LIKE')
+      ->search()->getResult();
+    $this->assertCount(2, $res);
+
+    // NOTE: this is case sensitive on PG
+    $res = $model
+      ->addFilter('testdata_text', 'f%', 'ILIKE')
+      ->search()->getResult();
+    $this->assertCount(2, $res);
   }
 
   /**
