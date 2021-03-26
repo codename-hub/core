@@ -27,6 +27,15 @@ abstract class abstractModelTest extends base {
   /**
    * @inheritDoc
    */
+  public static function tearDownAfterClass(): void
+  {
+    parent::tearDownAfterClass();
+    static::$initialized = false;
+  }
+
+  /**
+   * @inheritDoc
+   */
   protected function setUp(): void
   {
     $app = static::createApp();
@@ -138,6 +147,11 @@ abstract class abstractModelTest extends base {
           'key'     => 'person_id'
         ]
       ],
+      'options' => [
+        'customer_no' => [
+          'length' => 16
+        ]
+      ],
       'datatype' => [
         'customer_id'             => 'number_natural',
         'customer_created'        => 'text_timestamp',
@@ -241,6 +255,17 @@ abstract class abstractModelTest extends base {
       ],
       'index' => [
         [ 'timemachine_model', 'timemachine_ref' ],
+      ],
+      'options' => [
+        'timemachine_model' => [
+          'length' => 64,
+        ],
+        'timemachine_ref' => [
+          'db_column_type' => 'bigint',
+        ],
+        'timemachine_data' => [
+          'db_column_type' => 'longtext',
+        ],
       ],
       'datatype' => [
         'timemachine_id'        => 'number_natural',

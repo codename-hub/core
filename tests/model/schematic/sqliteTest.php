@@ -16,6 +16,13 @@ class sqliteTest extends abstractModelTest {
   }
 
   /**
+   * [testInstanceClass description]
+   */
+  public function testInstanceClass(): void {
+    $this->assertInstanceOf(\codename\core\database\sqlite::class, \codename\core\app::getDb());
+  }
+
+  /**
    * @inheritDoc
    */
   public function testAggregateDatetimeQuarter(): void
