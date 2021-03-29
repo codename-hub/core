@@ -34,9 +34,9 @@ class sqlite extends \codename\core\model\plugin\aggregate implements \codename\
       case 'year':
         $sql = 'CAST(strftime(\'%Y\','.$tableAlias.$this->fieldBase->get().') as integer)';
         break;
-      // case 'quarter':
-      //   $sql = 'QUARTER('.$tableAlias.$this->fieldBase->get().')';
-      //   break;
+      case 'quarter':
+        $sql = '(CAST(strftime(\'%m\','.$tableAlias.$this->fieldBase->get().') as integer) + 2) / 3';
+        break;
       case 'month':
         $sql = 'CAST(strftime(\'%m\','.$tableAlias.$this->fieldBase->get().') as integer)';
         break;

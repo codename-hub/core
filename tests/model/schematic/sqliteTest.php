@@ -22,14 +22,4 @@ class sqliteTest extends abstractModelTest {
     $this->assertInstanceOf(\codename\core\database\sqlite::class, \codename\core\app::getDb());
   }
 
-  /**
-   * @inheritDoc
-   */
-  public function testAggregateDatetimeQuarter(): void
-  {
-    $this->addWarning('SQLite doesn\'t support QUARTER');
-    $this->expectException(\codename\core\exception::class);
-    $this->expectExceptionMessage('EXCEPTION_MODEL_PLUGIN_CALCULATION_SQLITE_UNKKNOWN_CALCULATION_TYPE');
-    parent::testAggregateDatetimeQuarter();
-  }
 }
