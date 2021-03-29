@@ -90,6 +90,12 @@ abstract class abstractModelTest extends base {
       'primary' => [
         'testdata_id'
       ],
+      'options' => [
+        'testdata_number' => [
+          'length'    => 16,
+          'precision' => 8
+        ]
+      ],
       'datatype' => [
         'testdata_id'       => 'number_natural',
         'testdata_created'  => 'text_timestamp',
@@ -799,7 +805,7 @@ abstract class abstractModelTest extends base {
     //
     $testQuarterModel = $this->getModel('testdata');
     $testQuarterModel->addAggregateField('entries_quarter1', 'quarter', 'testdata_datetime');
-    $testQuarterModel->addAggregateField('entries_quarter2', 'year', 'testdata_date');
+    $testQuarterModel->addAggregateField('entries_quarter2', 'quarter', 'testdata_date');
     $testQuarterModel->addOrder('testdata_id', 'ASC');
     $res = $testQuarterModel->search()->getResult();
     $this->assertEquals([1, 1, 1, 1], array_column($res, 'entries_quarter1'));
@@ -869,12 +875,20 @@ abstract class abstractModelTest extends base {
    * [testFieldAlias description]
    */
   public function testFieldAliasWithFilter(): void  {
+    $this->markTestIncomplete('Aliased filter implementation on differing platforms is still unclear');
     $model = $this->getModel('testdata');
+
+    //
+    // NOTE/WARNING:
+    // - on MySQL you can do a HAVING clause without GROUP BY, but not filter for an aliased column in WHERE
+    // - on SQLite you CANNOT have a HAVING clause without GROUP BY, but you can filter for an aliased column in WHERE
+    //
     $res = $model
       ->hideAllFields()
       ->addField('testdata_text', 'aliased_text')
       ->addFilter('testdata_integer', 3)
-      ->addFilter('aliased_text', 'foo')
+      // ->addFilter('aliased_text', 'foo')
+      ->addAggregateFilter('aliased_text', 'foo')
       ->search()->getResult();
 
     $this->assertCount(1, $res);
