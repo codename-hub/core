@@ -35,7 +35,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      */
     protected function getModelconfigCacheKey(): string {
       if($this->schema && $this->table) {
-        return $this->schema.'_'.$this->table;
+        return get_class($this).'-'.$this->schema.'_'.$this->table;
       } else {
         throw new exception('EXCEPTION_MODELCONFIG_CACHE_KEY_MISSING_DATA', exception::$ERRORLEVEL_FATAL);
       }
