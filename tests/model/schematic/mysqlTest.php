@@ -1,6 +1,8 @@
 <?php
 namespace codename\core\tests\model\schematic;
 
+use codename\core\app;
+
 use codename\core\tests\model\abstractModelTest;
 
 class mysqlTest extends abstractModelTest {
@@ -36,6 +38,19 @@ class mysqlTest extends abstractModelTest {
     } else {
       static::markTestSkipped('Mysql host unavailable');
     }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public static function tearDownAfterClass(): void
+  {
+    // shutdown the mysql server
+    // At this point, we assume the DB data is stored on a volatile medium
+    // to implicitly clear all data after shutdown
+    app::getDb('default')->query('SHUTDOWN');
+
+    parent::tearDownAfterClass();
   }
 
   /**
