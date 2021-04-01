@@ -29,7 +29,10 @@ abstract class abstractBucketTest extends base {
     ]);
 
     // init test files
-    $this->getBucket()->filePush(__DIR__.'/testdata/testfile.ext', 'testfile.ext');
+    $bucket = $this->getBucket();
+    if(!$bucket->filePush(__DIR__.'/testdata/testfile.ext', 'testfile.ext')) {
+      $this->addWarning('Initial test setup failed');
+    }
   }
 
   /**
@@ -151,6 +154,22 @@ abstract class abstractBucketTest extends base {
   }
 
   /**
+   * [testFileAvailableOnDir description]
+   */
+  public function testFileAvailableOnDir(): void {
+    $bucket = $this->getBucket();
+    // push a file first to create the dir implicitly
+    $this->assertTrue($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'some-dir/file.ext'));
+
+    // test for fileAvailable on the directory
+    // should return false
+    $this->assertFalse($bucket->fileAvailable('some-dir'));
+
+    // delete it afterwards
+    $this->assertTrue($bucket->fileDelete('some-dir/file.ext'));
+  }
+
+  /**
    * Tests try to move a nonexistant file
    */
   public function testFileMoveFailed(): void {
@@ -167,7 +186,9 @@ abstract class abstractBucketTest extends base {
     $this->assertTrue($bucket->dirAvailable(''));
     $res = $bucket->dirList('');
 
-    $this->assertCount(2, $res);
+    // We expect at least one file
+    // 'subdir' might be unavailable, if a another test failed
+    $this->assertGreaterThanOrEqual(1, count($res));
 
     foreach($res as $r) {
       if($r == 'subdir') {
@@ -175,7 +196,7 @@ abstract class abstractBucketTest extends base {
       } else if($r == 'testfile.ext') {
         $this->assertTrue($bucket->isFile($r));
       } else {
-        $this->addWarning('Unexpected extra file: ' . $r);
+        // $this->addWarning('Unexpected extra file/dir: ' . $r);
       }
     }
   }
@@ -199,6 +220,14 @@ abstract class abstractBucketTest extends base {
     $this->assertTrue($bucket->fileDelete('subdir/testDirListNestedSuccessful'));
   }
 
+  /**
+   * [testDirAvailableOnFile description]
+   */
+  public function testDirAvailableOnFile(): void {
+    $bucket = $this->getBucket();
+    $this->assertFalse($bucket->dirAvailable('testfile.ext'));
+
+  }
 
 
   /**
