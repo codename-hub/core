@@ -31,9 +31,9 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
     public function __construct(array $data) {
         parent::__construct($data);
 
-        if(count($errors = app::getValidator('structure_config_bucket_ftp')->validate($data)) > 0) {
+        if(count($errors = app::getValidator('structure_config_bucket_ftp')->reset()->validate($data)) > 0) {
             $this->errorstack->addError('CONFIGURATION', 'CONFIGURATION_INVALID', $errors);
-            return $this;
+            throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONFIGURATIONINVALID, \codename\core\exception::$ERRORLEVEL_ERROR, $errors);
         }
 
         $this->basedir = $data['basedir'];
@@ -97,15 +97,17 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
     public function filePush(string $localfile, string $remotefile) : bool {
         if(!app::getFilesystem()->fileAvailable($localfile)) {
             $this->errorstack->addError('FILE', 'LOCAL_FILE_NOT_FOUND', $localfile);
+            return false;
         }
 
         if($this->fileAvailable($remotefile)) {
-            $this->fileDelete($remotefile);
+            $this->errorstack->addError('FILE', 'REMOTE_FILE_EXISTS', $remotefile);
+            return false;
         }
 
         $directory = $this->extractDirectory($remotefile);
 
-        if(!$this->dirAvailable($directory)) {
+        if($directory != '' && !$this->dirAvailable($directory)) {
             $this->dirCreate($directory);
         }
 
@@ -126,10 +128,12 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
     public function filePull(string $remotefile, string $localfile) : bool {
         if(app::getFilesystem()->fileAvailable($localfile)) {
             $this->errorstack->addError('FILE', 'LOCAL_FILE_EXISTS', $localfile);
+            return false;
         }
 
         if(!$this->fileAvailable($remotefile)) {
             $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
+            return false;
         }
 
         @ftp_get($this->connection, $localfile, $this->basedir . $remotefile, FTP_BINARY);
@@ -143,11 +147,25 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
      * @see \codename\core\bucket_interface::dirAvailable($directory)
      */
     public function dirAvailable(string $directory) : bool {
-        $list = $this->getDirlist($directory);
-        if(is_bool($list) && !$list) {
-            return false;
-        }
+      return static::ftp_isdir($this->connection, $directory);
+    }
+
+    /**
+     * [ftp_isdir description]
+     * @param  [type] $conn_id [description]
+     * @param  [type] $dir     [description]
+     * @return [type]          [description]
+     */
+    protected static function ftp_isdir($conn_id,$dir)
+    {
+      // Try to change the directory
+      // and automatically go up, if it worked
+      if(@ftp_chdir($conn_id,$dir)) {
+        ftp_cdup($conn_id);
         return true;
+      } else {
+        return false;
+      }
     }
 
     /**
@@ -167,8 +185,10 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
             return $myList;
         }
 
+        $prefix = $directory != '' ? $directory.'/' : '';
         foreach($list as $element) {
-            $myList[] = str_replace('/', '', str_replace(str_replace('//', '/', $this->basedir . $directory), '', $element));
+          $myList[] = $prefix.$element;
+            // $myList[] = str_replace('/', '', str_replace(str_replace('//', '/', $this->basedir), '', $directory.'/'.$element));
 
         }
         return $myList;
@@ -180,15 +200,13 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
      * @see \codename\core\bucket_interface::fileAvailable($remotefile)
      */
     public function fileAvailable(string $remotefile) : bool {
-        $filenamedata = explode('/', $remotefile);
-        $filename = $filenamedata[count($filenamedata) - 1];
-        unset($filenamedata[count($filenamedata) - 1]);
-        $directory = implode('/', $filenamedata);
-        $dirlist = $this->dirList($directory);
-        if(in_array($filename, $dirlist)) {
-            return true;
-        }
-        return false;
+        //
+        // Neat trick to check for existance - simply use ftp_size
+        // which returns -1 for a nonexisting file
+        // NOTE: directories will also return -1
+        //
+
+        return @ftp_size($this->connection, $this->basedir . $remotefile) !== -1;
     }
 
     /**
@@ -215,7 +233,7 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
     {
       if(!$this->fileAvailable($remotefile)) {
           $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
-          return true;
+          return false;
       }
 
       // check for existance of the new file
@@ -224,6 +242,10 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
           return false;
       }
 
+      $directory = $this->extractDirectory($newremotefile);
+      if($directory !== '' && !$this->dirAvailable($directory)) {
+          $this->dirCreate($directory);
+      }
       @ftp_rename($this->connection, $this->basedir . $remotefile, $this->basedir . $newremotefile);
 
       return $this->fileAvailable($newremotefile);
@@ -306,9 +328,12 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
      * @return string
      */
     protected function extractDirectory(string $filename) : string {
-        $filenamedata = explode('/', $filename);
-        unset($filenamedata[count($filenamedata) - 1]);
-        return implode('/', $filenamedata);
+        $directory = pathinfo($filename, PATHINFO_DIRNAME);
+        if($directory == '.') {
+          return '';
+        } else {
+          return $directory;
+        }
     }
 
     /**

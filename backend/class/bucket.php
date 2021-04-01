@@ -9,6 +9,13 @@ namespace codename\core;
 abstract class bucket implements \codename\core\bucket\bucketInterface {
 
     /**
+     * The given config cannot be validated agains structure_config_bucket_local.
+     * <br />See the validator for more info
+     * @var string
+     */
+    const EXCEPTION_CONSTRUCT_CONFIGURATIONINVALID = 'EXCEPTION_CONSTRUCT_CONFIGURATIONINVALID';
+
+    /**
      * Contains the base directory where all files in this bucket will be stored
      * @var string $basedir
      */
