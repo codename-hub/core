@@ -18,6 +18,12 @@ abstract class abstractBucketTest extends base {
           ]
         ],
         'log' => [
+          'errormessage' => [
+            'driver' => 'system',
+            'data' => [
+              'name' => 'dummy'
+            ]
+          ],
           'debug' => [
             'driver' => 'system',
             'data' => [
