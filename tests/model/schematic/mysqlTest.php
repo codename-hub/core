@@ -48,7 +48,13 @@ class mysqlTest extends abstractModelTest {
     // shutdown the mysql server
     // At this point, we assume the DB data is stored on a volatile medium
     // to implicitly clear all data after shutdown
-    app::getDb('default')->query('SHUTDOWN');
+
+    // NOTE/WARNING: shutdown on the DB Server
+    // will crash PDO connections that try to close themselves
+    // after testing - STMT_CLOSE will fail due to passed-away DB
+    // in a more or less random fashion.
+    // As long as you use volatile containers, everything will be fine.
+    // app::getDb('default')->query('SHUTDOWN;');
 
     parent::tearDownAfterClass();
   }
