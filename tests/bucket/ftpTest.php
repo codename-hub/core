@@ -24,6 +24,7 @@ class ftpTest extends abstractBucketTest {
           'user' => 'unittest-ftp-user',
           'pass' => 'unittest-ftp-pass',
           // 'passive_mode' => true,
+          // 'ignore_passive_address' => true,
         ]
         // 'public'  => false,
       ];
