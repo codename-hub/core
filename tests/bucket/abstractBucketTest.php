@@ -178,9 +178,35 @@ abstract class abstractBucketTest extends base {
   /**
    * Tests try to move a nonexistant file
    */
-  public function testFileMoveFailed(): void {
+  public function testFileMoveNonexistantFailed(): void {
     $bucket = $this->getBucket();
     $this->assertFalse($bucket->fileMove('non-existant.ext', 'non-existant2.ext'));
+  }
+
+  /**
+   * [testFileMoveAlreadyExistsFailed description]
+   */
+  public function testFileMoveAlreadyExistsFailed(): void {
+    $bucket = $this->getBucket();
+    $this->assertTrue($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'filemove_already_exists_test.ext'));
+    $this->assertTrue($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'testfile_moveme.ext'));
+    // try moving (renaming) to a location that already exists
+    $this->assertFalse($bucket->fileMove('testfile_moveme.ext', 'filemove_already_exists_test.ext'));
+    $this->assertTrue($bucket->fileDelete('filemove_already_exists_test.ext'));
+    $this->assertTrue($bucket->fileDelete('testfile_moveme.ext'));
+  }
+
+  /**
+   * [testFileMoveAlreadyExistsNestedFailed description]
+   */
+  public function testFileMoveAlreadyExistsNestedFailed(): void {
+    $bucket = $this->getBucket();
+    $this->assertTrue($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'nested/filemove_already_exists_nested_test.ext'));
+    $this->assertTrue($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'nested2/testfile_nested_moveme.ext'));
+    // try moving (renaming) to a location that already exists
+    $this->assertFalse($bucket->fileMove('nested2/testfile_nested_moveme.ext', 'nested/filemove_already_exists_nested_test.ext'));
+    $this->assertTrue($bucket->fileDelete('nested/filemove_already_exists_nested_test.ext'));
+    $this->assertTrue($bucket->fileDelete('nested2/testfile_nested_moveme.ext'));
   }
 
   /**
