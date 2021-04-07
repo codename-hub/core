@@ -9,10 +9,22 @@
     </report>
   </coverage>
   <testsuites>
-    <testsuite name="All Tests">
+    <testsuite name="all">
       <directory suffix=".php">tests</directory>
     </testsuite>
-    <testsuite name="All validators">
+    <testsuite name="bucket">
+      <directory suffix=".php">tests/bucket</directory>
+    </testsuite>
+    <testsuite name="cache">
+      <directory suffix=".php">tests/cache</directory>
+    </testsuite>
+    <testsuite name="model">
+      <directory suffix=".php">tests/model</directory>
+    </testsuite>
+    <testsuite name="session">
+      <directory suffix=".php">tests/session</directory>
+    </testsuite>
+    <testsuite name="validator">
       <directory suffix=".php">tests/validator</directory>
     </testsuite>
   </testsuites>

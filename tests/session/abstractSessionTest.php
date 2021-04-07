@@ -26,6 +26,9 @@ abstract class abstractSessionTest extends base {
    */
   protected function setUp(): void
   {
+    $app = static::createApp();
+    $app->getAppstack();
+    
     static::setEnvironmentConfig([
       'test' => array_merge([
         'session' => [

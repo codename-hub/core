@@ -10,6 +10,9 @@ abstract class abstractBucketTest extends base {
    */
   protected function setUp(): void
   {
+    $app = static::createApp();
+    $app->getAppstack();
+    
     static::setEnvironmentConfig([
       'test' => [
         'filesystem' =>[
