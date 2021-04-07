@@ -8,7 +8,7 @@ class helper {
 
   /**
    * synchronously waits for a host to be available
-   * 
+   *
    * @param  string $host               [host to connect to]
    * @param  int    $port               [port to connect on]
    * @param  int    $connectionTimeout  [the connection timeout per try]
@@ -22,10 +22,14 @@ class helper {
     }
     for ($i=0; $i < $tryCount; $i++) {
       try {
-        return (fsockopen ($host, $port, $error_code, $error_message, $connectionTimeout) !== false);
+        $ret = (@fsockopen ($host, $port, $error_code, $error_message, $connectionTimeout) !== false);
+        if($ret) {
+          return true;
+        }
       } catch (\Exception $e) {
-        sleep($waitBetweenRetries);
+        // NOTE: simply swallow exception
       }
+      sleep($waitBetweenRetries);
     }
     return false;
   }
