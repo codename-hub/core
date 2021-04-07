@@ -96,6 +96,38 @@ class jsonModelTest extends base {
   }
 
   /**
+   * [testSaveThrowsException description]
+   */
+  public function testSaveThrowsException(): void {
+    $this->expectException(\Exception::class);
+    $model = $this->getModel('example');
+    $model->save([
+      'example_text' => 'new_must_not_save'
+    ]);
+  }
+
+  /**
+   * [testDeleteThrowsException description]
+   */
+  public function testDeleteThrowsException(): void {
+    $this->expectException(\Exception::class);
+    $model = $this->getModel('example');
+    $model->delete('FIRST');
+  }
+
+  /**
+   * [testVirtualFields description]
+   */
+  public function testVirtualFields(): void {
+    $model = $this->getModel('example');
+    $model->addVirtualField('example_virtual', function($dataset) {
+      return $dataset['example_text'].$dataset['example_integer'];
+    });
+    $dataset = $model->load('SECOND');
+    $this->assertEquals('bar234', $dataset['example_virtual']);
+  }
+
+  /**
    * [testFilters description]
    */
   public function testFilters(): void {
@@ -104,6 +136,15 @@ class jsonModelTest extends base {
     // no filters
     $res = $model->search()->getResult();
     $this->assertCount(3, $res);
+
+    // load
+    $dataset = $model->load('FIRST');
+    $this->assertEquals('foo', $dataset['example_text']);
+
+    // filter for PKEY
+    $model->addFilter('example_id', 'THIRD');
+    $res = $model->search()->getResult();
+    $this->assertCount(1, $res);
 
     // filters for text value
     $model->addFilter('example_text', 'bar');
@@ -141,6 +182,21 @@ class jsonModelTest extends base {
     $res = $model->search()->getResult();
     $this->assertCount(2, $res);
 
+    // special PKEY filter for IN()
+    $model->addFilter('example_id', [ 'SECOND', 'invalid' ]);
+    $res = $model->search()->getResult();
+    $this->assertCount(1, $res);
+
+    // filters for IN()
+    $model->addFilter('example_text', [ 'foo', 'baz' ]);
+    $res = $model->search()->getResult();
+    $this->assertCount(2, $res);
+
+    // filters for NOT IN()
+    $model->addFilter('example_text', [ 'foo', 'baz' ], '!=');
+    $res = $model->search()->getResult();
+    $this->assertCount(1, $res);
+
     // multiple filters
     $model
       ->addFilter('example_integer', 300, '<=')
@@ -150,6 +206,24 @@ class jsonModelTest extends base {
     $res = $model->search()->getResult();
     $this->assertCount(1, $res);
     $this->assertEquals($res[0][$model->getPrimarykey()], 'SECOND');
+
+    // basic OR filtering
+    $model
+      ->addFilter('example_integer', 200, '<=')
+      ->addFilter('example_number', 32.1, '>', 'OR')
+      ;
+    $res = $model->search()->getResult();
+    $this->assertCount(2, $res);
+    $this->assertContainsEquals('FIRST', array_column($res, $model->getPrimarykey()));
+    $this->assertContainsEquals('THIRD', array_column($res, $model->getPrimarykey()));
+
+    // multiple contrary filters
+    $model
+      ->addFilter('example_integer', 500, '>')
+      ->addFilter('example_integer', 500, '<')
+      ;
+    $res = $model->search()->getResult();
+    $this->assertCount(0, $res);
   }
 
   // /**
