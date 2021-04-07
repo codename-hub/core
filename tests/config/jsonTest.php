@@ -60,7 +60,7 @@ class jsonTest extends base {
 
     // TODO: arrays?
 
-    print_r($config->get());
+    // print_r($config->get());
   }
 
 }
