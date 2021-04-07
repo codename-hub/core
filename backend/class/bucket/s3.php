@@ -285,6 +285,17 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function fileMove(string $remotefile, string $newremotefile): bool
   {
+    if(!$this->fileAvailable($remotefile)) {
+        $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
+        return false;
+    }
+
+    // check for existance of the new file
+    if($this->fileAvailable($newremotefile)) {
+        $this->errorstack->addError('FILE', 'FILE_ALREADY_EXISTS', $newremotefile);
+        return false;
+    }
+
     try{
       /**
        * @see http://docs.aws.amazon.com/AmazonS3/latest/dev/CopyingObjectUsingPHP.html
