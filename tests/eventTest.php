@@ -7,16 +7,16 @@ use codename\core\eventHandler;
 /**
  * Class for testing events and eventHandlers
  */
-abstract class eventTest extends \PHPUnit\Framework\TestCase {
+class eventTest extends \PHPUnit\Framework\TestCase {
 
   /**
    * [testEventInvoke description]
    */
   public function testEventInvoke(): void {
     $event = new event('testevent');
+    $this->assertEquals('testevent', $event->getName());
 
-    $event->addEventHandler(new eventHandler(function($sender, $eventArgs) {
-      $this->assertEquals($this, $sender);
+    $event->addEventHandler(new eventHandler(function($eventArgs) {
       $this->assertEquals('test', $eventArgs);
     }));
 
@@ -29,9 +29,9 @@ abstract class eventTest extends \PHPUnit\Framework\TestCase {
    */
   public function testEventInvokeWithResult(): void {
     $event = new event('testevent');
+    $this->assertEquals('testevent', $event->getName());
 
-    $event->addEventHandler(new eventHandler(function($sender, $eventArgs) {
-      $this->assertEquals($this, $sender);
+    $event->addEventHandler(new eventHandler(function($eventArgs) {
       $this->assertEquals('test', $eventArgs);
       return 'success';
     }));
@@ -45,15 +45,14 @@ abstract class eventTest extends \PHPUnit\Framework\TestCase {
    */
   public function testEventInvokeWithAllResults(): void {
     $event = new event('testevent');
+    $this->assertEquals('testevent', $event->getName());
 
-    $event->addEventHandler(new eventHandler(function($sender, $eventArgs) {
-      $this->assertEquals($this, $sender);
+    $event->addEventHandler(new eventHandler(function($eventArgs) {
       $this->assertEquals('test', $eventArgs);
       return 'success1';
     }));
 
-    $event->addEventHandler(new eventHandler(function($sender, $eventArgs) {
-      $this->assertEquals($this, $sender);
+    $event->addEventHandler(new eventHandler(function($eventArgs) {
       $this->assertEquals('test', $eventArgs);
       return 'success2';
     }));
