@@ -415,6 +415,114 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testDeleteWithoutArgsWillFail description]
+   */
+  public function testDeleteWithoutArgsWillFail(): void {
+    //
+    // ::delete() without given PKEY, nor filters, MUST FAIL.
+    //
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage('EXCEPTION_MODEL_SCHEMATIC_SQL_DELETE_NO_FILTERS_DEFINED');
+    $model = $this->getModel('testdata');
+    $model->delete();
+  }
+
+  /**
+   * [testUpdateWithoutArgsWillFail description]
+   */
+  public function testUpdateWithoutArgsWillFail(): void {
+    //
+    // ::update() without filters MUST FAIL.
+    //
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage('EXCEPTION_MODEL_SCHEMATIC_SQL_UPDATE_NO_FILTERS_DEFINED');
+    $model = $this->getModel('testdata');
+    $model->update([
+      'testdata_integer' => 0
+    ]);
+  }
+
+  /**
+   * [testDeleteSinglePkeyTimemachineEnabled description]
+   */
+  public function testDeleteSinglePkeyTimemachineEnabled(): void {
+    $model = $this->getTimemachineEnabledModel('testdata');
+    $model->save([
+      'testdata_text'     => 'single_pkey_delete',
+      'testdata_integer'  => 1234,
+    ]);
+    $id = $model->lastInsertId();
+    $this->assertNotEmpty($model->load($id));
+    $model->delete($id);
+    $this->assertEmpty($model->load($id));
+  }
+
+  /**
+   * [testBulkUpdateAndDelete description]
+   */
+  public function testBulkUpdateAndDelete(): void {
+    $model = $this->getModel('testdata');
+    $this->testBulkUpdateAndDeleteUsingModel($model);
+  }
+
+  /**
+   * [testBulkUpdateAndDeleteTimemachineEnabled description]
+   */
+  public function testBulkUpdateAndDeleteTimemachineEnabled(): void {
+    $model = $this->getTimemachineEnabledModel('testdata');
+    $this->testBulkUpdateAndDeleteUsingModel($model);
+  }
+
+  /**
+   * [testBulkUpdateAndDeleteUsingModel description]
+   * @param \codename\core\model $model [description]
+   */
+  protected function testBulkUpdateAndDeleteUsingModel(\codename\core\model $model): void {
+    // $model = $this->getModel('testdata');
+
+    // create example dataset
+    $ids = [];
+    for ($i=1; $i <= 10; $i++) {
+      $model->save([
+        'testdata_text'     => 'bulkdata_test',
+        'testdata_integer'  => $i,
+        'testdata_structure'=> [
+          'some_key' => 'some_value',
+        ]
+      ]);
+      $ids[] = $model->lastInsertId();
+    }
+
+    // update those entries (not by PKEY)
+    $model
+      ->addFilter('testdata_text', 'bulkdata_test')
+      ->update([
+        'testdata_integer'  => 333,
+        'testdata_number'   => 12.34, // additional update data in this field not used before
+        'testdata_structure'=> [
+          'some_key'      => 'some_value',
+          'some_new_key'  => 'some_new_value',
+        ]
+      ]);
+
+    // compare data
+    foreach($ids as $id) {
+      $dataset = $model->load($id);
+      $this->assertEquals('bulkdata_test', $dataset['testdata_text']);
+      $this->assertEquals(333, $dataset['testdata_integer']);
+    }
+
+    // delete them
+    $model
+      ->addFilter($model->getPrimaryKey(), $ids)
+      ->delete();
+
+    // make sure they don't exist anymore
+    $res = $model->addFilter($model->getPrimaryKey(), $ids)->search()->getResult();
+    $this->assertEmpty($res);
+  }
+
+  /**
    * [testVirtualFieldSaving description]
    */
   public function testVirtualFieldResultSaving(): void {
