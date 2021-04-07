@@ -18,6 +18,9 @@
     <testsuite name="cache">
       <directory suffix=".php">tests/cache</directory>
     </testsuite>
+    <testsuite name="config">
+      <directory suffix=".php">tests/config</directory>
+    </testsuite>
     <testsuite name="model">
       <directory suffix=".php">tests/model</directory>
     </testsuite>

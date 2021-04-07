@@ -1,0 +1,11 @@
+{
+  "extends" : [
+    "tests/config/example.json"
+  ],
+  "some-key": "some-overridden-value",
+  "some-array": [ "some-item-2?" ],
+  "some-object": {
+    "key2": "value-changed",
+    "key4": "value-added"
+  }
+}
