@@ -39,16 +39,18 @@ abstract class base extends \PHPUnit\Framework\TestCase {
 
   /**
    * creates a model and builds it
-   * @param  string $schema [description]
-   * @param  string $model  [description]
-   * @param  array  $config [description]
+   * @param  string       $schema [description]
+   * @param  string       $model  [description]
+   * @param  array        $config [description]
+   * @param  callable|null  $initFunction
    * @return void
    */
-  protected static function createModel(string $schema, string $model, array $config) {
+  protected static function createModel(string $schema, string $model, array $config, ?callable $initFunction = null) {
     static::$models[$model] = [
-      'schema' => $schema,
-      'model'  => $model,
-      'config' => $config,
+      'schema'    => $schema,
+      'model'     => $model,
+      'config'    => $config,
+      'initFunction' => $initFunction,
     ];
   }
 
@@ -59,7 +61,11 @@ abstract class base extends \PHPUnit\Framework\TestCase {
    */
   protected static function getModelStatic(string $model): \codename\core\model {
     $modelData = static::$models[$model];
-    return new sqlModel($modelData['schema'], $modelData['model'], $modelData['config']);
+    if($modelData['initFunction'] ?? false) {
+      return $modelData['initFunction']($modelData['schema'], $modelData['model'], $modelData['config']);
+    } else {
+      return new sqlModel($modelData['schema'], $modelData['model'], $modelData['config']);
+    }
   }
 
   /**

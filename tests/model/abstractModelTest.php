@@ -208,6 +208,7 @@ abstract class abstractModelTest extends base {
         'person_firstname',
         'person_lastname',
         'person_birthdate',
+        'person_country',
         'person_parent_id',
         'person_parent',
       ],
@@ -225,6 +226,16 @@ abstract class abstractModelTest extends base {
           'schema'  => 'vfields',
           'model'   => 'person',
           'key'     => 'person_id'
+        ],
+        'person_country' => [
+          'schema'  => 'json',
+          'model'   => 'country',
+          'key'     => 'country_code'
+        ]
+      ],
+      'options' => [
+        'person_country' => [
+          'length' => 2
         ]
       ],
       'datatype' => [
@@ -234,11 +245,34 @@ abstract class abstractModelTest extends base {
         'person_firstname'  => 'text',
         'person_lastname'   => 'text',
         'person_birthdate'  => 'text_date',
+        'person_country'    => 'text',
         'person_parent_id'  => 'number_natural',
         'person_parent'     => 'virtual'
       ],
       'connection' => 'default'
     ]);
+
+    static::createModel('json', 'country', [
+      'field' => [
+        'country_code',
+        'country_name',
+      ],
+      'primary' => [
+        'country_code'
+      ],
+      'datatype' => [
+        'country_code' => 'text',
+        'country_name' => 'text',
+      ],
+      // No connection, JSON datamodel
+    ], function($schema, $model, $config) {
+      return new \codename\core\tests\jsonModel(
+        'tests/model/data/json_country.json',
+        $schema,
+        $model,
+        $config
+      );
+    });
 
     static::createModel('timemachine', 'timemachine', [
       'field' => [
@@ -669,6 +703,48 @@ abstract class abstractModelTest extends base {
     foreach($res as $r) {
       $this->assertEquals($r['testdata_id'], $r['virtual_field']);
     }
+  }
+
+  /**
+   * [testModelJoinWithJson description]
+   */
+  public function testModelJoinWithJson(): void {
+    // inject some base data, first
+    $model = $this->getModel('person')
+      ->addModel($this->getModel('country'));
+
+    $model->save([
+      'person_firstname'  => 'German',
+      'person_lastname'   => 'Resident',
+      'person_country'    => 'DE',
+    ]);
+    $id = $model->lastInsertId();
+
+    $res = $model->load($id);
+    $this->assertEquals('DE', $res['person_country']);
+    $this->assertEquals('DE', $res['country_code']);
+    $this->assertEquals('Germany', $res['country_name']);
+
+    $model->delete($id);
+    $this->assertEmpty($model->load($id));
+
+    //
+    // save another one, but without FKEY value for country
+    //
+    $model->save([
+      'person_firstname'  => 'Resident',
+      'person_lastname'   => 'Without Country',
+      'person_country'    => null,
+    ]);
+    $id = $model->lastInsertId();
+
+    $res = $model->load($id);
+    $this->assertEquals(null, $res['person_country']);
+    $this->assertEquals(null, $res['country_code']);
+    $this->assertEquals(null, $res['country_name']);
+
+    $model->delete($id);
+    $this->assertEmpty($model->load($id));
   }
 
   /**
