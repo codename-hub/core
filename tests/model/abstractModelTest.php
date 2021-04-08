@@ -378,6 +378,13 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [getDatabaseInstance description]
+   * @param  array                   $config [description]
+   * @return \codename\core\database         [description]
+   */
+  protected abstract function getDatabaseInstance(array $config): \codename\core\database;
+
+  /**
    * [testSetConfigExplicitConnectionValid description]
    */
   public function testSetConfigExplicitConnectionValid(): void {

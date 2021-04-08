@@ -43,6 +43,32 @@ class mysqlTest extends abstractModelTest {
   /**
    * @inheritDoc
    */
+  public function testConnectionErrorExceptionIsSensitive(): void
+  {
+    //
+    // Important test to make sure a database error exception
+    // doesn't leak any credentials (wrapped in a sensitiveException)
+    //
+    $this->expectException(\codename\core\sensitiveException::class);
+    $this->getDatabaseInstance([
+      'driver' => 'mysql',
+      'host' => 'nonexisting-host',
+      'user' => 'some-username',
+      'pass' => 'some-password',
+    ]);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected function getDatabaseInstance(array $config): \codename\core\database
+  {
+    return new \codename\core\database\mysql($config);
+  }
+
+  /**
+   * @inheritDoc
+   */
   public static function tearDownAfterClass(): void
   {
     // shutdown the mysql server

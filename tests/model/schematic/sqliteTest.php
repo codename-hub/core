@@ -16,6 +16,14 @@ class sqliteTest extends abstractModelTest {
   }
 
   /**
+   * @inheritDoc
+   */
+  protected function getDatabaseInstance(array $config): \codename\core\database
+  {
+    return new \codename\core\database\sqlite($config);
+  }
+
+  /**
    * [testInstanceClass description]
    */
   public function testInstanceClass(): void {
