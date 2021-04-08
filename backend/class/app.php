@@ -466,7 +466,9 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_END);
 
         // fire exit code
-        exit(self::$exitCode);
+        if(self::$exitCode !== null) {
+          exit(self::$exitCode);
+        }
 
         return;
     }

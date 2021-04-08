@@ -31,9 +31,9 @@ abstract class base extends \PHPUnit\Framework\TestCase {
 
   /**
    * creates a pseudo app instance
-   * @return \codename\core\app
+   * @return overrideableApp
    */
-  protected static function createApp(): \codename\core\app {
+  protected static function createApp(): overrideableApp {
     return new overrideableApp();
   }
 
@@ -122,7 +122,7 @@ class overrideableApp extends \codename\core\app {
    */
   public function __CONSTRUCT()
   {
-    $value = parent::__CONSTRUCT();
+    parent::__CONSTRUCT();
 
     // TODO
     $this->injectApp([
@@ -130,7 +130,31 @@ class overrideableApp extends \codename\core\app {
       'app' => 'architect',
       'namespace' => '\\codename\\architect'
     ]);
-    return $value;
+
+    // prevent real exit
+    static::$exitCode = null;
+  }
+
+  /**
+   * [__injectClientInstance description]
+   * @param  string $type           [description]
+   * @param  string $identifier     [description]
+   * @param  mixed $clientInstance [description]
+   * @return [type]                 [description]
+   */
+  public static function __injectClientInstance(string $type, string $identifier, $clientInstance) {
+    $simplename = $type . $identifier;
+    $_REQUEST['instances'][$simplename] = $clientInstance;
+  }
+
+  /**
+   * Injects a given instance into the available instances
+   * @param  string                 $contextName
+   * @param  \codename\core\context $contextInstance
+   */
+  public static function __injectContextInstance(string $contextName, \codename\core\context $contextInstance) {
+    $simplename = self::getApp()."_{$contextName}";
+    $_REQUEST['instances'][$simplename] = $contextInstance;
   }
 
   /**
@@ -140,5 +164,13 @@ class overrideableApp extends \codename\core\app {
    */
   public static function __overrideEnvironmentConfig(\codename\core\config $config) {
     static::$environment = $config;
+  }
+
+  /**
+   * [__overrideJsonConfigPath description]
+   * @param  string $path [description]
+   */
+  public static function __overrideJsonConfigPath(string $path) {
+    static::$json_config = $path;
   }
 }
