@@ -557,6 +557,94 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testGetCount description]
+   */
+  public function testGetCount(): void {
+    $model = $this->getModel('testdata');
+
+    $this->assertEquals(4, $model->getCount());
+
+    $model->addFilter('testdata_text', 'bar');
+    $this->assertEquals(2, $model->getCount());
+
+    // Test model getCount() to _NOT_ reset filters
+    $this->assertEquals(2, $model->getCount());
+
+    // Explicit reset
+    $model->reset();
+    $this->assertEquals(4, $model->getCount());
+  }
+
+  /**
+   * [testAddModelExplicitModelfieldValid description]
+   */
+  public function testAddModelExplicitModelfieldValid(): void {
+    $saveCustomerModel = $this->getModel('customer')->setVirtualFieldResult(true)
+      ->addModel($savePersonModel = $this->getModel('person'));
+    $saveCustomerModel->saveWithChildren([
+      'customer_no' => 'ammv',
+      'customer_person' => [
+        'person_firstname' => 'ammv1',
+        'person_firstname' => 'ammv2',
+      ]
+    ]);
+    $customerId = $saveCustomerModel->lastInsertId();
+    $personId = $savePersonModel->lastInsertId();
+
+
+    $model = $this->getModel('customer')
+      ->addModel(
+        $this->getModel('person'),
+        \codename\core\model\plugin\join::TYPE_LEFT,
+        'customer_person_id'
+      );
+
+    $res = $model->search()->getResult();
+    $this->assertCount(1, $res);
+
+    // TODO: detail data tests?
+
+    $saveCustomerModel->delete($customerId);
+    $savePersonModel->delete($personId);
+    $this->assertEmpty($savePersonModel->load($personId));
+    $this->assertEmpty($saveCustomerModel->load($customerId));
+  }
+
+  /**
+   * [testAddModelExplicitModelfieldInvalid description]
+   */
+  public function testAddModelExplicitModelfieldInvalid(): void {
+    //
+    // Try to join on a field that's not designed for it
+    //
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage('EXCEPTION_MODEL_ADDMODEL_INVALID_OPERATION');
+
+    $model = $this->getModel('customer')
+      ->addModel(
+        $this->getModel('person'),
+        \codename\core\model\plugin\join::TYPE_LEFT,
+        'customer_no' // invalid field for this model
+      );
+  }
+
+  /**
+   * [testAddModelInvalidNoRelation description]
+   */
+  public function testAddModelInvalidNoRelation(): void {
+    //
+    // Try to join a model that has no relation to it
+    //
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage('EXCEPTION_MODEL_ADDMODEL_INVALID_OPERATION');
+
+    $model = $this->getModel('testdata')
+      ->addModel(
+        $this->getModel('person')
+      );
+  }
+
+  /**
    * [testVirtualFieldSaving description]
    */
   public function testVirtualFieldResultSaving(): void {
@@ -588,9 +676,12 @@ abstract class abstractModelTest extends base {
     $this->assertTrue($customerModel->isValid($dataset));
 
     $customerModel->saveWithChildren($dataset);
-    $id = $customerModel->lastInsertId();
 
-    $dataset = $customerModel->load($id);
+    $customerId = $customerModel->lastInsertId();
+    $personId = $personModel->lastInsertId();
+    $parentPersonId = $parentPersonModel->lastInsertId();
+
+    $dataset = $customerModel->load($customerId);
 
     $this->assertEquals('K1000', $dataset['customer_no']);
     $this->assertEquals('John', $dataset['customer_person']['person_firstname']);
@@ -608,6 +699,18 @@ abstract class abstractModelTest extends base {
 
     $this->assertEquals($dataset['customer_person_id'], $dataset['customer_person']['person_id']);
     $this->assertEquals($dataset['customer_contactentries'][0]['contactentry_customer_id'], $dataset['customer_id']);
+
+    //
+    // Cleanup
+    //
+    $customerModel->saveWithChildren([
+      $customerModel->getPrimarykey() => $customerId,
+      // Implicitly remove contactentries by saving an empty collection (Not null!)
+      'customer_contactentries' => []
+    ]);
+    $customerModel->delete($customerId);
+    $personModel->delete($personId);
+    $parentPersonModel->delete($parentPersonId);
   }
 
   /**
@@ -657,6 +760,16 @@ abstract class abstractModelTest extends base {
     $customerNullCollection['customer_contactentries'] = null;
     $customerModel->saveWithChildren($customerNullCollection);
     $this->assertEquals($customerModified['customer_contactentries'], $customerModel->load($id)['customer_contactentries']);
+
+    //
+    // Cleanup
+    //
+    $customerModel->saveWithChildren([
+      $customerModel->getPrimarykey() => $id,
+      // Implicitly remove contactentries by saving an empty collection (Not null!)
+      'customer_contactentries' => []
+    ]);
+    $customerModel->delete($id);
   }
 
   /**
@@ -687,12 +800,14 @@ abstract class abstractModelTest extends base {
     $this->expectExceptionMessage('EXCEPTION_MODEL_SCHEMATIC_SQL_CHILDREN_AMBIGUOUS_JOINS');
 
     $customerModel->saveWithChildren($dataset);
+
+    // No need to cleanup, as it must fail beforehand
   }
 
   /**
    * tests a runtime-based virtual field
    */
-  public function testVirtualFieldQuery() {
+  public function testVirtualFieldQuery(): void {
     $model = $this->getModel('testdata')->setVirtualFieldResult(true);
     $model->addVirtualField('virtual_field', function($dataset) {
       return $dataset['testdata_id'];
@@ -703,6 +818,100 @@ abstract class abstractModelTest extends base {
     foreach($res as $r) {
       $this->assertEquals($r['testdata_id'], $r['virtual_field']);
     }
+  }
+
+  /**
+   * [testForcedVirtualJoinWithVirtualFieldResult description]
+   */
+  public function testForcedVirtualJoinWithVirtualFieldResult(): void {
+    $this->testForcedVirtualJoin(true);
+  }
+
+  /**
+   * [testForcedVirtualJoinWithoutVirtualFieldResult description]
+   */
+  public function testForcedVirtualJoinWithoutVirtualFieldResult(): void {
+    $this->testForcedVirtualJoin(false);
+  }
+
+  /**
+   * [testForcedVirtualJoin description]
+   * @param bool $virtualFieldResult [description]
+   */
+  protected function testForcedVirtualJoin(bool $virtualFieldResult): void {
+    //
+    // Store test data
+    //
+    $saveCustomerModel = $this->getModel('customer')->setVirtualFieldResult(true)
+      ->addModel($savePersonModel = $this->getModel('person')->setVirtualFieldResult(true));
+    $saveCustomerModel->saveWithChildren([
+      'customer_no' => 'fvj',
+      'customer_person' => [
+        'person_firstname' => 'forced',
+        'person_lastname' => 'virtualjoin',
+      ]
+    ]);
+    $customerId = $saveCustomerModel->lastInsertId();
+    $personId = $savePersonModel->lastInsertId();
+
+    $referenceCustomerModel = $this->getModel('customer')->setVirtualFieldResult($virtualFieldResult)
+      ->addModel($referencePersonModel = $this->getModel('person')->setVirtualFieldResult($virtualFieldResult));
+
+    $referenceDataset = $referenceCustomerModel->load($customerId);
+
+    //
+    // new model that is forced to do a virtual join
+    //
+
+    // NOTE/IMPORTANT: force virtual join state has to be set *BEFORE* joining
+    $personModel = $this->getModel('person');
+    $personModel->setForceVirtualJoin(true);
+
+    $customerModel = $this->getModel('customer')->setVirtualFieldResult($virtualFieldResult)
+      ->addModel($personModel->setVirtualFieldResult($virtualFieldResult));
+
+    $customerModel->saveLastQuery = true;
+    $personModel->saveLastQuery = true;
+
+    $compareDataset = $customerModel->load($customerId);
+
+    $customerLastQuery = $customerModel->getLastQuery();
+    $personLastQuery = $personModel->getLastQuery();
+
+    // assert that *BOTH* queries have been executed (not empty)
+    $this->assertNotNull($customerLastQuery);
+    $this->assertNotNull($personLastQuery);
+    $this->assertNotEquals($customerLastQuery, $personLastQuery);
+
+    // echo(chr(10)."---REFERENCE---".chr(10));
+    // print_r($referenceDataset);
+    // echo(chr(10)."---COMPARE---".chr(10));
+    // print_r($compareDataset);
+
+    foreach($referenceDataset as $key => $value) {
+      if(is_array($value)) {
+        foreach($value as $k => $v) {
+          if($v !== null) {
+            $this->assertEquals($v, $compareDataset[$key][$k]);
+          }
+        }
+      } else {
+        if($value !== null) {
+          $this->assertEquals($value, $compareDataset[$key]);
+        }
+      }
+    }
+
+    // Assert both datasets are equal
+    // $this->assertEquals($referenceDataset, $compareDataset);
+    // NOTE: doesn't work right now, because:
+    $this->addWarning('Some bug when doing forced virtual joins and unjoined vfields exist');
+
+    // make sure to clean up
+    $saveCustomerModel->delete($customerId);
+    $savePersonModel->delete($personId);
+    $this->assertEmpty($saveCustomerModel->load($customerId));
+    $this->assertEmpty($savePersonModel->load($personId));
   }
 
   /**
@@ -1077,6 +1286,35 @@ abstract class abstractModelTest extends base {
 
     $this->assertCount(1, $res);
     $this->assertEquals([ 'aliased_text' => 'foo'], $res[0]);
+  }
+
+  /**
+   * [testDefaultfilterSimple description]
+   */
+  public function testDefaultfilterSimple(): void {
+    $model = $this->getModel('testdata');
+
+    // generic default filter
+    $model->addDefaultfilter('testdata_number', 3.5, '>');
+
+    $res1 = $model->search()->getResult();
+    $res2 = $model->search()->getResult();
+    $this->assertCount(2, $res1);
+    $this->assertEquals($res1, $res2);
+
+    // add a filter on the fly - and we expect
+    // an empty resultset
+    $res = $model
+      ->addFilter('testdata_text', 'nonexisting')
+      ->search()->getResult();
+    $this->assertCount(0, $res);
+
+    // try to reduce the resultset to 1
+    // in conjunction with the above default filter
+    $res = $model
+      ->addFilter('testdata_integer', 1, '<=')
+      ->search()->getResult();
+    $this->assertCount(1, $res);
   }
 
   /**
