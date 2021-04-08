@@ -226,16 +226,65 @@ class jsonModelTest extends base {
     $this->assertCount(0, $res);
   }
 
-  // /**
-  //  * [testFiltercollections description]
-  //  */
-  // public function testFiltercollections(): void {
-  //   $model = $this->getModel('example');
-  //   $model->addFilterCollection([
-  //     [ 'field' => 'example_text',    'operator' => '=', 'value' => 'foo' ],
-  //     [ 'field' => 'example_integer', 'operator' => '=', 'value' => 234 ],
-  //   ], 'OR');
-  //   $res = $model->search()->getResult();
-  //   $this->assertCount(2, $res);
-  // }
+  /**
+   * [testFiltercollections description]
+   */
+  public function testFiltercollections(): void {
+    $model = $this->getModel('example');
+    $model->addFilterCollection([
+      [ 'field' => 'example_text',    'operator' => '=', 'value' => 'foo' ],
+      [ 'field' => 'example_integer', 'operator' => '=', 'value' => 234 ],
+    ], 'OR');
+    $res = $model->search()->getResult();
+    $this->assertCount(2, $res);
+  }
+
+  /**
+   * [testNamedFiltercollections description]
+   */
+  public function testNamedFiltercollections(): void {
+    $model = $this->getModel('example');
+
+    // will match all
+    $model->addDefaultFilterCollection([
+      // will match FIRST, SECOND
+      [ 'field' => 'example_text',    'operator' => '=', 'value' => 'foo' ],
+      [ 'field' => 'example_integer', 'operator' => '=', 'value' => 234 ],
+    ], 'OR', 'g1');
+    $model->addDefaultFilterCollection([
+      // will match SECOND, THIRD
+      [ 'field' => 'example_text',    'operator' => '!=', 'value' => 'foo' ],
+      [ 'field' => 'example_integer', 'operator' => '=', 'value' => 345 ],
+    ], 'OR', 'g1', 'OR');
+
+    $res = $model->search()->getResult();
+    $this->assertCount(3, $res);
+
+    $model->addFilterCollection([
+      // will match SECOND
+      [ 'field' => 'example_text',    'operator' => '=', 'value' => 'bar' ],
+      [ 'field' => 'example_integer', 'operator' => '=', 'value' => 999 ],
+    ], 'OR', 'g2');
+    $model->addFilterCollection([
+      // will match THIRD
+      [ 'field' => 'example_text',    'operator' => '=',  'value' => 'baz' ],
+      [ 'field' => 'example_number',  'operator' => '>=', 'value' => 30 ],
+    ], 'AND', 'g2', 'OR');
+
+    $res = $model->search()->getResult();
+
+    $this->assertCount(2, $res);
+    $this->assertEqualsCanonicalizing([ 'SECOND', 'THIRD' ], array_column($res, $model->getPrimarykey()));
+
+
+    $model->addFilterCollection([
+      // will FIRST, THIRD
+      [ 'field' => 'example_text',    'operator' => '=',  'value' => ['foo', 'baz'] ],
+    ], 'AND', 'g3', 'OR');
+
+    $res = $model->search()->getResult();
+
+    $this->assertCount(2, $res);
+    $this->assertEqualsCanonicalizing([ 'FIRST', 'THIRD' ], array_column($res, $model->getPrimarykey()));
+  }
 }

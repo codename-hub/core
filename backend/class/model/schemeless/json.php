@@ -161,7 +161,7 @@ abstract class json extends \codename\core\model\schemeless implements \codename
       }
     }
 
-    if(count($this->filter) > 0) {
+    if((count($this->filter) > 0) || (count($this->filterCollections) > 0)) {
         $data = $this->filterResults($data);
     }
 
@@ -190,8 +190,10 @@ abstract class json extends \codename\core\model\schemeless implements \codename
         }
       }
 
+      $filteredData = $data;
+
       if(count($this->filter) >= 1) {
-        $filteredData = array_filter($data, function($entry) {
+        $filteredData = array_filter($filteredData, function($entry) {
           $pass = null;
           foreach($this->filter as $filter) {
               if($pass === false && $filter->conjunction === 'AND') {
@@ -219,6 +221,68 @@ abstract class json extends \codename\core\model\schemeless implements \codename
           return $pass;
         });
       }
+
+      if(count($this->filterCollections) > 0) {
+        $filteredData = array_filter($filteredData, function($entry) {
+          $collectionsPass = null;
+
+          foreach($this->filterCollections as $groupName => $filtercollections) {
+            $groupPass = null;
+
+            foreach($filtercollections as $filtercollection) {
+              $groupOperator = $filtercollection['operator'];
+              $conjunction = $filtercollection['conjunction'];
+              $pass = null;
+
+              foreach($filtercollection['filters'] as $filter) {
+
+                  // NOTE: singular filter conjunctions in collections default to NULL
+                  // as we have an overriding group operator
+                  // so, only use the explicit filter conjunction, if given
+                  $filterConjunction = $filter->conjunction ?? $groupOperator;
+
+                  // TODO: Group Operator?
+                  if($pass === false && $filterConjunction === 'AND') {
+                      continue;
+                  }
+
+                  if($filter instanceof \codename\core\model\plugin\filter\executableFilterInterface) {
+                    if($pass === null) {
+                      $pass = $filter->matches($entry);
+                    } else {
+                      if($filterConjunction === 'OR') {
+                        $pass = $pass || $filter->matches($entry);
+                      } else {
+                        $pass = $pass && $filter->matches($entry);
+                      }
+                    }
+                  } else {
+                    // we may warn for incompatible filters?
+                  }
+              }
+
+              if($groupPass === null) {
+                $groupPass = $pass;
+              } else {
+                if($conjunction === 'OR') {
+                  $groupPass = $groupPass || $pass;
+                } else {
+                  $groupPass = $groupPass && $pass;
+                }
+              }
+            }
+
+            if($collectionsPass === null) {
+              $collectionsPass = $groupPass;
+            } else {
+              $collectionsPass = $collectionsPass && $groupPass;
+            }
+          }
+
+          return $collectionsPass;
+        });
+      }
+
       return array_values($filteredData);
   }
 
