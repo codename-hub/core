@@ -484,6 +484,96 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testHideFieldSingle description]
+   */
+  public function testHideFieldSingle(): void {
+    $model = $this->getModel('testdata');
+    $fields = $model->getFields();
+
+    $visibleFields = array_filter($fields, function($f) {
+      return ($f != 'testdata_integer');
+    });
+
+    $model->hideField('testdata_integer');
+    $res = $model->search()->getResult();
+
+    $this->assertCount(4, $res);
+    foreach($res as $r) {
+      //
+      // Make sure we don't get testdata_integer
+      // but every other field
+      //
+      foreach($visibleFields as $f) {
+        $this->assertArrayHasKey($f, $r);
+      }
+      $this->assertArrayNotHasKey('testdata_integer', $r);
+    }
+  }
+
+  /**
+   * [testHideFieldMultipleCommaTrim description]
+   */
+  public function testHideFieldMultipleCommaTrim(): void {
+    $model = $this->getModel('testdata');
+    $fields = $model->getFields();
+
+    $visibleFields = array_filter($fields, function($f) {
+      return ($f != 'testdata_integer') && ($f != 'testdata_text');
+    });
+
+    // Testing auto-split/explode and trim
+    $model->hideField('testdata_integer, testdata_text');
+    $res = $model->search()->getResult();
+
+    $this->assertCount(4, $res);
+    foreach($res as $r) {
+      //
+      // Make sure we don't get testdata_integer and testdata_text
+      // but every other field
+      //
+      foreach($visibleFields as $f) {
+        $this->assertArrayHasKey($f, $r);
+      }
+      $this->assertArrayNotHasKey('testdata_integer', $r);
+      $this->assertArrayNotHasKey('testdata_text', $r);
+    }
+  }
+
+  /**
+   * [testHideAllFieldsAddOne description]
+   */
+  public function testHideAllFieldsAddOne(): void {
+    $model = $this->getModel('testdata');
+    $res = $model
+      ->hideAllFields()
+      ->addField('testdata_integer')
+      ->search()->getResult();
+    $this->assertCount(4, $res);
+    foreach($res as $r) {
+      // Make sure 'testdata_integer' is the one and only field in the result datasets
+      $this->assertArrayHasKey('testdata_integer', $r);
+      $this->assertEquals([ 'testdata_integer' ], array_keys($r));
+    }
+  }
+
+  /**
+   * [testHideAllFieldsAddAliasedField description]
+   */
+  public function testHideAllFieldsAddAliasedField(): void {
+    $model = $this->getModel('testdata');
+    $res = $model
+      ->hideAllFields()
+      ->addField('testdata_integer', 'aliased_field')
+      ->search()->getResult();
+    $this->assertCount(4, $res);
+    foreach($res as $r) {
+      // Make sure 'aliased_field' is the one and only field in the result datasets
+      $this->assertArrayHasKey('aliased_field', $r);
+      $this->assertEquals([ 'aliased_field' ], array_keys($r));
+    }
+  }
+
+  /**
    * [testDeleteSinglePkeyTimemachineEnabled description]
    */
   public function testDeleteSinglePkeyTimemachineEnabled(): void {
