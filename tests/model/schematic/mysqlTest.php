@@ -91,4 +91,13 @@ class mysqlTest extends abstractModelTest {
   public function testInstanceClass(): void {
     $this->assertInstanceOf(\codename\core\database\mysql::class, \codename\core\app::getDb());
   }
+
+  /**
+   * @inheritDoc
+   */
+  protected function getJoinNestingLimit(): int
+  {
+    return 51;
+  }
+
 }

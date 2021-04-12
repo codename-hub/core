@@ -30,4 +30,12 @@ class sqliteTest extends abstractModelTest {
     $this->assertInstanceOf(\codename\core\database\sqlite::class, \codename\core\app::getDb());
   }
 
+  /**
+   * @inheritDoc
+   */
+  protected function getJoinNestingLimit(): int
+  {
+    return 64;
+  }
+
 }

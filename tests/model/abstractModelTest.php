@@ -564,6 +564,49 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Joins a model (itself) recursively (as far as possible)
+   * @param string $modelName [description]
+   * @param int    $limit     [description]
+   * @return \codename\core\model
+   */
+  protected function joinRecursively(string $modelName, int $limit): \codename\core\model {
+    $model = $this->getModel($modelName);
+    $currentModel = $model;
+    for ($i=0; $i < $limit; $i++) {
+      $recurseModel = $this->getModel($modelName);
+      $currentModel->addModel($recurseModel);
+      $currentModel = $recurseModel;
+    }
+    return $model;
+  }
+
+  /**
+   * [testJoinNestingLimitExceededWillFail description]
+   */
+  public function testJoinNestingLimitExceededWillFail(): void {
+    $this->expectException(\PDOException::class);
+    // exhaust the join nesting limit
+    $model = $this->joinRecursively('person', $this->getJoinNestingLimit());
+    $model->search()->getResult();
+  }
+
+  /**
+   * [testJoinNestingLimitMaxxedOut description]
+   */
+  public function testJoinNestingLimitMaxxedOut(): void {
+    $this->expectNotToPerformAssertions();
+    // Try to max-out the join nesting limit (limit - 1)
+    $model = $this->joinRecursively('person', $this->getJoinNestingLimit() - 1);
+    $model->search()->getResult();
+  }
+
+  /**
+   * Maximum (expected) join limit
+   * @return int [description]
+   */
+  protected abstract function getJoinNestingLimit(): int;
+
+  /**
    * [testGetCount description]
    */
   public function testGetCount(): void {
