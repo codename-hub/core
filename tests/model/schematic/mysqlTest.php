@@ -97,7 +97,7 @@ class mysqlTest extends abstractModelTest {
    */
   protected function getJoinNestingLimit(): int
   {
-    return 51;
+    return 61;
   }
 
 }
