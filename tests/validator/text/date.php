@@ -63,7 +63,7 @@ class date extends \codename\core\tests\validator\text {
      * @return void
      */
     public function testValueValid() {
-        $this->assertEquals(array(), $this->getValidator()->validate('1991-04-13'));
+        $this->assertEmpty($this->getValidator()->validate('1991-04-13'));
     }
 
 }

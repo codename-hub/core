@@ -39,7 +39,7 @@ class authhash extends \codename\core\tests\validator\text {
      * @return void
      */
     public function testValueValid() {
-        $this->assertEquals(array(), $this->getValidator()->validate('qyDdMHWwcDuC2VZwgKuG3RfDTkZcqzB92EPCHkQvKhpBvFa3QCWzKQ724AmfPMgJ4SLApc5fKvMEkFnS3rXGaYbdkP2F2sZbZXn8pqbBPVMARtnVEzgvzRua6de62Anz'));
+        $this->assertEmpty($this->getValidator()->validate('qyDdMHWwcDuC2VZwgKuG3RfDTkZcqzB92EPCHkQvKhpBvFa3QCWzKQ724AmfPMgJ4SLApc5fKvMEkFnS3rXGaYbdkP2F2sZbZXn8pqbBPVMARtnVEzgvzRua6de62Anz'));
     }
 
 }

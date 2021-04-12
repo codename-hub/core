@@ -39,7 +39,7 @@ class bic extends \codename\core\tests\validator\text {
      * @return void
      */
     public function testValueValid() {
-        $this->assertEquals(array(), $this->getValidator()->validate('GENODEF1BEB'));
+        $this->assertEmpty($this->getValidator()->validate('GENODEF1BEB'));
     }
 
 }

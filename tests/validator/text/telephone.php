@@ -31,7 +31,7 @@ class telephone extends \codename\core\tests\validator\text {
      * @return void
      */
     public function testValueValid() {
-        $this->assertEquals(array(), $this->getValidator()->validate('+496622918818'));
+        $this->assertEmpty($this->getValidator()->validate('+496622918818'));
     }
 
 }
