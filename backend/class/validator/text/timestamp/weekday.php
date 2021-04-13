@@ -3,13 +3,46 @@ namespace codename\core\validator\text\timestamp;
 
 class weekday extends \codename\core\validator\text implements \codename\core\validator\validatorInterface {
 
-  // Numeric representation of the weekday, see: ISO-8601
+  /**
+   * Numeric representation of MONDAY, see: ISO-8601
+   * @var int
+   */
   const MONDAY = 1;
+
+  /**
+   * Numeric representation of TUESDAY, see: ISO-8601
+   * @var int
+   */
   const TUESDAY = 2;
+
+  /**
+   * Numeric representation of WEDNESDAY, see: ISO-8601
+   * @var int
+   */
   const WEDNESDAY = 3;
+
+  /**
+   * Numeric representation of THURSDAY, see: ISO-8601
+   * @var int
+   */
   const THURSDAY = 4;
+
+  /**
+   * Numeric representation of FRIDAY, see: ISO-8601
+   * @var int
+   */
   const FRIDAY = 5;
+
+  /**
+   * Numeric representation of SATURDAY, see: ISO-8601
+   * @var int
+   */
   const SATURDAY = 6;
+
+  /**
+   * Numeric representation of SUNDAY, see: ISO-8601
+   * @var int
+   */
   const SUNDAY = 7;
 
   /**
@@ -29,6 +62,10 @@ class weekday extends \codename\core\validator\text implements \codename\core\va
     return $this;
   }
 
+  /**
+   * [setAllowedWeekdays description]
+   * @param array $allowedWeekdays [description]
+   */
   public function setAllowedWeekdays(array $allowedWeekdays = array()) {
     foreach($allowedWeekdays as &$v) {
       $v = intval($v);
@@ -46,10 +83,18 @@ class weekday extends \codename\core\validator\text implements \codename\core\va
    */
   public function validate($value): array
   {
-    $errors = parent::validate($value);
+    if(count(parent::validate($value)) != 0) {
+      return $this->errorstack->getErrors();
+    }
+
+    if(count($this->allowedWeekdays) === 0) {
+      $this->errorstack->addError('VALUE', 'ALLOWED_WEEKDAYS_NOT_SET', $this->allowedWeekdays);
+    }
+
     if(!in_array(date('N', strtotime($value)), $this->allowedWeekdays)) {
       $this->errorstack->addError('VALUE', 'WEEKDAY_NOT_ALLOWED', $value);
     }
+
     return $this->errorstack->getErrors();
   }
 
