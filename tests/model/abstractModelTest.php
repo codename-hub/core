@@ -654,16 +654,166 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests a special case of model renormalization
+   * no virtual field results enabled, two models on same nesting level (root)
+   * with one or more hidden fields (each?)
+   */
+  public function testJoinHiddenFieldsNoVirtualFieldResult(): void {
+    $customerModel = $this->getModel('customer')
+      ->hideField('customer_no')
+      ->addModel(
+        $personModel = $this->getModel('person')
+          ->hideField('person_firstname')
+      );
+
+    $personModel->save([
+      'person_firstname'  => 'john',
+      'person_lastname'   => 'doe',
+    ]);
+    $personId = $personModel->lastInsertId();
+    $customerModel->save([
+      'customer_no' => 'no_vfr',
+      'customer_person_id' => $personId,
+    ]);
+    $customerId = $customerModel->lastInsertId();
+
+    $dataset = $customerModel->load($customerId);
+    $this->assertEquals('doe', $dataset['person_lastname']);
+    $this->assertEquals($personId, $dataset['customer_person_id']);
+    $this->assertArrayNotHasKey('person_firstname', $dataset);
+    $this->assertArrayNotHasKey('customer_no', $dataset);
+
+    $customerModel->delete($customerId);
+    $personModel->delete($personId);
+  }
+
+  /**
+   * Tests a complex case of joining and model renormalization
+   * (e.g. recursive models joined, but different fieldlists!)
+   * In this case, a forced virtual join comes in-between.
+   */
+  public function testComplexVirtualRenormalizeForcedVirtualJoin(): void {
+    $this->testComplexVirtualRenormalize(true);
+  }
+
+  /**
+   * Tests a complex case of joining and model renormalization
+   * (e.g. recursive models joined, but different fieldlists!)
+   */
+  public function testComplexVirtualRenormalizeRegular(): void {
+    $this->testComplexVirtualRenormalize(false);
+  }
+
+  /**
+   * [testComplexVirtualRenormalize description]
+   * @param bool $forceVirtualJoin [description]
+   */
+  protected function testComplexVirtualRenormalize(bool $forceVirtualJoin): void {
+    $personModel = $this->getModel('person')->setVirtualFieldResult(true)
+      ->hideField('person_lastname')
+      ->addModel(
+        // Parent optionally as forced virtual
+        $parentPersonModel = $this->getModel('person')->setVirtualFieldResult(true)
+          ->hideField('person_firstname')
+          ->setForceVirtualJoin($forceVirtualJoin)
+      );
+
+    $personModel->saveWithChildren([
+      'person_firstname'  => 'theFirstname',
+      'person_lastname'   => 'theLastName',
+      'person_parent' => [
+        'person_firstname'  => 'parentFirstname',
+        'person_lastname'   => 'parentLastName',
+      ]
+    ]);
+
+    $personId = $personModel->lastInsertId();
+    $parentPersonId = $parentPersonModel->lastInsertId();
+
+    $dataset = $personModel->load($personId);
+
+    $this->assertArrayNotHasKey('person_lastname', $dataset);
+    $this->assertArrayNotHasKey('person_firstname', $dataset['person_parent']);
+
+    $personModel->delete($personId);
+    $parentPersonModel->delete($parentPersonId);
+  }
+
+  /**
+   * [testComplexJoin description]
+   */
+  public function testComplexJoin(): void {
+    $customerModel = $this->getModel('customer')->setVirtualFieldResult(true)
+      ->addModel(
+        $personModel = $this->getModel('person')->setVirtualFieldResult(true)
+          ->addVirtualField('person_fullname1', function($dataset) {
+            return $dataset['person_firstname'].' '.$dataset['person_lastname'];
+          })
+          ->addModel($this->getModel('country'))
+          ->addModel(
+            // Parent as forced virtual
+            $parentPersonModel = $this->getModel('person')->setVirtualFieldResult(true)
+              ->addVirtualField('person_fullname2', function($dataset) {
+                return $dataset['person_firstname'].' '.$dataset['person_lastname'];
+              })
+              ->setForceVirtualJoin(true)
+              ->addModel($this->getModel('country'))
+          )
+      )
+      ;
+
+    $customerModel->saveWithChildren([
+      'customer_no'     => 'COMPLEX1',
+      'customer_person' => [
+        'person_firstname'  => 'Johnny',
+        'person_lastname'   => 'Doenny',
+        'person_birthdate'  => '1950-04-01',
+        'person_country'    => 'AT',
+        'person_parent'     => [
+          'person_firstname'  => 'Johnnys',
+          'person_lastname'   => 'Father',
+          'person_birthdate'  => '1930-12-10',
+          'person_country'    => 'DE',
+        ]
+      ]
+    ]);
+
+    $customerId = $customerModel->lastInsertId();
+    $personId = $personModel->lastInsertId();
+    $parentPersonId = $parentPersonModel->lastInsertId();
+
+    $dataset = $customerModel->load($customerId);
+
+    $this->assertEquals('COMPLEX1', $dataset['customer_no']);
+    $this->assertEquals('Doenny', $dataset['customer_person']['person_lastname']);
+    $this->assertEquals('Austria', $dataset['customer_person']['country_name']);
+    $this->assertEquals('Father', $dataset['customer_person']['person_parent']['person_lastname']);
+    $this->assertEquals('Germany', $dataset['customer_person']['person_parent']['country_name']);
+
+    $this->assertEquals('Johnny Doenny', $dataset['customer_person']['person_fullname1']);
+    $this->assertEquals('Johnnys Father', $dataset['customer_person']['person_parent']['person_fullname2']);
+
+    // make sure there are no other fields on the root level
+    $intersect = array_intersect(array_keys($dataset), $customerModel->getFields());
+    $this->assertEmpty(array_diff(array_keys($dataset), $intersect));
+
+    $customerModel->delete($customerId);
+    $personModel->delete($personId);
+    $parentPersonModel->delete($parentPersonId);
+  }
+
+  /**
    * Joins a model (itself) recursively (as far as possible)
-   * @param string $modelName [description]
-   * @param int    $limit     [description]
+   * @param string $modelName           [model used for joining recursively]
+   * @param int    $limit               [amount of joins performed]
+   * @param bool   $virtualFieldResult  [whether to switch on vFieldResults by default]
    * @return \codename\core\model
    */
-  protected function joinRecursively(string $modelName, int $limit): \codename\core\model {
-    $model = $this->getModel($modelName);
+  protected function joinRecursively(string $modelName, int $limit, bool $virtualFieldResult = false): \codename\core\model {
+    $model = $this->getModel($modelName)->setVirtualFieldResult($virtualFieldResult);
     $currentModel = $model;
     for ($i=0; $i < $limit; $i++) {
-      $recurseModel = $this->getModel($modelName);
+      $recurseModel = $this->getModel($modelName)->setVirtualFieldResult($virtualFieldResult);
       $currentModel->addModel($recurseModel);
       $currentModel = $recurseModel;
     }
@@ -688,6 +838,134 @@ abstract class abstractModelTest extends base {
     // Try to max-out the join nesting limit (limit - 1)
     $model = $this->joinRecursively('person', $this->getJoinNestingLimit() - 1);
     $model->search()->getResult();
+  }
+
+  /**
+   * [testJoinNestingLimitMaxxedOutSaving description]
+   */
+  public function testJoinNestingLimitMaxxedOutSaving(): void {
+    $this->testJoinNestingLimit();
+  }
+
+  /**
+   * [testJoinNestingBypassLimitation1 description]
+   */
+  public function testJoinNestingBypassLimitation1(): void {
+    $this->testJoinNestingLimit(1);
+  }
+
+  /**
+   * [testJoinNestingBypassLimitation2 description]
+   */
+  public function testJoinNestingBypassLimitation2(): void {
+    $this->testJoinNestingLimit(2);
+  }
+
+  /**
+   * [testJoinNestingBypassLimitation3 description]
+   */
+  public function testJoinNestingBypassLimitation3(): void {
+    $this->testJoinNestingLimit(3);
+  }
+
+
+  /**
+   * [testJoinNestingLimit description]
+   * @param int|null $exceedLimit [description]
+   */
+  protected function testJoinNestingLimit(?int $exceedLimit = null): void {
+
+    $limit = $this->getJoinNestingLimit() - 1;
+
+    $model = $this->joinRecursively('person', $limit, true);
+
+    $deeperModel = null;
+    if($exceedLimit) {
+      $currentJoin = $model->getNestedJoins('person')[0] ?? null;
+      $deeplyNestedJoin = $currentJoin;
+      while($currentJoin !== null) {
+        $currentJoin = $currentJoin->model->getNestedJoins('person')[0] ?? null;
+        if($currentJoin) {
+          $deeplyNestedJoin = $currentJoin;
+        }
+      }
+      $deeperModel = $this->getModel('person')
+        ->setVirtualFieldResult(true)
+        ->setForceVirtualJoin(true);
+
+      $deeplyNestedJoin->model
+        ->addModel(
+          $deeperModel
+        );
+
+      if($exceedLimit > 1) {
+        // NOTE: joinRecursively returns at least 1 model instance
+        // as we already have one above, we now have to reduce by 2 (!)
+        $evenDeeperModel = $this->joinRecursively('person', $exceedLimit-2, true);
+        $deeperModel->addModel($evenDeeperModel);
+      }
+      $limit += $exceedLimit;
+    }
+
+
+    $dataset = null;
+    $savedExceeded = 0;
+
+    // $maxI = $limit + 1;
+    foreach(range($limit + 1, 1) as $i) {
+      $dataset = [
+        'person_firstname' => 'firstname'.$i,
+        'person_lastname'  => 'testJoinNestingLimitMaxxedOutSaving',
+        'person_parent'    => $dataset,
+      ];
+      if($exceedLimit && ($i > ($limit-$exceedLimit+1))) {
+        $dataset['person_country'] = 'DE';
+        $savedExceeded++;
+      }
+    }
+
+    $model->saveWithChildren($dataset);
+
+    $id = $model->lastInsertId();
+
+    $loadedDataset = $model->load($id);
+
+    // if we have a deeper model joined
+    // (see above) we verify we have those tiny modifications
+    // successfully saved
+    if($deeperModel) {
+      $deeperId = $deeperModel->lastInsertId();
+      $deeperDataset = $deeperModel->load($deeperId);
+
+      // print_r($deeperDataset);
+      $this->assertEquals($exceedLimit, $savedExceeded);
+
+      $diveDataset = $deeperDataset;
+      for ($i=0; $i < $savedExceeded; $i++) {
+        $this->assertEquals('DE', $diveDataset['person_country']);
+        $diveDataset = $diveDataset['person_parent'];
+      }
+    }
+
+    $this->assertEquals('firstname1', $loadedDataset['person_firstname']);
+
+    foreach(range(0, $limit) as $l) {
+      $path = array_fill(0, $l,'person_parent');
+      $childDataset = \codename\core\io\helper\deepaccess::get($dataset, $path);
+      $this->assertEquals('firstname'.($l + 1), $childDataset['person_firstname']);
+    }
+
+    $cnt = $this->getModel('person')
+      ->addFilter('person_lastname', 'testJoinNestingLimitMaxxedOutSaving')
+      ->getCount();
+    $this->assertEquals($limit + 1, $cnt);
+
+    $this->getModel('person')
+      ->addDefaultfilter('person_lastname','testJoinNestingLimitMaxxedOutSaving')
+      ->update([
+        'person_parent_id' => null
+      ])
+      ->delete();
   }
 
   /**
@@ -1045,7 +1323,8 @@ abstract class abstractModelTest extends base {
     // Assert both datasets are equal
     // $this->assertEquals($referenceDataset, $compareDataset);
     // NOTE: doesn't work right now, because:
-    $this->addWarning('Some bug when doing forced virtual joins and unjoined vfields exist');
+    // $this->addWarning('Some bug when doing forced virtual joins and unjoined vfields exist');
+    // NOTE/CHANGED 2021-04-13: fixed.
 
     // make sure to clean up
     $saveCustomerModel->delete($customerId);

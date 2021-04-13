@@ -515,6 +515,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // echo("</pre>");
       }
 
+      // CHANGED 2021-03-13: build static fieldlist for normalization
+      // reduces calls to various array functions
+      // AND: fixes hidden field handling for certain use cases
+      $currentFieldlist = $this->getInternalIntersectFieldlist();
+
       //
       // Normalize using this model's fields
       //
@@ -525,7 +530,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // - "structure"-type fields are not json_decode'd, if present on the root model
         // - ... other things?
         // NOTE: as of 2019-09-10 the normalization of structure fields has changed
-        $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeRow($this->normalizeByFieldlist($r)));
+        $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeRow($this->normalizeByFieldlist($r, $currentFieldlist)));
       }
 
       // \codename\core\app::getResponse()->setData('model_normalize_debug', array_merge(\codename\core\app::getResponse()->getData('model_normalize_debug') ?? [], $fResult));
@@ -540,16 +545,40 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * [normalizeByFieldlist description]
-     * @param  array $dataset [description]
+     * @param  array        $dataset    [description]
+     * @param  array|null   $fieldlist  [optional, new: static fieldlist]
      * @return array          [description]
      */
-    public function normalizeByFieldlist(array $dataset) : array {
-      if(count($this->fieldlist) > 0) {
+    public function normalizeByFieldlist(array $dataset, ?array $fieldlist = null) : array {
+      if($fieldlist) {
+        // CHANGED 2021-04-13: use provided fieldlist, see above
+        return array_intersect_key($dataset, $fieldlist);
+      } else if(count($this->fieldlist) > 0) {
         // return $dataset;
         return array_intersect_key( $dataset, array_flip( array_merge( $this->getFieldlistArray($this->fieldlist), $this->getFields(), array_keys($this->virtualFields) ) ) );
       } else {
         // return $dataset;
         return array_intersect_key( $dataset, array_flip( array_merge( $this->getFields(), array_keys($this->virtualFields)) ) );
+      }
+    }
+
+    /**
+     * returns the internal list of fields
+     * to be expected in the output and used via array intersection
+     * NOTE: the returned result array is flipped!
+     * @return array [description]
+     */
+    protected function getInternalIntersectFieldlist(): array {
+      $fields = $this->getFields();
+      if(count($this->hiddenFields) > 0) {
+        // remove hidden fields
+        $diff = array_diff($fields, $this->hiddenFields);
+        $fields = array_intersect($fields, $diff);
+      }
+      if(count($this->fieldlist) > 0) {
+        return array_flip( array_merge( $this->getFieldlistArray($this->fieldlist), $fields, array_keys($this->virtualFields) ) );
+      } else {
+        return array_flip( array_merge( $fields, array_keys($this->virtualFields)) );
       }
     }
 
@@ -671,7 +700,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           if($this->compatibleJoin($join->model)) {
             $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, $structureDive), $trackFields);
           } else {
-            $result = $join->model->getVirtualFieldResult($result);
+            //
+            // CHANGED 2021-04-13: kicked out, as it does not apply
+            // NOTE: we should keep an eye on this.
+            // At this point, we're not calling getVirtualFieldResult, as we either have
+            // - a completely different model technology
+            // - a forced virtual join
+            // - sth. else?
+            //
+            // >>> Those models handle their results for themselves.
+            //
+            // $result = $join->model->getVirtualFieldResult($result);
           }
         }
       }
@@ -682,16 +721,25 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       // instead of iterating over all vField/children-supporting models
       // We iterate over all models - as we have to handle mixed cases, too.
       //
-      foreach($this->getNestedJoins() as $join) {
+      // CHANGED 2021-04-13, we include $this (current model)
+      // to propage/include renormalization for root model
+      // (e.g. if joining the same model recursively)
+      //
+      $subjects = array_merge([$this], $this->getNestedJoins());
 
-        // Re-name/alias the current join model instance
-        $vModel = $join->model;
+      foreach($subjects as $join) {
+
+        $vModel = null;
         $virtualField = null;
-
-        if($this->virtualFieldResult) {
-          // TODO:
-          // handle $join->virtualField
-          $virtualField = $join->virtualField;
+        // Re-name/alias the current join model instance
+        if($join === $this) {
+          $vModel = $join; // this (model), root model renormalization
+        } else {
+          $vModel = $join->model;
+          if($this->virtualFieldResult) {
+            // handle $join->virtualField
+            $virtualField = $join->virtualField;
+          }
         }
 
         $index = null;
