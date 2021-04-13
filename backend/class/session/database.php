@@ -225,7 +225,8 @@ class database extends \codename\core\session implements \codename\core\session\
      */
     public function isDefined(string $key): bool
     {
-      return $this->sessionData->isDefined($key) || $this->sessionEntry->isDefined($key);
+      return ($this->sessionData && $this->sessionData->isDefined($key))
+        || ($this->sessionEntry && $this->sessionEntry->isDefined($key));
     }
 
     /**
