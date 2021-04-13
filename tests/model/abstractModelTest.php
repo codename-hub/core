@@ -484,6 +484,16 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testAddCalculatedFieldExistsWillFail description]
+   */
+  public function testAddCalculatedFieldExistsWillFail(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ADDCALCULATEDFIELD_FIELDALREADYEXISTS);
+    $this->getModel('testdata')
+      ->addCalculatedField('testdata_integer', '(1+1)');
+  }
+
+  /**
    * [testHideFieldSingle description]
    */
   public function testHideFieldSingle(): void {
@@ -715,6 +725,50 @@ abstract class abstractModelTest extends base {
     $dataset = $personModel->load($personId);
     $this->assertEquals(2, $dataset['calcfield']);
     $this->assertEquals(4, $dataset['person_parent']['calcfield']);
+
+    $personModel->delete($personId);
+    $parentPersonModel->delete($parentPersonId);
+  }
+
+  /**
+   * [testMixedModeVirtualFields description]
+   */
+  public function testRecursiveModelVirtualFieldDisabledWithAliasedFields(): void {
+    $personModel = $this->getModel('person')->setVirtualFieldResult(true)
+      ->hideAllFields()
+      ->addField('person_firstname')
+      ->addField('person_lastname')
+      ->addModel(
+        // Parent optionally as forced virtual
+        $parentPersonModel = $this->getModel('person')
+          ->hideAllFields()
+          ->addField('person_firstname', 'parent_firstname')
+          ->addField('person_lastname', 'parent_lastname')
+      );
+
+    $personModel->saveWithChildren([
+      'person_firstname'  => 'theFirstname',
+      'person_lastname'   => 'theLastName',
+      'person_parent' => [
+        'person_firstname'  => 'parentFirstname',
+        'person_lastname'   => 'parentLastName',
+      ]
+    ]);
+
+    // NOTE: Important, disable for the following step.
+    // (disabling vfields)
+    $personModel->setVirtualFieldResult(false);
+
+    $personId = $personModel->lastInsertId();
+    $parentPersonId = $parentPersonModel->lastInsertId();
+
+    $dataset = $personModel->load($personId);
+    $this->assertEquals([
+      'person_firstname'  => 'theFirstname',
+      'person_lastname'   => 'theLastName',
+      'parent_firstname'  => 'parentFirstname',
+      'parent_lastname'   => 'parentLastName',
+    ], $dataset);
 
     $personModel->delete($personId);
     $parentPersonModel->delete($parentPersonId);
