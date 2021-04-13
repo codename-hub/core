@@ -25,7 +25,7 @@ class hex extends \codename\core\validator\text\color implements \codename\core\
       // HEX Color Regex
       // @see https://stackoverflow.com/questions/43706082/validation-hex-and-rgba-colors-using-regex-in-php
       // [a-zA-Z0-9]{6}
-      $regexp = '/^[a-zA-Z0-9]{6}/';
+      $regexp = '/^[a-zA-Z0-9]{6}$/';
       $isValid = (bool) preg_match($regexp, $value);
 
       if($isValid !== true) {
