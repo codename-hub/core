@@ -1429,7 +1429,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // As this crashes queries using pre-set schema names
         $mainAlias = null;
         if($tableUsage["{$this->schema}.{$this->table}"] > 1) {
-          $mainAlias = "{$this->schema}.{$this->table}";
+          $mainAlias = $this->getTableIdentifier();
         }
 
         $query .= $this->getFilterQuery($params, $mainAlias);
