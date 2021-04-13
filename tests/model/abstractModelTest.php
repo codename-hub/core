@@ -688,6 +688,39 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests equally named fields in a joined model
+   * to be re-normalized correctly
+   * NOTE: this is SQL syntax and might be erroneous on non-sql models
+   */
+  public function testSameNamedCalculatedFieldsInVirtualFieldResults(): void {
+    $personModel = $this->getModel('person')->setVirtualFieldResult(true)
+      ->addCalculatedField('calcfield', '(1+1)')
+      ->addModel(
+        $parentPersonModel = $this->getModel('person')->setVirtualFieldResult(true)
+          ->addCalculatedField('calcfield', '(2+2)')
+      );
+
+    $personModel->saveWithChildren([
+      'person_firstname'  => 'theFirstname',
+      'person_lastname'   => 'theLastName',
+      'person_parent' => [
+        'person_firstname'  => 'parentFirstname',
+        'person_lastname'   => 'parentLastName',
+      ]
+    ]);
+
+    $personId = $personModel->lastInsertId();
+    $parentPersonId = $parentPersonModel->lastInsertId();
+
+    $dataset = $personModel->load($personId);
+    $this->assertEquals(2, $dataset['calcfield']);
+    $this->assertEquals(4, $dataset['person_parent']['calcfield']);
+
+    $personModel->delete($personId);
+    $parentPersonModel->delete($parentPersonId);
+  }
+
+  /**
    * Tests a complex case of joining and model renormalization
    * (e.g. recursive models joined, but different fieldlists!)
    * In this case, a forced virtual join comes in-between.
@@ -734,6 +767,23 @@ abstract class abstractModelTest extends base {
 
     $this->assertArrayNotHasKey('person_lastname', $dataset);
     $this->assertArrayNotHasKey('person_firstname', $dataset['person_parent']);
+
+    // re-add the hidden fields aliased
+    $personModel->addField('person_lastname', 'aliased_lastname');
+    $parentPersonModel->addField('person_firstname', 'aliased_firstname');
+    $dataset = $personModel->load($personId);
+    $this->assertEquals('theLastName', $dataset['aliased_lastname']);
+    $this->assertEquals('parentFirstname', $dataset['person_parent']['aliased_firstname']);
+
+    // add the alias fields to the respective other models
+    // (aliased vfield renormalization)
+    $parentPersonModel->addField('person_lastname', 'aliased_lastname');
+    $personModel->addField('person_firstname', 'aliased_firstname');
+    $dataset = $personModel->load($personId);
+    $this->assertEquals('theFirstname', $dataset['aliased_firstname']);
+    $this->assertEquals('theLastName', $dataset['aliased_lastname']);
+    $this->assertEquals('parentFirstname', $dataset['person_parent']['aliased_firstname']);
+    $this->assertEquals('parentLastName', $dataset['person_parent']['aliased_lastname']);
 
     $personModel->delete($personId);
     $parentPersonModel->delete($parentPersonId);
