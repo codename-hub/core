@@ -25,10 +25,6 @@ class date extends \codename\core\validator\text implements \codename\core\valid
             return $this->errorstack->getErrors();
         }
 
-        if(strlen($value) == 0) {
-            return $this->errorstack->getErrors();
-        }
-        
         $datearr = explode('-', $value);
         
         if(count($datearr) != 3) {

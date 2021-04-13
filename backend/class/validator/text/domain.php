@@ -31,10 +31,6 @@ class domain extends \codename\core\validator\text implements \codename\core\val
             return $this->errorstack->getErrors();
         }
 
-        if(strlen($value) == 0) {
-            return $this->errorstack->getErrors();
-        }
-
         $domainarr = explode('.', $value);
 
         if(count($domainarr) < 2) {

@@ -30,7 +30,7 @@ class relative extends \codename\core\validator\text {
             return $this->errorstack->getErrors();
         }
 
-        if(strpos($value, '/') === strlen($value) - 1) {
+        if(substr($value, -1) === '/') {
             $this->errorstack->addError('VALUE', 'MUST_NOT_END_WITH_SLASH', $value);
             return $this->errorstack->getErrors();
         }

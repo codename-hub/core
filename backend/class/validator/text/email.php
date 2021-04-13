@@ -50,11 +50,6 @@ class email extends \codename\core\validator\text implements \codename\core\vali
             return $this->errorstack->getErrors();
         }
 
-        if (filter_var($value, FILTER_VALIDATE_EMAIL) === false) {
-          $this->errorstack->addError('VALUE', 'EMAIL_INVALID', $value);
-          return $this->errorstack->getErrors();
-        }
-
         $address = explode('@', $value);
 
         if(count($address) != 2) {
@@ -70,6 +65,11 @@ class email extends \codename\core\validator\text implements \codename\core\vali
         if(in_array($address[1], $this->forbiddenHosts)) {
             $this->errorstack->addError('VALUE', 'EMAIL_DOMAIN_BLOCKED', $value);
             return $this->errorstack->getErrors();
+        }
+
+        if (filter_var($value, FILTER_VALIDATE_EMAIL) === false) {
+          $this->errorstack->addError('VALUE', 'EMAIL_INVALID', $value);
+          return $this->errorstack->getErrors();
         }
 
         return $this->errorstack->getErrors();

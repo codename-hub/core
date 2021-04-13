@@ -1,14 +1,14 @@
 <?php
-namespace codename\core\tests\validator\text;
+namespace codename\core\tests\validator\text\color;
 
 use \codename\core\app;
 
 /**
- * I will test the BIC validator
+ * I will test the hex validator
  * @package codename\core
  * @since 2016-11-02
  */
-class bic extends \codename\core\tests\validator\text {
+class hex extends \codename\core\tests\validator\text {
 
     /**
      * Testing validators for Erors
@@ -31,15 +31,15 @@ class bic extends \codename\core\tests\validator\text {
      * @return void
      */
     public function testValueInvalidchars() {
-        $this->assertEquals('VALIDATION.STRING_CONTAINS_INVALID_CHARACTERS', $this->getValidator()->validate('*AASDASDASD')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.STRING_CONTAINS_INVALID_CHARACTERS', $this->getValidator()->validate('*ASDASD')[0]['__CODE'] );
     }
 
     /**
      * Testing validators for Erors
      * @return void
      */
-    public function testValueInvalidScheme() {
-        $this->assertEquals('VALIDATION.VALUE_NOT_A_BIC', $this->getValidator()->validate('12345678901')[0]['__CODE'] );
+    public function testValueInvalidHexString() {
+        $this->assertEquals('VALIDATION.VALUE_NOT_HEX_STRING', $this->getValidator()->validate('#ABCDEF')[0]['__CODE'] );
     }
 
     /**
@@ -47,7 +47,7 @@ class bic extends \codename\core\tests\validator\text {
      * @return void
      */
     public function testValueValid() {
-        $this->assertEmpty($this->getValidator()->validate('GENODEF1BEB'));
+        $this->assertEmpty($this->getValidator()->validate('AABBCC'));
     }
 
 }
