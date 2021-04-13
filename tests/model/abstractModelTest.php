@@ -664,6 +664,83 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testInnerJoinRegular description]
+   */
+  public function testInnerJoinRegular(): void {
+    $this->testInnerJoin(false);
+  }
+
+  /**
+   * [testInnerJoinForcedVirtualJoin description]
+   */
+  public function testInnerJoinForcedVirtualJoin(): void {
+    $this->testInnerJoin(true);
+  }
+
+  /**
+   * [testInnerJoin description]
+   * @param bool $forceVirtualJoin [description]
+   */
+  protected function testInnerJoin(bool $forceVirtualJoin): void {
+    $customerModel = $this->getModel('customer')->setVirtualFieldResult(true)
+      ->addModel(
+        $personModel = $this->getModel('person')->setVirtualFieldResult(true)
+      );
+
+    $customerIds = [];
+    $personIds = [];
+
+    $customerModel->saveWithChildren([
+      'customer_no'     => 'join1',
+      'customer_person' => [
+        'person_firstname'  => 'Some',
+        'person_lastname'   => 'Join',
+      ]
+    ]);
+
+    $customerIds[] = $customerModel->lastInsertId();
+    $personIds[] = $personModel->lastInsertId();
+
+    $customerModel->saveWithChildren([
+      'customer_no'     => 'join2',
+      'customer_person' => null
+    ]);
+
+    $customerIds[] = $customerModel->lastInsertId();
+    $personIds[] = $personModel->lastInsertId();
+
+    $personModel->save([
+      'person_firstname' => 'extra',
+      'person_lastname' => 'person',
+    ]);
+    $personIds[] = $personModel->lastInsertId();
+
+    $innerJoinModel = $this->getModel('customer')->setVirtualFieldResult(true)
+      ->addModel(
+        $this->getModel('person')
+          ->setVirtualFieldResult(true)
+          ->setForceVirtualJoin($forceVirtualJoin),
+        \codename\core\model\plugin\join::TYPE_INNER
+      );
+
+    // make sure to only find one result
+    // (one entry that has both datasets)
+    $innerJoinRes = $innerJoinModel->search()->getResult();
+    $this->assertCount(1, $innerJoinRes);
+
+    // compare to regular result (left join)
+    $res = $customerModel->search()->getResult();
+    $this->assertCount(2, $res);
+
+    foreach($customerIds as $id) {
+      $customerModel->delete($id);
+    }
+    foreach($personIds as $id) {
+      $personModel->delete($id);
+    }
+  }
+
+  /**
    * Tests a special case of model renormalization
    * no virtual field results enabled, two models on same nesting level (root)
    * with one or more hidden fields (each?)

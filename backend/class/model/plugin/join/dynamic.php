@@ -73,7 +73,12 @@ class dynamic extends \codename\core\model\plugin\join implements dynamicJoinInt
       } else {
         // In case of empty FKEY value
         // simply output the base result without added data
-        $newResult[] = $baseResultRow;
+        // at least, if it's a LEFT join
+        if($this->type === static::TYPE_INNER) {
+          // NONE !
+        } else {
+          $newResult[] = $baseResultRow;
+        }
       }
     }
 
