@@ -32,7 +32,7 @@ class local extends \codename\core\validator\structure\config\bucket implements 
             return $this->errorstack->getErrors();
         }
 
-        if(isset($value['public']) && !array_key_exists('baseurl', $value)) {
+        if(isset($value['public']) && $value['public'] && !array_key_exists('baseurl', $value)) {
             $this->errorstack->addError('VALUE', 'BASEURL_NOT_FOUND');
             return $this->errorstack->getErrors();
         }
