@@ -36,12 +36,31 @@ abstract class translate implements \codename\core\translate\translateInterface 
      * @see \codename\core\translate_interface::translate($key, $data)
      */
     public function translate(string $key, array $data = array()) : string {
-        $text = app::getCache()->get('TRANSLATION_' . app::getApp() . '_' . $this->getPrefix() . '_', $key);
+        $cacheGroup = 'TRANSLATION_' . app::getApp() . '_' . $this->getPrefix() . '_';
+        $text = $this->cachedTranslations[$cacheGroup.$key] ?? null;
+
+        if($text) {
+          return $text;
+        } else {
+          $text = app::getCache()->get($cacheGroup, $key);
+          if($text) {
+            $this->cachedTranslations[$cacheGroup.$key] = $text;
+          }
+        }
+
         if(strlen($text) > 0) {
             return $text;
         }
-        app::getCache()->set('TRANSLATION_' . app::getApp() . '_' . $this->getPrefix() . '_', $key, $text = $this->getTranslation($key));
+
+        app::getCache()->set($cacheGroup, $key, $text = $this->getTranslation($key));
+        $this->cachedTranslations[$cacheGroup.$key] = $text;
         return $text;
     }
+
+    /**
+     * [protected description]
+     * @var string[]
+     */
+    protected $cachedTranslations = [];
 
 }
