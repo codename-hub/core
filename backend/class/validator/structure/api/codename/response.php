@@ -24,13 +24,15 @@ class response extends \codename\core\validator\structure\api\codename implement
      * @see \codename\core\validator_interface::validate($value)
      */
     public function validate($value) : array {
-        parent::validate($value);
-
-        if(count($this->errorstack->getErrors()) > 0) {
+        if(count(parent::validate($value)) != 0) {
             return $this->errorstack->getErrors();
         }
 
-        if(count($errors = app::getValidator('number_natural')->validate($value['success'])) > 0) {
+        if(is_null($value)) {
+            return $this->errorstack->getErrors();
+        }
+
+        if(count($errors = app::getValidator('number_natural')->reset()->validate($value['success'])) > 0) {
             $this->errorstack->addError('VALUE', 'INVALID_SUCCESS_IDENTIFIER', $errors);
             return $this->errorstack->getErrors();
         }
