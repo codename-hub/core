@@ -35,7 +35,7 @@ class sftp extends \codename\core\validator\structure\config\bucket implements \
             return $this->errorstack->getErrors();
         }
 
-        if(count($errors = app::getValidator('structure_config_sftp')->validate($value['sftpserver'])) > 0) {
+        if(count($errors = app::getValidator('structure_config_sftp')->reset()->validate($value['sftpserver'])) > 0) {
             $this->errorstack->addError('VALUE', 'SFTP_CONTAINER_INVALID', $errors);
             return $this->errorstack->getErrors();
         }

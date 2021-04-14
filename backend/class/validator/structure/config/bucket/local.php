@@ -19,17 +19,20 @@ class local extends \codename\core\validator\structure\config\bucket implements 
      * @see \codename\core\validator_interface::validate($value)
      */
     public function validate($value) : array {
-        parent::validate($value);
-        if(count($this->errorstack->getErrors()) > 0) {
+        if(count(parent::validate($value)) != 0) {
             return $this->errorstack->getErrors();
         }
-        
-        if(!is_bool($value['public'])) {
+
+        if(is_null($value)) {
+            return $this->errorstack->getErrors();
+        }
+
+        if(isset($value['public']) && !is_bool($value['public'])) {
             $this->errorstack->addError('VALUE', 'PUBLIC_KEY_NOT_FOUND');
             return $this->errorstack->getErrors();
         }
-        
-        if($value['public'] && !array_key_exists('baseurl', $value)) {
+
+        if(isset($value['public']) && !array_key_exists('baseurl', $value)) {
             $this->errorstack->addError('VALUE', 'BASEURL_NOT_FOUND');
             return $this->errorstack->getErrors();
         }
