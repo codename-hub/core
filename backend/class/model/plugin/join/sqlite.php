@@ -20,9 +20,8 @@ class sqlite extends \codename\core\model\plugin\join {
       case self::TYPE_LEFT:
         return 'LEFT JOIN';
       case self::TYPE_RIGHT:
-        return 'RIGHT JOIN';
       case self::TYPE_FULL:
-        // not supported on MySQL
+        // not supported on SQLite
         throw new exception('EXCEPTION_MODEL_PLUGIN_JOIN_SQLITE_INVALID_JOIN_TYPE', exception::$ERRORLEVEL_ERROR, $this->type);
       case self::TYPE_INNER:
         return 'INNER JOIN';
