@@ -10,15 +10,18 @@ class cart extends \codename\core\validator\structure implements \codename\core\
      * @see \codename\core\validator_interface::validate($value)
      */
     public function validate($value) : array {
-        parent::validate($value);
+        if(count(parent::validate($value)) != 0) {
+            return $this->errorstack->getErrors();
+        }
 
-        if(count($this->errorstack->getErrors()) > 0) {
+        if(is_null($value)) {
             return $this->errorstack->getErrors();
         }
 
         foreach($value as $product) {
             if(count($errors = app::getValidator('structure_product')->validate($product)) > 0) {
                 $this->errorstack->addError('VALUE', 'INVALID_PRODUCT_FOUND', $errors);
+                break;
             }
         }
 

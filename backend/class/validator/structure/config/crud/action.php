@@ -21,9 +21,19 @@ class action extends \codename\core\validator\structure\config\crud implements \
     );
 
     /**
-     * @todo DOCUMENTATION
+     *
+     * {@inheritDoc}
+     * @see \codename\core\validator_interface::validate($value)
      */
     public function validate($value) : array {
+        if(count(parent::validate($value)) != 0) {
+            return $this->errorstack->getErrors();
+        }
+
+        if(is_null($value)) {
+            return $this->errorstack->getErrors();
+        }
+
         $this->checkKeys($value);
 
         return $this->errorstack->getErrors();
