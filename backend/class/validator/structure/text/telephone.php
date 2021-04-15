@@ -28,7 +28,13 @@ class telephone extends \codename\core\validator\structure
    */
   public function validate($value) : array
   {
-    parent::validate($value);
+    if(count(parent::validate($value)) != 0) {
+        return $this->errorstack->getErrors();
+    }
+
+    if(is_null($value)) {
+        return $this->errorstack->getErrors();
+    }
 
     if(is_array($value)) {
       foreach($value as $phoneNumber) {
