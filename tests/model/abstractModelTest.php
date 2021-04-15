@@ -86,9 +86,17 @@ abstract class abstractModelTest extends base {
         'testdata_integer',
         'testdata_boolean',
         'testdata_structure',
+        'testdata_details_id',
       ],
       'primary' => [
         'testdata_id'
+      ],
+      'foreign' => [
+        'testdata_details_id' => [
+          'schema'  => 'testschema',
+          'model'   => 'details',
+          'key'     => 'details_id'
+        ]
       ],
       'options' => [
         'testdata_number' => [
@@ -101,12 +109,34 @@ abstract class abstractModelTest extends base {
         'testdata_created'  => 'text_timestamp',
         'testdata_modified' => 'text_timestamp',
         'testdata_datetime' => 'text_timestamp',
+        'testdata_details_id' => 'number_natural',
         'testdata_text'     => 'text',
         'testdata_date'     => 'text_date',
         'testdata_number'   => 'number',
         'testdata_integer'  => 'number_natural',
         'testdata_boolean'  => 'boolean',
         'testdata_structure'=> 'structure',
+      ],
+      'connection' => 'default'
+    ]);
+
+    static::createModel('testschema', 'details', [
+      'field' => [
+        'details_id',
+        'details_created',
+        'details_modified',
+        'details_data',
+        'details_virtual',
+      ],
+      'primary' => [
+        'details_id'
+      ],
+      'datatype' => [
+        'details_id'       => 'number_natural',
+        'details_created'  => 'text_timestamp',
+        'details_modified' => 'text_timestamp',
+        'details_data'     => 'structure',
+        'details_virtual'  => 'virtual',
       ],
       'connection' => 'default'
     ]);
@@ -580,6 +610,331 @@ abstract class abstractModelTest extends base {
       // Make sure 'aliased_field' is the one and only field in the result datasets
       $this->assertArrayHasKey('aliased_field', $r);
       $this->assertEquals([ 'aliased_field' ], array_keys($r));
+    }
+  }
+
+  /**
+   * [testSimpleModelJoin description]
+   */
+  public function testSimpleModelJoin(): void {
+    $model = $this->getModel('testdata')
+      ->addModel($detailsModel = $this->getModel('details'));
+
+    $originalDataset = [
+      'testdata_number' => 3.3,
+      'testdata_text'   => 'some_dataset',
+    ];
+
+    $detailsModel->save([
+      'details_data' => $originalDataset,
+    ]);
+    $detailsId = $detailsModel->lastInsertId();
+
+    $model->save(array_merge(
+      $originalDataset, [ 'testdata_details_id' => $detailsId ]
+    ));
+    $id = $model->lastInsertId();
+
+    $dataset = $model->load($id);
+    $this->assertEquals($originalDataset, $dataset['details_data']);
+
+    foreach($detailsModel->getFields() as $field) {
+      if($detailsModel->getConfig()->get('datatype>'.$field) == 'virtual') {
+        // In this case, no vfields/handler, expect it to NOT appear.
+        $this->assertArrayNotHasKey($field, $dataset);
+      } else {
+        $this->assertArrayHasKey($field, $dataset);
+      }
+    }
+    foreach($model->getFields() as $field) {
+      $this->assertArrayHasKey($field, $dataset);
+    }
+
+    $model->delete($id);
+    $detailsModel->delete($detailsId);
+  }
+
+  /**
+   * [testSimpleModelJoinWithVirtualFields description]
+   */
+  public function testSimpleModelJoinWithVirtualFields(): void {
+    $model = $this->getModel('testdata')->setVirtualFieldResult(true)
+      ->addModel($detailsModel = $this->getModel('details'));
+
+    $originalDataset = [
+      'testdata_number' => 3.3,
+      'testdata_text'   => 'some_dataset',
+    ];
+
+    $detailsModel->save([
+      'details_data' => $originalDataset,
+    ]);
+    $detailsId = $detailsModel->lastInsertId();
+
+    $model->save(array_merge(
+      $originalDataset, [ 'testdata_details_id' => $detailsId ]
+    ));
+    $id = $model->lastInsertId();
+
+    $dataset = $model->load($id);
+
+    $this->assertEquals($originalDataset, $dataset['details_data']);
+
+    foreach($detailsModel->getFields() as $field) {
+      if($detailsModel->getConfig()->get('datatype>'.$field) == 'virtual') {
+        // In this case, no vfields/handler, expect it to NOT appear.
+        $this->assertArrayNotHasKey($field, $dataset);
+      } else {
+        $this->assertArrayHasKey($field, $dataset);
+      }
+    }
+    foreach($model->getFields() as $field) {
+      $this->assertArrayHasKey($field, $dataset);
+    }
+
+    // modify some model details
+    $model->hideField('testdata_id');
+    $detailsModel->hideField('details_created');
+    $model->addField('testdata_id', 'root_level_alias');
+    $detailsModel->addField('details_id', 'nested_alias');
+
+    $dataset = $model->load($id);
+
+    $this->assertArrayNotHasKey('testdata_id', $dataset);
+    $this->assertArrayNotHasKey('details_created', $dataset);
+    $this->assertArrayHasKey('root_level_alias', $dataset);
+    $this->assertArrayHasKey('nested_alias', $dataset);
+
+    $this->assertEquals($id, $dataset['root_level_alias']);
+    $this->assertEquals($detailsId, $dataset['nested_alias']);
+
+    $model->delete($id);
+    $detailsModel->delete($detailsId);
+  }
+
+  /**
+   * [testConditionalJoin description]
+   * @return void
+   */
+  public function testConditionalJoin(): void {
+    $customerModel = $this->getModel('customer')->setVirtualFieldResult(true)
+      ->addModel(
+        $personModel = $this->getModel('person')->setVirtualFieldResult(true)
+      );
+
+    $customerIds = [];
+    $personIds = [];
+
+    $datasets = [
+      [
+        'customer_no' => 'A1000',
+        'customer_person' => [
+          'person_country'   => 'AT',
+          'person_firstname' => 'Alex',
+          'person_lastname'  => 'Anderson',
+          'person_birthdate' => '1978-02-03',
+        ],
+      ],
+      [
+        'customer_no' => 'A1001',
+        'customer_person' => [
+          'person_country'   => 'AT',
+          'person_firstname' => 'Bridget',
+          'person_lastname'  => 'Balmer',
+          'person_birthdate' => '1981-11-15',
+        ],
+      ],
+      [
+        'customer_no' => 'A1002',
+        'customer_person' => [
+          'person_country'   => 'DE',
+          'person_firstname' => 'Christian',
+          'person_lastname'  => 'Crossback',
+          'person_birthdate' => '1990-04-19',
+        ],
+      ],
+      [
+        'customer_no' => 'A1003',
+        'customer_person' => [
+          'person_country'   => 'DE',
+          'person_firstname' => 'Dodgy',
+          'person_lastname'  => 'Data',
+          'person_birthdate' => null,
+        ],
+      ]
+    ];
+
+    foreach($datasets as $d) {
+      $customerModel->saveWithChildren($d);
+      $customerIds[] = $customerModel->lastInsertId();
+      $personIds[] = $personModel->lastInsertId();
+    }
+
+    // w/o model_name + double conditions
+    $model = $this->getModel('customer')
+      ->addCustomJoin(
+        $this->getModel('person'),
+        \codename\core\model\plugin\join::TYPE_LEFT,
+        'customer_person_id',
+        'person_id',
+        [
+          // will default to the higher-level model
+          [ 'field' => 'customer_no', 'operator' => '>=', 'value' => '\'A1001\'' ],
+          [ 'field' => 'customer_no', 'operator' => '<=', 'value' => '\'A1002\'' ],
+        ]
+      );
+    $model->addOrder('customer_no', 'ASC'); // make sure to have the right order, see below
+    $model->saveLastQuery = true;
+    $res = $model->search()->getResult();
+    $this->assertCount(4, $res);
+    $this->assertEquals([null, 'AT', 'DE', null], array_column($res, 'person_country'));
+
+    // using model_name
+    $model = $this->getModel('customer')
+      ->addCustomJoin(
+        $this->getModel('person'),
+        \codename\core\model\plugin\join::TYPE_LEFT,
+        'customer_person_id',
+        'person_id',
+        [
+          [ 'model_name' => 'person', 'field' => 'person_country', 'operator' => '=', 'value' => '\'DE\'' ],
+        ]
+      );
+    $model->addOrder('customer_no', 'ASC'); // make sure to have the right order, see below
+    $model->saveLastQuery = true;
+    $res = $model->search()->getResult();
+    $this->assertCount(4, $res);
+    $this->assertEquals([null, null, 'DE','DE'], array_column($res, 'person_country'));
+
+    // null value condition
+    $model = $this->getModel('customer')
+      ->addCustomJoin(
+        $this->getModel('person'),
+        \codename\core\model\plugin\join::TYPE_LEFT,
+        'customer_person_id',
+        'person_id',
+        [
+          [ 'model_name' => 'person', 'field' => 'person_birthdate', 'operator' => '=', 'value' => null ],
+        ]
+      );
+    $model->addOrder('customer_no', 'ASC'); // make sure to have the right order, see below
+    $model->saveLastQuery = true;
+    $res = $model->search()->getResult();
+    $this->assertCount(4, $res);
+    $this->assertEquals([null, null, null,'DE'], array_column($res, 'person_country'));
+
+
+    foreach($customerIds as $id) {
+      $customerModel->delete($id);
+    }
+    foreach($personIds as $id) {
+      $personModel->delete($id);
+    }
+  }
+
+  /**
+   * [testConditionalJoinFail description]
+   */
+  public function testConditionalJoinFail(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage('INVALID_JOIN_CONDITION_MODEL_NAME');
+    $model = $this->getModel('customer')
+      ->addCustomJoin(
+        $this->getModel('person'),
+        \codename\core\model\plugin\join::TYPE_LEFT,
+        'customer_person_id',
+        'person_id',
+        [
+          // non-associated model...
+          [ 'model_name' => 'testdata', 'field' => 'testdata_number', 'operator' => '!=', 'value' => null ],
+        ]
+      );
+    $model->addOrder('customer_no', 'ASC'); // make sure to have the right order, see below
+    $model->saveLastQuery = true;
+    $res = $model->search()->getResult();
+  }
+
+  /**
+   * [testReverseJoin description]
+   */
+  public function testReverseJoinEquality(): void {
+    $customerModel = $this->getModel('customer')->setVirtualFieldResult(true)
+      ->addModel(
+        $personModel = $this->getModel('person')->setVirtualFieldResult(true)
+      );
+
+    $customerIds = [];
+    $personIds = [];
+
+    $datasets = [
+      [
+        'customer_no' => 'A1000',
+        'customer_person' => [
+          'person_country'   => 'AT',
+          'person_firstname' => 'Alex',
+          'person_lastname'  => 'Anderson',
+          'person_birthdate' => '1978-02-03',
+        ],
+      ],
+      [
+        'customer_no' => 'A1001',
+        'customer_person' => [
+          'person_country'   => 'AT',
+          'person_firstname' => 'Bridget',
+          'person_lastname'  => 'Balmer',
+          'person_birthdate' => '1981-11-15',
+        ],
+      ],
+      [
+        'customer_no' => 'A1002',
+        'customer_person' => [
+          'person_country'   => 'DE',
+          'person_firstname' => 'Christian',
+          'person_lastname'  => 'Crossback',
+          'person_birthdate' => '1990-04-19',
+        ],
+      ],
+      [
+        'customer_no' => 'A1003',
+        'customer_person' => [
+          'person_country'   => 'DE',
+          'person_firstname' => 'Dodgy',
+          'person_lastname'  => 'Data',
+          'person_birthdate' => null,
+        ],
+      ]
+    ];
+
+    foreach($datasets as $d) {
+      $customerModel->saveWithChildren($d);
+      $customerIds[] = $customerModel->lastInsertId();
+      $personIds[] = $personModel->lastInsertId();
+    }
+
+    //
+    // Create two models:
+    // one      customer->person
+    // and one  person->customer
+    // - as long as we don't have much more data in it
+    // this must match.
+    // TODO: test multijoin aliases
+    //
+    $forwardJoinModel = $this->getModel('customer')
+      ->addModel($this->getModel('person'));
+    $resForward = $forwardJoinModel->search()->getResult();
+
+    $reverseJoinModel = $this->getModel('person')
+      ->addModel($this->getModel('customer'));
+    $resReverse = $reverseJoinModel->search()->getResult();
+
+    $this->assertCount(4, $resForward);
+    $this->assertEquals($resForward, $resReverse);
+
+    foreach($customerIds as $id) {
+      $customerModel->delete($id);
+    }
+    foreach($personIds as $id) {
+      $personModel->delete($id);
     }
   }
 
@@ -1613,6 +1968,77 @@ abstract class abstractModelTest extends base {
     // Make sure it hasn't changed
     $this->assertEquals(4, $testTransactionModel->getCount());
   }
+
+  /**
+   * [testOrderLimitOffset description]
+   */
+  public function testNestedOrder(): void {
+    // Generic model features
+    // Offset [& Limit & Order]
+    $customerModel = $this->getModel('customer')->setVirtualFieldResult(true)
+      ->addModel($personModel = $this->getModel('person')->setVirtualFieldResult(true));
+
+    $customerIds = [];
+    $personIds = [];
+
+    $datasets = [
+      [
+        'customer_no' => 'A1000',
+        'customer_person' => [
+          'person_firstname' => 'Alex',
+          'person_lastname'  => 'Anderson',
+          'person_birthdate' => '1978-02-03',
+        ],
+      ],
+      [
+        'customer_no' => 'A1001',
+        'customer_person' => [
+          'person_firstname' => 'Bridget',
+          'person_lastname'  => 'Balmer',
+          'person_birthdate' => '1981-11-15',
+        ],
+      ],
+      [
+        'customer_no' => 'A1002',
+        'customer_person' => [
+          'person_firstname' => 'Christian',
+          'person_lastname'  => 'Crossback',
+          'person_birthdate' => '1990-04-19',
+        ],
+      ],
+      [
+        'customer_no' => 'A1003',
+        'customer_person' => [
+          'person_firstname' => 'Dodgy',
+          'person_lastname'  => 'Data',
+          'person_birthdate' => null,
+        ],
+      ]
+    ];
+
+    foreach($datasets as $d) {
+      $customerModel->saveWithChildren($d);
+      $customerIds[] = $customerModel->lastInsertId();
+      $personIds[] = $personModel->lastInsertId();
+    }
+
+    $customerModel->addOrder('person.person_birthdate', 'DESC');
+    $res = $customerModel->search()->getResult();
+
+    $this->assertEquals([ 'A1002', 'A1001', 'A1000', 'A1003' ], array_column($res, 'customer_no'));
+    $this->assertEquals([ 'Christian', 'Bridget', 'Alex', 'Dodgy' ], array_map(function($dataset) {
+      return $dataset['customer_person']['person_firstname'];
+    }, $res));
+
+    // cleanup
+    foreach($customerIds as $id) {
+      $customerModel->delete($id);
+    }
+    foreach($personIds as $id) {
+      $personModel->delete($id);
+    }
+  }
+
 
   /**
    * [testOrderLimitOffset description]
