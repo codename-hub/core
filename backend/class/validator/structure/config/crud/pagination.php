@@ -1,12 +1,14 @@
 <?php
 namespace codename\core\validator\structure\config\crud;
 
+use codename\core\app;
+
 /**
  * Validating CRUD instance configurations
  * @package core
  * @since 2016-04-28
  */
-class pagination extends \codename\core\validator\structure\config\crud implements \codename\core\validator\validatorInterface {
+class pagination extends \codename\core\validator\structure\config implements \codename\core\validator\validatorInterface {
 
     /**
      * Contains a list of array keys that MUST exist in the validated array
@@ -22,13 +24,15 @@ class pagination extends \codename\core\validator\structure\config\crud implemen
      * @see \codename\core\validator_interface::validate($value)
      */
     public function validate($value) : array {
-        parent::validate($value);
-        
-        if(count($this->errorstack->getErrors()) > 0) {
+        if(count(parent::validate($value)) != 0) {
             return $this->errorstack->getErrors();
         }
-        
-        if(count(app::getValidator('number_natural')->validate($value['limit'])) > 0) {
+
+        if(is_null($value)) {
+            return $this->errorstack->getErrors();
+        }
+
+        if(count($errors = app::getValidator('number_natural')->reset()->validate($value['limit'])) > 0) {
             $this->errorstack->addError('VALUE', 'INVALID_LIMIT', $errors);
             return $this->errorstack->getErrors();
         }
