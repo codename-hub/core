@@ -48,6 +48,8 @@ class datacontainerTest extends base {
 
     $datacontainer->setData('string', 'ghi');
     $datacontainer->unsetData('nested2');
+    $datacontainer->unsetData('');
+    $datacontainer->unsetData('fake');
 
     $this->assertEquals([
       'string'  => 'ghi',
