@@ -145,6 +145,41 @@ class databaseTest extends abstractSessionTest {
     }
   }
 
+  /**
+   * [testInvalidateSession description]
+   */
+  public function testInvalidateSession(): void {
+    // Emulate an existing session
+    $this->emulateSession([
+      'identifier'  => 'some-valid-session',
+      'valid'       => true,
+    ]);
+
+    $this->assertTrue(app::getSession()->identify());
+
+    $this->assertNull(app::getSession()->invalidate('some-valid-session'));
+
+    $this->assertFalse(app::getSession()->identify());
+  }
+
+  /**
+   * [testInvalidateSession description]
+   */
+  public function testInvalidInvalidateSession(): void {
+
+    $this->expectException(\codename\core\exception::class);
+
+    // Emulate an existing session
+    $this->emulateSession([
+      'identifier'  => 'some-valid-session',
+      'valid'       => true,
+    ]);
+
+    $this->assertTrue(app::getSession()->identify());
+
+    $this->assertNull(app::getSession()->invalidate(null));
+  }
+
   // /**
   //  * @inheritDoc
   //  */

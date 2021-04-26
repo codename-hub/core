@@ -48,6 +48,7 @@ class cacheTest extends abstractSessionTest {
    */
   public function testInvalidSession(): void
   {
-    $this->markTestSkipped('Session invalid check not applicable for this session driver.');
+    $this->expectException(\LogicException::class);
+    app::getSession()->invalidate('example');
   }
 }
