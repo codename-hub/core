@@ -825,6 +825,21 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     }
 
     /**
+     * returns a custom base namespace, if desired
+     * (as a starting point for the current app)
+     * @return string|null
+     */
+    final public static function getNamespace() : ?string {
+      return static::$namespace ?? null;
+    }
+
+    /**
+     * overridden base namespace
+     * @var string
+     */
+    protected static $namespace = null;
+
+    /**
      * Returns the appstack of the instance. Can be used to load files by their existance (not my app? -> parent app? -> parent's parent...)
      * @return array
      */

@@ -136,6 +136,33 @@ class overrideableApp extends \codename\core\app {
   }
 
   /**
+   * Overrides the current app's name
+   * must stick to text_methodname
+   * @param string $app [description]
+   */
+  public static function __setApp(string $app) {
+    static::$app = new \codename\core\value\text\methodname($app);
+  }
+
+  /**
+   * Overrides the current app's vendor
+   * must stick to text_methodname
+   * @param string $vendor [description]
+   */
+  public static function __setVendor(string $vendor) {
+    static::$vendor = new \codename\core\value\text\methodname($vendor);
+  }
+
+  /**
+   * Overrides the current app's default namespace.
+   * Can also be used for resetting (NULL)
+   * @param string|null $namespace [description]
+   */
+  public static function __setNamespace(?string $namespace) {
+    static::$namespace = $namespace;
+  }
+
+  /**
    * [__injectApp description]
    * @param  array  $injectApp [description]
    * @return void
