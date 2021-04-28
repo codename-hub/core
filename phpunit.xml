@@ -1,5 +1,8 @@
 <?xml version="1.0"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="tests/autoload.php" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
+  <php>
+    <ini name="memory_limit" value="4G" />
+  </php>
   <coverage processUncoveredFiles="true">
     <include>
       <directory suffix=".php">backend/class/</directory>
@@ -11,6 +14,9 @@
   <testsuites>
     <testsuite name="all">
       <directory suffix=".php">tests</directory>
+    </testsuite>
+    <testsuite name="lifecycle">
+      <directory suffix=".php">tests/lifecycle</directory>
     </testsuite>
     <testsuite name="bucket">
       <directory suffix=".php">tests/bucket</directory>

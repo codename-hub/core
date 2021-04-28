@@ -15,9 +15,13 @@ abstract class base extends \PHPUnit\Framework\TestCase {
    */
   public static function tearDownAfterClass(): void
   {
+    // overrideableApp now allows resetting all stuff
+    // with one method call
+    overrideableApp::reset();
+
     // Reset instances to cleanup possible clients
     // e.g. database connections
-    $_REQUEST['instances'] = [];
+    // $_REQUEST['instances'] = [];
   }
 
   /**
@@ -136,6 +140,18 @@ class overrideableApp extends \codename\core\app {
   }
 
   /**
+   * resets the app instance
+   */
+  public static function reset(): void {
+    static::$app = null;
+    static::$vendor = null;
+    static::$namespace = null;
+    // static::$instances = [];
+    static::$instance = null;
+    $_REQUEST['instances'] = [];
+  }
+
+  /**
    * Overrides the current app's name
    * must stick to text_methodname
    * @param string $app [description]
@@ -181,6 +197,15 @@ class overrideableApp extends \codename\core\app {
   public static function __injectClientInstance(string $type, string $identifier, $clientInstance) {
     $simplename = $type . $identifier;
     $_REQUEST['instances'][$simplename] = $clientInstance;
+  }
+
+  /**
+   * [__setInstance description]
+   * @param string $name     [description]
+   * @param [type] $instance [description]
+   */
+  public static function __setInstance(string $name, $instance) {
+    static::$instances[$name] = $instance;
   }
 
   /**
