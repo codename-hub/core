@@ -575,10 +575,20 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         $diff = array_diff($fields, $this->hiddenFields);
         $fields = array_intersect($fields, $diff);
       }
+      // VFR keys
+      $vfrKeys = [];
+      if($this->virtualFieldResult) {
+        foreach($this->getNestedJoins() as $join) {
+          if($join->virtualField) {
+            $vfrKeys[] = $join->virtualField;
+          }
+        }
+      }
+
       if(count($this->fieldlist) > 0) {
-        return array_flip( array_merge( $this->getFieldlistArray($this->fieldlist), $fields, array_keys($this->virtualFields) ) );
+        return array_flip( array_merge( $this->getFieldlistArray($this->fieldlist), $fields, $vfrKeys,array_keys($this->virtualFields) ) );
       } else {
-        return array_flip( array_merge( $fields, array_keys($this->virtualFields)) );
+        return array_flip( array_merge( $fields, array_keys($this->virtualFields), $vfrKeys ) );
       }
     }
 

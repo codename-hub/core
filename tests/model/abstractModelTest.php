@@ -1133,13 +1133,68 @@ abstract class abstractModelTest extends base {
     ]);
     $customerId = $customerModel->lastInsertId();
 
-    try {
-      $dataset = $customerModel->load($customerId);
-      $this->fail('Dataset loaded without exception to be fired - should crash.');
-    } catch (\codename\core\exception $e) {
-      // NOTE: we only catch this specific exception!
-      $this->assertEquals('EXCEPTION_MODEL_PERFORMBAREJOIN_MISSING_VKEY', $e->getMessage());
-    }
+    $dataset = $customerModel->load($customerId);
+    $this->assertArrayHasKey('customer_person', $dataset);
+    $this->assertEquals('john', $dataset['customer_person']['person_firstname']);
+    $this->assertEquals('Germany', $dataset['customer_person']['country_name']);
+
+    //
+    // NOTE: this is still pending clearance. For now, this emulates the old behaviour.
+    // VFR keys are added implicitly
+    //
+    // try {
+    //   $dataset = $customerModel->load($customerId);
+    //   $this->fail('Dataset loaded without exception to be fired - should crash.');
+    // } catch (\codename\core\exception $e) {
+    //   // NOTE: we only catch this specific exception!
+    //   $this->assertEquals('EXCEPTION_MODEL_PERFORMBAREJOIN_MISSING_VKEY', $e->getMessage());
+    // }
+
+    $customerModel->delete($customerId);
+    $personModel->delete($personId);
+  }
+
+  /**
+   * [testJoinVirtualFieldResultEnabledCustomVKey description]
+   */
+  public function testJoinVirtualFieldResultEnabledCustomVKey(): void {
+    $customerModel = $this->getModel('customer')
+      ->setVirtualFieldResult(true)
+      ->addModel(
+        $personModel = $this->getModel('person')
+          ->addModel($this->getModel('country'))
+      );
+
+    $personModel->save([
+      'person_firstname'  => 'john',
+      'person_lastname'   => 'doe',
+      'person_country'    => 'DE',
+    ]);
+    $personId = $personModel->lastInsertId();
+    $customerModel->save([
+      'customer_no' => 'missing_vkey',
+      'customer_person_id' => $personId,
+    ]);
+    $customerId = $customerModel->lastInsertId();
+
+    $customVKeyModel = $this->getModel('customer')
+      ->setVirtualFieldResult(true)
+      ->addModel(
+        $personModel = $this->getModel('person')
+          ->addModel($this->getModel('country'))
+      );
+
+    // change the virtual field name of the join
+    $join = $customVKeyModel->getNestedJoins('person')[0];
+    $join->virtualField = 'custom_vfield';
+
+    $dataset = $customVKeyModel->load($customerId);
+    $this->assertArrayNotHasKey('customer_person', $dataset);
+    $this->assertArrayHasKey('custom_vfield', $dataset);
+    $this->assertEquals('john', $dataset['custom_vfield']['person_firstname']);
+    $this->assertEquals('Germany', $dataset['custom_vfield']['country_name']);
+
+    // NOTE: see testJoinVirtualFieldResultEnabledMissingVKey
 
     $customerModel->delete($customerId);
     $personModel->delete($personId);
