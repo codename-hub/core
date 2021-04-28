@@ -34,6 +34,10 @@ class memoryTest extends abstractSessionTest {
    */
   public function testInvalidSession(): void
   {
+    //
+    // NOTE: this is a test for testing session validity check - nothing else.
+    // For this driver, this is unavailable anyways and *must* be overridden to ::markTestSkipped()
+    //
     $this->markTestSkipped('Session invalid check not applicable for this session driver.');
   }
 
