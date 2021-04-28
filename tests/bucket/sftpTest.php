@@ -54,4 +54,23 @@ class sftpTest extends abstractBucketTest {
     }
   }
 
+  /**
+   * [testUnreachableHost description]
+   */
+  public function testUnreachableHost(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage('EXCEPTION_BUCKET_SFTP_SSH_CONNECTION_FAILED');
+    $this->getBucket( [
+      // Default config
+      'basedir' => '/share/',
+      'sftpserver' => [
+        'host' => 'nonexisting-sftp',
+        'port' => 22,
+        'auth_type' => 'password',
+        'user' => 'unittest-sftp-user-auth-pw',
+        'pass' => 'unittest-sftp-user-pass'
+      ]
+    ]);
+  }
+
 }
