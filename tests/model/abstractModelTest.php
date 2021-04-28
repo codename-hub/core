@@ -1096,6 +1096,56 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests a special situation:
+   *
+   * customer (model, vfr enabled)
+   *  customer_person (vfield) displays:
+   *  ->  person (model, joined)
+   *       person_country (field) is join base for:
+   *       -> country (model, bare join)
+   *
+   * if you hideAllFields in customer,
+   * customer_person does not exist and neither does person_country
+   * but the join is tried anyways.
+   * We're throwing an exception this case,
+   * as it is an indicator for incomplete code, missing definition
+   * or even legacy code.
+   */
+  public function testJoinVirtualFieldResultEnabledMissingVKey(): void {
+    $customerModel = $this->getModel('customer')
+      ->setVirtualFieldResult(true)
+      ->hideAllFields()
+      ->addField('customer_no')
+      ->addModel(
+        $personModel = $this->getModel('person')
+          ->addModel($this->getModel('country'))
+      );
+
+    $personModel->save([
+      'person_firstname'  => 'john',
+      'person_lastname'   => 'doe',
+      'person_country'    => 'DE',
+    ]);
+    $personId = $personModel->lastInsertId();
+    $customerModel->save([
+      'customer_no' => 'missing_vkey',
+      'customer_person_id' => $personId,
+    ]);
+    $customerId = $customerModel->lastInsertId();
+
+    try {
+      $dataset = $customerModel->load($customerId);
+      $this->fail('Dataset loaded without exception to be fired - should crash.');
+    } catch (\codename\core\exception $e) {
+      // NOTE: we only catch this specific exception!
+      $this->assertEquals('EXCEPTION_MODEL_PERFORMBAREJOIN_MISSING_VKEY', $e->getMessage());
+    }
+
+    $customerModel->delete($customerId);
+    $personModel->delete($personId);
+  }
+
+  /**
    * Tests a special case of model renormalization
    * no virtual field results enabled, two models on same nesting level (root)
    * with one or more hidden fields (each?)

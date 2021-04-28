@@ -2413,6 +2413,23 @@ abstract class model implements \codename\core\model\modelInterface {
             continue;
           }
 
+          // make sure vKey is in current fieldlist...
+          // this is for  situations
+          // where
+          // - virtual field result enabled
+          // - vfield config present
+          // - respective model joined
+          // - another (bare-joined) model relying on a field
+          // - but field(s) hidden, e.g. by hideAllFields
+          $ifl = $this->getInternalIntersectFieldlist();
+
+          if(!array_key_exists($vKey, $ifl)) {
+            throw new exception('EXCEPTION_MODEL_PERFORMBAREJOIN_MISSING_VKEY', exception::$ERRORLEVEL_ERROR, [
+              'model' => $this->getIdentifier(),
+              'vKey'  => $vKey,
+            ]);
+          }
+
           //
           // Unwind resultset
           // [ item, item, item ] -> [ item[key], item[key], item[key] ]
