@@ -32,13 +32,33 @@ class memoryTest extends abstractSessionTest {
   /**
    * @inheritDoc
    */
-  public function testInvalidSession(): void
+  public function testInvalidSessionIdentify(): void
   {
     //
     // NOTE: this is a test for testing session validity check - nothing else.
     // For this driver, this is unavailable anyways and *must* be overridden to ::markTestSkipped()
     //
     $this->markTestSkipped('Session invalid check not applicable for this session driver.');
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function testInvalidateSession(): void
+  {
+    // Session invalidation is not supported in this session driver and will throw an exception
+    $this->expectException(\LogicException::class);
+    parent::testInvalidateSession();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function testInvalidateInvalidSession(): void
+  {
+    // Session invalidation is not supported in this session driver and will throw an exception
+    $this->expectException(\LogicException::class);
+    parent::testInvalidateInvalidSession();
   }
 
 }

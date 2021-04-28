@@ -44,11 +44,38 @@ class cacheTest extends abstractSessionTest {
   }
 
   /**
+   * [testSessionInvalidateThrowsException description]
+   */
+  public function testSessionInvalidateThrowsException(): void {
+    $this->expectException(\LogicException::class);
+    app::getSession()->invalidate('whatever');
+  }
+
+  /**
    * @inheritDoc
    */
-  public function testInvalidSession(): void
+  public function testInvalidSessionIdentify(): void
   {
+    $this->markTestSkipped('Session identification works differently on cache driver.');
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function testInvalidateSession(): void
+  {
+    // Session invalidation is not supported in this session driver and will throw an exception
     $this->expectException(\LogicException::class);
-    app::getSession()->invalidate('example');
+    parent::testInvalidateSession();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function testInvalidateInvalidSession(): void
+  {
+    // Session invalidation is not supported in this session driver and will throw an exception
+    $this->expectException(\LogicException::class);
+    parent::testInvalidateInvalidSession();
   }
 }

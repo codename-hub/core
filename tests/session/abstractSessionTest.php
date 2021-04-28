@@ -4,6 +4,7 @@ namespace codename\core\tests\session;
 use codename\core\app;
 
 use codename\core\tests\base;
+use codename\core\tests\overrideableApp;
 
 abstract class abstractSessionTest extends base {
 
@@ -50,6 +51,16 @@ abstract class abstractSessionTest extends base {
       ],
       $this->getAdditionalEnvironmentConfig()
     )]);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected function tearDown(): void
+  {
+    $this->emulateSession(null);
+    app::getSession()->destroy();
+    parent::tearDown();
   }
 
   /**
@@ -154,9 +165,9 @@ abstract class abstractSessionTest extends base {
   }
 
   /**
-   * [testInvalidSession description]
+   * [testInvalidSessionIdentify description]
    */
-  public function testInvalidSession(): void {
+  public function testInvalidSessionIdentify(): void {
     // Emulate an existing session
     $this->emulateSession([
       'identifier'  => 'some-valid-session',
@@ -182,6 +193,36 @@ abstract class abstractSessionTest extends base {
       'valid_until' => (new \DateTime('now'))->modify('- 1 day')->format('Y-m-d H:i:s')
     ]);
     $this->assertFalse(@app::getSession()->identify());
+  }
+
+  /**
+   * [testInvalidateSession description]
+   */
+  public function testInvalidateSession(): void {
+    // Emulate an existing session
+    $this->emulateSession([
+      'identifier'  => 'some-valid-session',
+      'valid'       => true,
+    ]);
+
+    @app::getSession()->start([
+      'session_data' => [
+        'dummy' => true
+      ],
+      'dummy' => true,
+    ]);
+
+    $this->assertTrue(app::getSession()->identify());
+    $this->assertNull(app::getSession()->invalidate('some-valid-session'));
+    $this->assertFalse(app::getSession()->identify());
+  }
+
+  /**
+   * [testInvalidateInvalidSession description]
+   */
+  public function testInvalidateInvalidSession(): void {
+    $this->expectException(\Exception::class);
+    app::getSession()->invalidate(null);
   }
 
 }

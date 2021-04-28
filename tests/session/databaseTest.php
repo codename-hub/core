@@ -144,95 +144,16 @@ class databaseTest extends abstractSessionTest {
       unset($_COOKIE['core-session']);
     }
   }
-
+  
   /**
-   * [testInvalidateSession description]
+   * @inheritDoc
    */
-  public function testInvalidateSession(): void {
-    // Emulate an existing session
-    $this->emulateSession([
-      'identifier'  => 'some-valid-session',
-      'valid'       => true,
-    ]);
-
-    $this->assertTrue(app::getSession()->identify());
-
-    $this->assertNull(app::getSession()->invalidate('some-valid-session'));
-
-    $this->assertFalse(app::getSession()->identify());
-  }
-
-  /**
-   * [testInvalidateSession description]
-   */
-  public function testInvalidInvalidateSession(): void {
-
+  public function testInvalidateInvalidSession(): void
+  {
     $this->expectException(\codename\core\exception::class);
-
-    // Emulate an existing session
-    $this->emulateSession([
-      'identifier'  => 'some-valid-session',
-      'valid'       => true,
-    ]);
-
-    $this->assertTrue(app::getSession()->identify());
-
-    $this->assertNull(app::getSession()->invalidate(null));
+    $this->expectExceptionMessage('EXCEPTION_SESSION_INVALIDATE_NO_SESSIONID_PROVIDED');
+    parent::testInvalidateInvalidSession();
   }
-
-  // /**
-  //  * @inheritDoc
-  //  */
-  // public function testBasicDatabaseSessionIo(): void
-  // {
-  //   $this->emulateSession(null);
-  //   $this->assertFalse(app::getSession()->identify());
-  //
-  //   $this->emulateSession([
-  //     'cookie' => 'some-random-session',
-  //   ]);
-  //
-  //   // // Emulate an existing cookie
-  //   // $sessionSessionId = 'testcookie';
-  //   // $_COOKIE['core-session'] = $sessionSessionId;
-  //   //
-  //   // $this->getModel('session')->save([
-  //   //   'session_sessionid' => $sessionSessionId,
-  //   //   'session_valid' => true,
-  //   // ]);
-  //
-  //   // due to cookie limitations on CLI
-  //   // this might throw a WarningException, if not suppressed this way
-  //   @app::getSession()->start([
-  //     'session_data' => [
-  //       'dummy' => true
-  //     ],
-  //     'dummy' => true,
-  //   ]);
-  //
-  //   $this->assertTrue(app::getSession()->identify());
-  //   // print_r(app::getSession()->getData());
-  //   $this->assertTrue(app::getSession()->isDefined('dummy'));
-  //   $this->assertFalse(app::getSession()->isDefined('nonexisting'));
-  //
-  //   $this->assertEquals(true, app::getSession()->getData('dummy'));
-  //
-  //   app::getSession()->setData('dummy', 'some-value');
-  //   $this->assertEquals('some-value', app::getSession()->getData('dummy'));
-  //
-  //   // TODO: Not supported for every driver right now:
-  //   // app::getSession()->unsetData('dummy');
-  //   // $this->assertFalse(app::getSession()->isDefined('dummy'));
-  //
-  //   // due to cookie limitations on CLI
-  //   // this might throw a WarningException, if not suppressed this way
-  //   @app::getSession()->destroy();
-  //
-  //   $this->assertFalse(app::getSession()->identify());
-  //
-  //   $this->emulateSession(null);
-  // }
-
 
 }
 
