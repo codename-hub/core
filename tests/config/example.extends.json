@@ -2,10 +2,15 @@
   "extends" : [
     "tests/config/example.json"
   ],
+  "mixins" : [
+    "tests/config/example.mixmein.json"
+  ],
   "some-key": "some-overridden-value",
   "some-array": [ "some-item-2?" ],
   "some-object": {
     "key2": "value-changed",
-    "key4": "value-added"
-  }
+    "key4": "value-added",
+    "key5": "value5"
+  },
+  "some-key2" : "some-value2"
 }

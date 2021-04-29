@@ -58,6 +58,18 @@ class jsonTest extends base {
     $this->assertEquals('value3',         $config->get('some-object>key3'));
     $this->assertEquals('value-added',    $config->get('some-object>key4'));
 
+    // Mixin, root key added
+    $this->assertEquals('mixed-in-value',    $config->get('mixed-in-key'));
+
+    // Mixin, root key merged
+    $this->assertEquals(['some-value2', 'other-value'],    $config->get('some-key2'));
+
+    // Mixin adds a value to this key, making it an array
+    $this->assertEquals(['value5', 'added-value'],    $config->get('some-object>key5'));
+
+    // Root is being overridden by extends, mixin is merged
+    $this->assertEquals(['some-item-2?', 'new-item'],    $config->get('some-array'));
+
     // TODO: arrays?
 
     // print_r($config->get());
