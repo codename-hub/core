@@ -148,6 +148,7 @@ class overrideableApp extends \codename\core\app {
     static::$namespace = null;
     // static::$instances = [];
     static::$instance = null;
+    static::$appstack = null;
     $_REQUEST['instances'] = [];
   }
 
