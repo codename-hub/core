@@ -27,4 +27,16 @@ class mysql extends \codename\core\database {
       return $this;
     }
 
+    /**
+     * @inheritDoc
+     */
+    protected function getDefaultAttributes(): array
+    {
+      return [
+        // CHANGED 2021-05-04: this fixes invalid rowcount
+        // on UPDATE where nothing really changed
+        \PDO::MYSQL_ATTR_FOUND_ROWS => true,
+      ];
+    }
+
 }

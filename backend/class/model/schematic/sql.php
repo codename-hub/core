@@ -1810,11 +1810,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         if (array_key_exists($this->getPrimarykey(), $data) && strlen($data[$this->getPrimarykey()]) > 0) {
             $query = $this->saveUpdate($data, $params);
             $this->doQuery($query, $params);
+            if($this->db->affectedRows() !== 1) {
+              throw new exception('MODEL_SAVE_UPDATE_FAILED', exception::$ERRORLEVEL_ERROR);
+            }
         } else {
             $query = $this->saveCreate($data, $params);
             $this->cachedLastInsertId = null;
             $this->doQuery($query, $params);
             $this->cachedLastInsertId = $this->db->lastInsertId();
+            if($this->db->affectedRows() !== 1) {
+              throw new exception('MODEL_SAVE_CREATE_FAILED', exception::$ERRORLEVEL_ERROR);
+            }
         }
         return $this;
     }
