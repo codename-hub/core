@@ -100,4 +100,12 @@ class mysqlTest extends abstractModelTest {
     return 61;
   }
 
+  /**
+   * @inheritDoc
+   */
+  public function testAggregateDatetimeInvalid(): void
+  {
+    $this->expectExceptionMessage('EXCEPTION_MODEL_PLUGIN_CALCULATION_MYSQL_UNKKNOWN_CALCULATION_TYPE');
+    parent::testAggregateDatetimeInvalid();
+  }
 }

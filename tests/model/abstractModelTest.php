@@ -2398,6 +2398,19 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testAggregateDatetimeInvalid description]
+   */
+  public function testAggregateDatetimeInvalid(): void {
+    //
+    // Tests an invalid type config for Aggregate DateTime plugin
+    //
+    $this->expectException(\codename\core\exception::class);
+    $model = $this->getModel('testdata');
+    $model->addAggregateField('entries_invalid1', 'invalid', 'testdata_datetime');
+    $res = $model->search()->getResult();
+  }
+
+  /**
    * [testAggregateDatetimeQuarter description]
    */
   public function testAggregateDatetimeQuarter(): void {
@@ -2427,6 +2440,22 @@ abstract class abstractModelTest extends base {
     $res = $testMonthModel->search()->getResult();
     $this->assertEquals([3, 3, 3, 1], array_column($res, 'entries_month1'));
     $this->assertEquals([3, 3, 3, 1], array_column($res, 'entries_month2'));
+  }
+
+  /**
+   * [testAggregateDatetimeDay description]
+   */
+  public function testAggregateDatetimeDay(): void {
+    //
+    // Aggregate DateTime plugin
+    //
+    $model = $this->getModel('testdata');
+    $model->addAggregateField('entries_day1', 'day', 'testdata_datetime');
+    $model->addAggregateField('entries_day2', 'day', 'testdata_date');
+    $model->addOrder('testdata_id', 'ASC');
+    $res = $model->search()->getResult();
+    $this->assertEquals([22, 22, 23, 01], array_column($res, 'entries_day1'));
+    $this->assertEquals([22, 22, 23, 01], array_column($res, 'entries_day2'));
   }
 
   /**

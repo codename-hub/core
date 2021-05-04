@@ -38,4 +38,13 @@ class sqliteTest extends abstractModelTest {
     return 64;
   }
 
+  /**
+   * @inheritDoc
+   */
+  public function testAggregateDatetimeInvalid(): void
+  {
+    $this->expectExceptionMessage('EXCEPTION_MODEL_PLUGIN_CALCULATION_SQLITE_UNKKNOWN_CALCULATION_TYPE');
+    parent::testAggregateDatetimeInvalid();
+  }
+
 }
