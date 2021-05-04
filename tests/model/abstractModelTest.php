@@ -1019,6 +1019,30 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testFiltercollectionValueArray description]
+   */
+  public function testFiltercollectionValueArray(): void {
+
+    // Filtercollection with an array as filter value
+    // (e.g. IN-query)
+    $model = $this->getModel('testdata');
+
+    $model->addFiltercollection([
+      [ 'field' => 'testdata_text', 'operator' => '=', 'value' => [ 'foo' ] ],
+    ], 'OR');
+    $res = $model->search()->getResult();
+    $this->assertCount(2, $res);
+    $this->assertEquals([3.14, 5.36], array_column($res, 'testdata_number'));
+
+    $model->addFiltercollection([
+      [ 'field' => 'testdata_text', 'operator' => '!=', 'value' => [ 'foo' ] ],
+    ], 'OR');
+    $res = $model->search()->getResult();
+    $this->assertCount(2, $res);
+    $this->assertEquals([4.25, 0.99], array_column($res, 'testdata_number'));
+  }
+
+  /**
    * Tests performing a regular left join
    * using forced virtual joining with no dataset available/set
    * to return a nulled/empty child dataset
