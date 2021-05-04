@@ -76,13 +76,51 @@ class dynamic extends \codename\core\model\plugin\join implements dynamicJoinInt
         // at least, if it's a LEFT join
         if($this->type === static::TYPE_INNER) {
           // NONE !
+        } else if($this->type == static::TYPE_LEFT) {
+          //
+          // Add a pseudo dataset (empty values)
+          //
+          $newResult[] = array_merge($baseResultRow, $this->getEmptyDataset());
         } else {
+          // TODO: other join types?
           $newResult[] = $baseResultRow;
         }
+
       }
     }
 
+    // Resetting the cache for producing an empty dataset
+    $this->resetEmptyDataset();
+
     return $newResult;
+  }
+
+  /**
+   * [protected description]
+   * @var array|null
+   */
+  protected $__emptyDataset = null;
+
+  /**
+   * Returns an empty dataset using the current model configuration
+   * @return array [description]
+   */
+  protected function getEmptyDataset(): array {
+    if(!$this->__emptyDataset) {
+      $this->__emptyDataset = [];
+      foreach($this->model->getCurrentAliasedFieldlist() as $field) {
+        $this->__emptyDataset[$field] = null;
+      }
+    }
+    return $this->__emptyDataset;
+  }
+
+  /**
+   * [resetEmptyDataset description]
+   * @return void
+   */
+  protected function resetEmptyDataset(): void {
+    $this->__emptyDataset = null;
   }
 
 

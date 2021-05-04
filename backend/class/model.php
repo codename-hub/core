@@ -1759,7 +1759,7 @@ abstract class model implements \codename\core\model\modelInterface {
      *
      * @return string[]
      */
-    protected function getCurrentAliasedFieldlist() : array {
+    public function getCurrentAliasedFieldlist() : array {
       $result = array();
       if(\count($this->fieldlist) == 0 && \count($this->hiddenFields) > 0) {
         //

@@ -1019,6 +1019,83 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests performing a regular left join
+   * using forced virtual joining with no dataset available/set
+   * to return a nulled/empty child dataset
+   */
+  public function testLeftJoinForcedVirtualNoReferenceDataset(): void {
+    $customerModel = $this->getModel('customer')->setVirtualFieldResult(true)
+      ->addModel(
+        $personModel = $this->getModel('person')->setVirtualFieldResult(true)
+          ->setForceVirtualJoin(true),
+      );
+
+    $customerModel->saveWithChildren([
+      'customer_no'     => 'join_fv_nochild',
+      // No customer_person provided
+    ]);
+
+    $customerId = $customerModel->lastInsertId();
+
+    // make sure to only find one result
+    // (one entry that has both datasets)
+    $dataset = $customerModel->load($customerId);
+
+    $this->assertEquals('join_fv_nochild', $dataset['customer_no']);
+    $this->assertNotEmpty($dataset['customer_person']);
+    foreach($personModel->getFields() as $field) {
+      if($personModel->getConfig()->get('datatype>'.$field) == 'virtual') {
+        //
+        // NOTE: we have no child models added
+        // and we expect the result to NOT have those (virtual) fields at all
+        //
+        $this->assertArrayNotHasKey($field, $dataset['customer_person']);
+      } else {
+        // Expect the key(s) to exist, but be null.
+        $this->assertArrayHasKey($field, $dataset['customer_person']);
+        $this->assertNull($dataset['customer_person'][$field]);
+      }
+    }
+
+
+
+    //
+    // Test again using no VFR and varying FVJ states
+    //
+    $forceVirtualJoinStates = [ true, false ];
+
+    foreach($forceVirtualJoinStates as $fvjState) {
+
+      $noVfrCustomerModel = $this->getModel('customer')->setVirtualFieldResult(false)
+        ->addModel(
+          $noVfrPersonModel = $this->getModel('person')->setVirtualFieldResult(false)
+            ->setForceVirtualJoin($fvjState),
+        );
+
+      $datasetNoVfr = $noVfrCustomerModel->load($customerId);
+
+      $this->assertEquals('join_fv_nochild', $datasetNoVfr['customer_no']);
+      $this->assertArrayNotHasKey('customer_person', $datasetNoVfr);
+      foreach($noVfrPersonModel->getFields() as $field) {
+        if($noVfrPersonModel->getConfig()->get('datatype>'.$field) == 'virtual') {
+          //
+          // NOTE: we have no child models added
+          // and we expect the result to NOT have those (virtual) fields at all
+          //
+          $this->assertArrayNotHasKey($field, $datasetNoVfr);
+        } else {
+          // Expect the key(s) to exist, but be null.
+          $this->assertArrayHasKey($field, $datasetNoVfr);
+          $this->assertNull($datasetNoVfr[$field]);
+        }
+      }
+    }
+
+
+    $customerModel->delete($customerId);
+  }
+
+  /**
    * [testInnerJoinRegular description]
    */
   public function testInnerJoinRegular(): void {
