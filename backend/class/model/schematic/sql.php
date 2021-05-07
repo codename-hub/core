@@ -1023,9 +1023,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  array                  &$tableUsage    [table usage as reference]
      * @param  int                    &$aliasCounter  [alias counter as reference]
      * @param  array                  &$params
+     * @param  array                  &$cte [common table expressions, if any]
      * @return string                 [query part]
      */
-    public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0, string $parentAlias = null, array &$params = []) {
+    public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0, string $parentAlias = null, array &$params = [], array &$cte = []) {
         if(\count($model->getNestedJoins()) == 0 && \count($model->getSiblingJoins()) == 0) {
             return '';
         }
@@ -1040,28 +1041,73 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               continue;
             }
 
-            if(array_key_exists("{$nest->schema}.{$nest->table}", $tableUsage)) {
-              $aliasCounter++;
-              $tableUsage["{$nest->schema}.{$nest->table}"]++;
-              $alias = "a".$aliasCounter;
-              $aliasAs = "AS ".$alias;
-            } else {
-              $tableUsage["{$nest->schema}.{$nest->table}"] = 1;
-              $aliasAs = '';
+            $cteName = null;
 
-              if($nest->isDiscreteModel()) {
-                //
-                // CHANGED/ADDED 2020-06-10
-                // derived table, explicitly specify alias
-                // for usage with discrete model feature
-                // This is needed in the case of ONE/the first join of this derived table
-                //
-                $aliasAs = $nest->table;
-                $alias = $nest->getTableIdentifier(); // implode('.', array_filter([ $nest->schema, $nest->table ]));
+            // preliminary CTE, model itself is recursive
+            // $cteName = null;
+            if($nest->recursive) {
+              $cteName = '__cte_recursive_'.(count($cte)+1);
+              $cte[] = $nest->getRecursiveSqlCteStatement($cteName, $params);
+              $join->referenceField = '__anchor';
+              $tableUsage[$cteName] = 1;
+              // $tableUsage["{$nest->schema}.{$nest->table}"]++;
+              $alias = $cteName;
+              $aliasAs = ''; // "AS ".$alias;
+              // $parentAlias = $cteName;
+            }
+
+
+            if($nest->recursive || $join instanceof \codename\core\model\plugin\join\recursive) {
+              //
+              // 'WITH ... RECURSIVE' CTE support
+              //
+              if($join instanceof \codename\core\model\plugin\sqlCteStatementInterface) {
+                $cteAlias = $cteName; // if table is already a CTE, passthrough
+                $cteName = '__cte_recursive_'.(count($cte)+1);
+                if(array_key_exists($cteName, $tableUsage)) {
+                  // name collision
+                  throw new exception('MODEL_SCHEMATIC_SQL_DEEP_JOIN_CTE_NAME_COLLISION', exception::$ERRORLEVEL_ERROR, $cteName);
+                } else {
+                  $tableUsage[$cteName] = 1;
+                  $tableUsage["{$nest->schema}.{$nest->table}"]++;
+                }
+                $cte[] = $join->getSqlCteStatement($cteName, $params, $cteAlias);
+                $alias = $cteName;
+                $aliasAs = "AS ".$alias;
               } else {
-                $alias = $nest->getTableIdentifier(); // "{$nest->schema}.{$nest->table}";
+                //
+                // NOTE: only fire exception, if this really is a recursive join plugin
+                // as we also handle root-model recursion here.
+                //
+                if($join instanceof \codename\core\model\plugin\join\recursive) {
+                  throw new exception('MODEL_SCHEMATIC_SQL_DEEP_JOIN_UNSUPPORTED_JOIN_RECURSIVE_PLUGIN', exception::$ERRORLEVEL_ERROR, get_class($join));
+                }
+              }
+            } else {
+              if(array_key_exists("{$nest->schema}.{$nest->table}", $tableUsage)) {
+                $aliasCounter++;
+                $tableUsage["{$nest->schema}.{$nest->table}"]++;
+                $alias = "a".$aliasCounter;
+                $aliasAs = "AS ".$alias;
+              } else {
+                $tableUsage["{$nest->schema}.{$nest->table}"] = 1;
+                $aliasAs = '';
+
+                if($nest->isDiscreteModel()) {
+                  //
+                  // CHANGED/ADDED 2020-06-10
+                  // derived table, explicitly specify alias
+                  // for usage with discrete model feature
+                  // This is needed in the case of ONE/the first join of this derived table
+                  //
+                  $aliasAs = $nest->table;
+                  $alias = $nest->getTableIdentifier(); // implode('.', array_filter([ $nest->schema, $nest->table ]));
+                } else {
+                  $alias = $nest->getTableIdentifier(); // "{$nest->schema}.{$nest->table}";
+                }
               }
             }
+
 
             // get join method from plugin
             $joinMethod = $join->getJoinMethod();
@@ -1255,7 +1301,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             // NOTE: we're checking for discrete models here
             // as they don't represent a table on its own, but merely an entire subquery
             //
-            if($nest->isDiscreteModel() && $nest instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
+            if($cteName !== null) {
+              $ret .= " {$joinMethod} {$cteName} {$aliasAs}{$useIndex} ON $joinComponentsString";
+            } else if($nest->isDiscreteModel() && $nest instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
               $ret .= " {$joinMethod} {$nest->getDiscreteModelQuery()} {$aliasAs}{$useIndex} ON $joinComponentsString";
             } else {
               $ret .= " {$joinMethod} {$nest->getTableIdentifier()} {$aliasAs}{$useIndex} ON $joinComponentsString";
@@ -1276,7 +1324,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             //   '$join->currentAlias' => $join->currentAlias,
             // ]);
 
-            $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter, $join->currentAlias, $params);
+            $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter, $join->currentAlias, $params, $cte);
         }
 
         // Loop through siblings
@@ -1391,12 +1439,76 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  string|null $model  [name of schema]
      * @return string         [description]
      */
-    protected function getTableIdentifier(?string $schema = null, ?string $model = null): string {
+    public function getTableIdentifier(?string $schema = null, ?string $model = null): string {
       if($schema || $model) {
         return $this->getServicingSqlInstance()->getTableIdentifierParametrized($schema, $model);
       } else {
         return $this->getServicingSqlInstance()->getTableIdentifier($this);
       }
+    }
+
+    /**
+     * [getRecursiveSqlCteStatement description]
+     * @param  string $cteName [description]
+     * @param  array  &$params  [description]
+     * @return string
+     */
+    protected function getRecursiveSqlCteStatement(string $cteName, array &$params): string {
+      $anchorConditionQuery = '';
+      if(count($this->recursiveAnchorConditions) > 0) {
+        $anchorConditionQuery = 'WHERE '.\codename\core\model\schematic\sql::convertFilterQueryArray(
+          $this->getFilters($this->recursiveAnchorConditions, [], [], $params) // ??
+        );
+      }
+
+      // Default anchor field name (__anchor)
+      // Not to be confused with recursiveAnchorField
+      // In contrast to recursive joins, this is more or less static here.
+      $anchorFieldName = '__anchor';
+
+      //
+      // CTE Prefix / "WITH [RECURSIVE]" is implicitly added by the model class
+      //
+      $sql = "{$cteName} "
+        . " AS ( "
+        . "   SELECT "
+        //        We default to the PKEY as (visible) anchor field:
+        . "       {$this->getPrimarykey()} as {$anchorFieldName} "
+        // . "     , 0 as __level " // TODO: internal level tracking for keeping order?
+
+        // Endless loop / circular reference protection for array-supporting RDBMS:
+        // . "     , array[{$this->getPrimarykey()}] as __traversed "
+
+        . "     , {$this->getTableIdentifier()}.* "
+        . "   FROM {$this->getTableIdentifier()} "
+        . "   {$anchorConditionQuery} "
+
+        //   NOTE: UNION instead of UNION ALL prevents duplicates
+        //   and is an implicit termination condition for the recursion
+        //   as the some query might return rows already selected
+        //   leading to 'zero added rows' - and finishing our query
+        . "   UNION "
+
+        . "   SELECT "
+        . "       {$cteName}.{$anchorFieldName} "
+        // . "     , __level+1 " // TODO: internal level tracking for keeping order?
+
+        // Endless loop / circular reference protection for array-supporting RDBMS:
+        // . "     , {$cteName}.__traversed || {$this->getTableIdentifier()}.{$this->getPrimarykey()} "
+
+        . "     , {$this->getTableIdentifier()}.* "
+
+        . "   FROM {$this->getTableIdentifier()}, {$cteName} "
+        . "   WHERE {$cteName}.{$this->recursiveSelfReferenceField->get()} = {$this->getTableIdentifier()}.{$this->recursiveAnchorField->get()} "
+        // . "   ORDER BY {$cteName}.{$anchorFieldName}, __level" // TODO internal level tracking for keeping order?
+
+        // Endless loop / circular reference protection for array-supporting RDBMS:
+        // . "  AND {$this->getPrimarykey()} <> ALL ({$cteName}.__traversed) "
+
+        . " )";
+
+        // print_r($sql);
+        return $sql;
     }
 
     /**
@@ -1424,12 +1536,33 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // done by-ref, so the values are arriving right here after
         // running getFilterQuery()
         $params = [];
+        $parentAlias = null;
+
+        // ADDED 2021-05-05: CTEs
+        $cte = [];
+
+        $cteName = null;
+        if($this->recursive) {
+          $cteName = '__cte_recursive_'.(count($cte)+1);
+          $cte[] = $this->getRecursiveSqlCteStatement($cteName, $params);
+          $tableUsage[$cteName] = 1;
+          $parentAlias = $cteName;
+        }
 
         //
         // NOTE/CHANGED 2020-09-15: allow params in deepJoin() (conditions!)
         //
         $aliasCounter = 0;
-        $deepjoin = $this->deepJoin($this, $tableUsage, $aliasCounter, $parentAlias = null, $params);
+        $deepjoin = $this->deepJoin($this, $tableUsage, $aliasCounter, $parentAlias, $params, $cte);
+
+        // Prepend CTEs, if there are any
+        // We default to WITH RECURSIVE as we do not track whether they are or not.
+        // This leads to the fact
+        // - we do not have to take care of the order of the CTEs
+        // - we simply enable RECURSIVE by default, no matter we really use it
+        if(count($cte) > 0) {
+          $query = 'WITH RECURSIVE ' . implode(", \n", $cte) . "\n" . $query;
+        }
 
         //
         // Russian Caviar
@@ -1440,7 +1573,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         } else {
           // retrieve a list of all model field lists, recursively
           // respecting hidden fields and duplicate field names in other models/tables
-          $fieldlist = $this->getCurrentFieldlist(null, $params);
+          $fieldlist = $this->getCurrentFieldlist($cteName, $params);
 
           if(count($fieldlist) == 0) {
               $query .= ' * ';
@@ -1461,7 +1594,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // NOTE: we're checking for discrete models here
         // as they don't represent a table on its own, but merely an entire subquery
         //
-        if($this->isDiscreteModel() && $this instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
+        if($cteName !== null) {
+          $query .= ' FROM ' . $cteName . ' ';
+        } else if($this->isDiscreteModel() && $this instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
           $query .= ' FROM ' . $this->getDiscreteModelQuery() . ' AS '. $this->table . ' '; // directly apply table alias
         } else {
           $query .= ' FROM ' . $this->getTableIdentifier() . ' ';
@@ -2449,7 +2584,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  array  $filterQueryArray [description]
      * @return string                   [description]
      */
-    protected static function convertFilterQueryArray(array $filterQueryArray) : string {
+    public static function convertFilterQueryArray(array $filterQueryArray) : string {
       $queryPart = '';
       foreach($filterQueryArray as $index => $filterQuery) {
         if($index > 0) {

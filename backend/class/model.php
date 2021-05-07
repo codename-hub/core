@@ -717,6 +717,128 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [addRecursiveModel description]
+     * @param  \codename\core\model     $model              [model instance to recurse]
+     * @param  string                   $selfReferenceField [field used for self-referencing]
+     * @param  string                   $anchorField        [field used as anchor point]
+     * @param  array                    $anchorConditions   [additional anchor conditions - e.g. the starting point]
+     * @param  string                   $type               [type of join]
+     * @param  string|null              $modelField         [description]
+     * @param  string|null              $referenceField     [description]
+     * @param  array                    $conditions         [description]
+     * @return \codename\core\model                     [description]
+     */
+    public function addRecursiveModel(\codename\core\model $model, string $selfReferenceField, string $anchorField, array $anchorConditions, string $type = plugin\join::TYPE_LEFT, ?string $modelField = null, ?string $referenceField = null, array $conditions = []) : \codename\core\model {
+      $thisKey = $modelField;
+      $joinKey = $referenceField;
+
+      // TODO: auto-determine modelField and referenceField / thisKey and joinKey
+
+      if((!$model->config->get('foreign>'.$selfReferenceField.'>model') == $model->getIdentifier()
+        || !$model->config->get('foreign>'.$selfReferenceField.'>key') == $model->getPrimaryKey())
+        && (!$model->config->get('foreign>'.$anchorField.'>model') == $model->getIdentifier()
+        || !$model->config->get('foreign>'.$anchorField.'>key') == $model->getPrimaryKey())
+      ) {
+        throw new exception('INVALID_RECURSIVE_MODEL_JOIN', exception::$ERRORLEVEL_ERROR);
+      }
+
+      // fallback to bare model joining
+      if($model instanceof \codename\core\model\schemeless\dynamic || $this instanceof \codename\core\model\schemeless\dynamic) {
+        $pluginDriver = 'dynamic';
+      } else {
+        $pluginDriver = $this->compatibleJoin($model) ? $this->getType() : 'bare';
+      }
+
+      $class = '\\codename\\core\\model\\plugin\\join\\recursive\\' . $pluginDriver;
+      array_push($this->nestedModels, new $class($model, $selfReferenceField, $anchorField, $anchorConditions, $type, $thisKey, $joinKey, $conditions));
+      return $this;
+    }
+
+    /**
+     * [setRecursive description]
+     * @param  string               $selfReferenceField [description]
+     * @param  string               $anchorField        [description]
+     * @param  array                $anchorConditions   [description]
+     * @return \codename\core\model                     [description]
+     */
+    public function setRecursive(string $selfReferenceField, string $anchorField, array $anchorConditions): \codename\core\model {
+
+      if($this->recursive) {
+        // kill, already active?
+        throw new exception('EXCEPTION_MODEL_SETRECURSIVE_ALREADY_ENABLED', exception::$ERRORLEVEL_ERROR);
+      }
+
+      $this->recursive = true;
+
+      if((!$this->config->get('foreign>'.$selfReferenceField.'>model') == $this->getIdentifier()
+        || !$this->config->get('foreign>'.$selfReferenceField.'>key') == $this->getPrimaryKey())
+        && (!$this->config->get('foreign>'.$anchorField.'>model') == $this->getIdentifier()
+        || !$this->config->get('foreign>'.$anchorField.'>key') == $this->getPrimaryKey())
+      ) {
+        throw new exception('INVALID_RECURSIVE_MODEL_CONFIG', exception::$ERRORLEVEL_ERROR);
+      }
+
+      $this->recursiveSelfReferenceField = $this->getModelfieldInstance($selfReferenceField);
+      $this->recursiveAnchorField = $this->getModelfieldInstance($anchorField);
+
+      foreach($anchorConditions as $cond) {
+        if($cond instanceof \codename\core\model\plugin\filter) {
+          $this->recursiveAnchorConditions[] = $cond;
+        } else {
+          $this->recursiveAnchorConditions[] = $this->createFilterPluginInstance($cond);
+        }
+      }
+
+      return $this;
+    }
+
+    /**
+     * [createFilterPluginInstance description]
+     * @param  array                               $data [description]
+     * @return \codename\core\model\plugin\filter        [description]
+     */
+    protected function createFilterPluginInstance(array $data): \codename\core\model\plugin\filter {
+      $field = $data['field'];
+      $value = $data['value'];
+      $operator = $data['operator'];
+      $conjunction = $data['conjunction'] ?? null;
+      $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
+      if(\is_array($value)) {
+        if(\count($value) === 0) {
+            throw new exception('EXCEPTION_MODEL_CREATEFILTERPLUGININSTANCE_INVALID_VALUE', exception::$ERRORLEVEL_ERROR);
+        }
+        return new $class($this->getModelfieldInstance($field), $value, $operator, $conjunction);
+      } else {
+        $modelfieldInstance = $this->getModelfieldInstance($field);
+        return new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $conjunction);
+      }
+    }
+
+    /**
+     * [protected description]
+     * @var bool
+     */
+    protected $recursive = false;
+
+    /**
+     * [protected description]
+     * @var \codename\core\value\text\modelfield|null
+     */
+    protected $recursiveSelfReferenceField = null;
+
+    /**
+     * [protected description]
+     * @var \codename\core\value\text\modelfield|null
+     */
+    protected $recursiveAnchorField = null;
+
+    /**
+     * [protected description]
+     * @var \codename\core\model\plugin\filter[]
+     */
+    protected $recursiveAnchorConditions = [];
+
+    /**
      * contains configured join plugin instances for nested models
      * @var \codename\core\model\plugin\join[]
      */

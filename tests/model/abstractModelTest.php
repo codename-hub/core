@@ -1019,6 +1019,176 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testRecursiveModelJoin description]
+   */
+  public function testRecursiveModelJoin(): void {
+    $personModel = $this->getModel('person');
+
+    $datasets = [
+      [
+        // Top, no parent
+        'person_firstname' => 'Ella',
+        'person_lastname'  => 'Campbell',
+      ],
+      [
+        // 1st level down
+        'person_firstname' => 'Harry',
+        'person_lastname'  => 'Sanders',
+      ],
+      [
+        // 2nd level down
+        'person_firstname' => 'Stephen',
+        'person_lastname'  => 'Perkins',
+      ],
+      [
+        // 3rd level down, no more childs
+        'person_firstname' => 'Michael',
+        'person_lastname'  => 'Vaughn',
+      ],
+    ];
+
+    $ids = [];
+
+    $parentId = null;
+    foreach($datasets as $dataset) {
+      $dataset['person_parent_id'] = $parentId;
+      $personModel->save($dataset);
+      $parentId = $personModel->lastInsertId();
+      $ids[] = $personModel->lastInsertId();
+    }
+
+    $queryModel = $this->getModel('person')
+      ->addRecursiveModel(
+        $recursiveModel = $this->getModel('person')
+          ->hideAllFields(),
+        'person_parent_id',
+        'person_id',
+        [
+          [ 'field' => 'person_lastname', 'operator' => '=', 'value' => 'Vaughn' ]
+        ],
+        \codename\core\model\plugin\join::TYPE_INNER,
+        'person_id',
+        'person_parent_id'
+      );
+    $recursiveModel->addFilter('person_lastname', 'Sanders');
+    $res = $queryModel->search()->getResult();
+    $this->assertCount(1, $res);
+    $this->assertEquals('Vaughn', $res[0]['person_lastname']);
+
+    //
+    // Joined traverse-up
+    //
+    $traverseUpModel = $this->getModel('person')
+      ->hideAllFields()
+      ->addRecursiveModel(
+        $this->getModel('person'),
+        'person_parent_id',
+        'person_id',
+        [
+          // No anchor conditions
+          // [ 'field' => 'person_lastname', 'operator' => '=', 'value' => 'Vaughn' ]
+        ],
+        \codename\core\model\plugin\join::TYPE_INNER,
+        'person_id',
+        'person_parent_id'
+      );
+    $traverseUpModel->addFilter('person_lastname', 'Perkins');
+    $res = $traverseUpModel->search()->getResult();
+
+    $this->assertCount(3, $res);
+    // NOTE: order is not guaranteed, therefore: just compare item presence
+    $this->assertEqualsCanonicalizing([
+      'Stephen',
+      'Harry',
+      'Ella',
+    ], array_column($res, 'person_firstname'));
+
+    //
+    // Joined traverse-down
+    //
+    $traverseDownModel = $this->getModel('person')
+      ->hideAllFields()
+      ->addRecursiveModel(
+        $this->getModel('person'),
+        'person_id',
+        'person_parent_id',
+        [
+          // No anchor conditions
+          // e.g. [ 'field' => 'person_lastname', 'operator' => '=', 'value' => 'Vaughn' ]
+        ],
+        \codename\core\model\plugin\join::TYPE_INNER,
+        'person_id',
+        'person_parent_id'
+      );
+    $traverseDownModel->addFilter('person_lastname', 'Perkins');
+    $res = $traverseDownModel->search()->getResult();
+    $this->assertCount(2, $res);
+    // NOTE: order is not guaranteed, therefore: just compare item presence
+    $this->assertEqualsCanonicalizing(['Stephen', 'Michael'], array_column($res, 'person_firstname'));
+
+    //
+    // Root-level traverse up
+    //
+    $rootTraverseUpModel = $this->getModel('person')
+      ->setRecursive(
+        'person_parent_id',
+        'person_id',
+        [
+          // Single anchor condition
+          [ 'field' => 'person_lastname', 'operator' => '=', 'value' => 'Sanders' ]
+        ]
+      );
+    $res = $rootTraverseUpModel->search()->getResult();
+    $this->assertCount(2, $res);
+    // NOTE: order is not guaranteed, therefore: just compare item presence
+    $this->assertEqualsCanonicalizing([ 'Harry', 'Ella' ], array_column($res, 'person_firstname'));
+
+    //
+    // Root-level traverse down
+    //
+    $rootTraverseDownModel = $this->getModel('person')
+      ->setRecursive(
+        'person_id',
+        'person_parent_id',
+        [
+          // Single anchor condition
+          [ 'field' => 'person_lastname', 'operator' => '=', 'value' => 'Sanders' ]
+        ]
+      );
+    $res = $rootTraverseDownModel->search()->getResult();
+    $this->assertCount(3, $res);
+    // NOTE: order is not guaranteed, therefore: just compare item presence
+    $this->assertEqualsCanonicalizing([ 'Harry', 'Stephen', 'Michael' ], array_column($res, 'person_firstname'));
+
+
+    //
+    // TODO: describe the following code block... tests??
+    //
+    $joinedRecursiveModel = $this->getModel('person')
+      ->hideAllFields()
+      ->addField('person_id', 'main_id')
+      ->addField('person_parent_id', 'main_parent')
+      ->addModel(
+        $this->getModel('person')
+          // ->hideField('__anchor')
+          ->setRecursive('person_parent_id', 'person_id', [
+            // [ 'field' => 'person_lastname', 'operator' => '=', 'value' => 'Sanders' ]
+          ])
+        , \codename\core\model\plugin\join::TYPE_INNER
+        // , 'person_id'
+        // , 'person_id'
+      );
+
+    // $joinedRecursiveModel->addFilter('person_lastname', 'Vaughn' );
+    $joinedRecursiveModel->saveLastQuery = True;
+    // print_r($joinedRecursiveModel->search()->getResult());
+    // print_r($joinedRecursiveModel->getLastQuery());
+    foreach(array_reverse($ids) as $id) {
+      $personModel->delete($id);
+    }
+  }
+
+  /**
    * [testFiltercollectionValueArray description]
    */
   public function testFiltercollectionValueArray(): void {
