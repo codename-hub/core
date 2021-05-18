@@ -53,12 +53,21 @@ class database extends \codename\core\session implements \codename\core\session\
     public function setValidUntil(string $until) : \codename\core\session {
       if($this->sessionEntry != null) {
         // update id-based session model entry
-        $this->myModel()
-          ->entryLoad($this->sessionEntry->getData('session_id'))
-          ->entryUpdate([
+        $dataset = $this->myModel()->load($this->sessionEntry->getData('session_id'));
+
+        //
+        // CHANGED 2021-05-18: drop usage of entryLoad/Update/Save
+        // as it may overwrite data with current sessionEntry
+        // (e.g. grace period, if driver supports it in an overridden class)
+        //
+        if(!empty($dataset)) {
+          $this->myModel()->save([
+            $this->myModel()->getPrimarykey() => $this->sessionEntry->getData('session_id'),
             'session_valid_until' => $until
-          ])
-          ->entrySave();
+          ]);
+        } else {
+          throw new \codename\core\exception("SESSION_DATABASE_SETVALIDUNTIL_SESSION_DOES_NOT_EXIST", \codename\core\exception::$ERRORLEVEL_ERROR);
+        }
       } else {
         throw new \codename\core\exception("SESSION_DATABASE_SETVALIDUNTIL_INVALID_SESSIONENTRY", \codename\core\exception::$ERRORLEVEL_ERROR, $until);
       }
@@ -138,13 +147,18 @@ class database extends \codename\core\session implements \codename\core\session\
             return;
         }
 
+        //
+        // Invalidate each session entry
+        //
         foreach($sess as $session) {
-            $this->myModel()
-              ->entryLoad($session['session_id'])
-              ->entryUpdate([
-                'session_valid' => false
-              ])
-              ->entrySave();
+          //
+          // CHANGED 2021-05-18: drop usage of entryLoad/Update/Save
+          // (e.g. grace period, if driver supports it in an overridden class)
+          //
+          $this->myModel()->save([
+            $this->myModel()->getPrimarykey() => $session['session_id'],
+            'session_valid' => false
+          ]);
         }
 
         setcookie ($this->cookieName, "", 1, '/', $_SERVER['SERVER_NAME']);
@@ -249,12 +263,17 @@ class database extends \codename\core\session implements \codename\core\session\
      */
     public function setData(string $key, $data)
     {
-      // parent::setData($key, $data);
       $this->sessionData->setData($key, $data);
 
       if($this->sessionEntry != null) {
         // update id-based session model entry
-        $this->myModel()->entryLoad($this->sessionEntry->getData('session_id'))->entryUpdate( ['session_data' => $this->sessionData->getData() ] )->entrySave();
+        // CHANGED 2021-05-18: drop usage of entryLoad/Update/Save
+        // (e.g. grace period, if driver supports it in an overridden class)
+        //
+        $this->myModel()->save([
+          $this->myModel()->getPrimarykey() => $this->sessionEntry->getData('session_id'),
+          'session_data' => $this->sessionData->getData(),
+        ]);
       } else {
         throw new \codename\core\exception("SESSION_DATABASE_SETDATA_INVALID_SESSIONENTRY", \codename\core\exception::$ERRORLEVEL_ERROR, $data);
       }
@@ -279,11 +298,16 @@ class database extends \codename\core\session implements \codename\core\session\
           ->addFilter('session_valid', true)
           ->search()->getResult();
 
+        // invalidate each session entry
         foreach($sessions as $session) {
-          $this->myModel()
-            ->entryLoad($session[$this->myModel()->getPrimarykey()])
-            ->entryUpdate( ['session_valid' => false ] )
-            ->entrySave();
+          //
+          // CHANGED 2021-05-18: drop usage of entryLoad/Update/Save
+          // (e.g. grace period, if driver supports it in an overridden class)
+          //
+          $this->myModel()->save([
+            $this->myModel()->getPrimarykey() => $session[$this->myModel()->getPrimarykey()],
+            'session_valid' => false,
+          ]);
         }
       } else {
         throw new exception('EXCEPTION_SESSION_INVALIDATE_NO_SESSIONID_PROVIDED', exception::$ERRORLEVEL_ERROR);
