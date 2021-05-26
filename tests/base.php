@@ -154,6 +154,20 @@ class overrideableApp extends \codename\core\app {
   }
 
   /**
+   * [resetRequest description]
+   */
+  public static function resetRequest(): void {
+    unset(static::$instances['request']);
+  }
+
+  /**
+   * [resetResponse description]
+   */
+  public static function resetResponse(): void {
+    unset(static::$instances['response']);
+  }
+
+  /**
    * Overrides the current app's name
    * must stick to text_methodname
    * @param string $app [description]
