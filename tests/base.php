@@ -146,6 +146,7 @@ class overrideableApp extends \codename\core\app {
     static::$app = null;
     static::$vendor = null;
     static::$namespace = null;
+    static::$homedir = null;
     // static::$instances = [];
     static::$instance = null;
     static::$appstack = null;
