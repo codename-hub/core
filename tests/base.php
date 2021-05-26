@@ -180,6 +180,14 @@ class overrideableApp extends \codename\core\app {
   }
 
   /**
+   * [__setHomedir description]
+   * @param string|null $homedir [description]
+   */
+  public static function __setHomedir(?string $homedir) {
+    static::$homedir = $homedir;
+  }
+
+  /**
    * [__injectApp description]
    * @param  array  $injectApp [description]
    * @return void
