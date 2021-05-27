@@ -3,6 +3,9 @@ namespace codename\core\tests\session;
 
 use codename\core\app;
 
+/**
+ * [cacheTest description]
+ */
 class cacheTest extends abstractSessionTest {
   /**
    * @inheritDoc
