@@ -2,16 +2,8 @@
 namespace codename\core\tests;
 
 /**
- * Modified DbDoc class
- * that enables editing/setting the model adapters directly
+ * NOTE: compat class, inherits overrideableDbDoc from core-test package
  */
-class overrideableDbDoc extends \codename\architect\dbdoc\dbdoc {
+class overrideableDbDoc extends \codename\core\test\overrideableDbDoc {
 
-  /**
-   * [setModelAdapters description]
-   * @param array $modeladapters [description]
-   */
-  public function setModelAdapters(array $modeladapters) {
-    $this->adapters = $modeladapters;
-  }
 }
