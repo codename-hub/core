@@ -107,9 +107,17 @@ class database extends \codename\core\session implements \codename\core\session\
         //
         if(!isset($_COOKIE[$this->cookieName])) {
           $sessionIdentifier = bin2hex(random_bytes(16));
-          if(!setcookie($this->cookieName, $sessionIdentifier, strtotime($this->cookieLifetime), '/', $_SERVER['SERVER_NAME'])) {
+
+          $options = [
+             'expires'  => strtotime($this->cookieLifetime),
+             'path'     => '/',
+             'domain'   => $_SERVER['SERVER_NAME'],
+          ];
+
+          if(!$this->handleCookie($this->cookieName, $sessionIdentifier, $options)) {
             throw new exception('COOKIE_SETTING_UGH', exception::$ERRORLEVEL_FATAL);
           }
+
           //
           // FAKE that the cookie existed on request.
           // just for this instance. needed.
@@ -130,6 +138,17 @@ class database extends \codename\core\session implements \codename\core\session\
         // use identify() to fill datacontainers
         $this->identify();
         return $this;
+    }
+
+    /**
+     * [handleCookie description]
+     * @param string $cookieName  [description]
+     * @param string $cookieValue [description]
+     * @param array  $options     [description]
+     * @return bool [success]
+     */
+    protected function handleCookie(string $cookieName, string $cookieValue, array $options = []): bool {
+      return setcookie($cookieName, $cookieValue, $options);
     }
 
     /**
