@@ -76,11 +76,16 @@ class json extends \codename\core\config {
         }
 
         foreach(array_reverse($useAppstack) as $app) {
-            if(realpath($file) !== false) {
+            // NOTE: this was originally thought for absolute path checking
+            // we now really check for equality
+            // to avoid relative-to-absolute path conversion
+            // if the file exists in CWD!
+            if((($realpath = realpath($file)) !== false) && ($realpath == $file)) {
               $fullpath = $file;
             } else {
               $fullpath = app::getHomedir($app['vendor'], $app['app']) . $file;
             }
+
             if(!app::getInstance('filesystem_local')->fileAvailable($fullpath)) {
                 continue;
             }
