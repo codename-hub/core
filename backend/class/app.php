@@ -1360,7 +1360,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
               throw new \codename\core\exception(self::EXCEPTION_GETCONTEXT_REQUESTEDCLASSFILENOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $filename);
           	}
           }
-          $classname = "\\".self::getVendor()."\\".self::getApp()."\\context\\{$context}";
+          $classname = (static::getNamespace() ?? ("\\".self::getVendor()."\\".self::getApp()))."\\context\\{$context}";
           $_REQUEST['instances'][$simplename] = new $classname();
         }
         return $_REQUEST['instances'][$simplename];
