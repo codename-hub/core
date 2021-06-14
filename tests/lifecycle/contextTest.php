@@ -3,6 +3,9 @@ namespace codename\core\tests\lifecycle;
 
 use codename\core\app;
 
+use codename\core\test\dummyTemplateengine;
+use codename\core\test\cliExitPreventResponse;
+
 use codename\core\tests\base;
 use codename\core\tests\overrideableApp;
 
@@ -126,46 +129,9 @@ class contextTest extends base {
     // Check if callback (see above) had been called successfully
     $this->assertTrue($appRunEnd);
   }
-
-}
-
-class cliExitPreventResponse extends \codename\core\response\cli {
-  /**
-   * @inheritDoc
-   */
-  public function pushOutput()
-  {
-    return;
-  }
 }
 
 class testcontext extends \codename\core\context {
   public function view_default() {
-  }
-}
-
-class dummyTemplateengine extends \codename\core\templateengine {
-  /**
-   * @inheritDoc
-   */
-  public function render(string $referencePath, $data = null): string
-  {
-    return '';
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public function renderView(string $viewPath, $data = null): string
-  {
-    return '';
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public function renderTemplate(string $templatePath, $data = null): string
-  {
-    return '';
   }
 }
