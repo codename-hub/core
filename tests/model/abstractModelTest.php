@@ -2749,6 +2749,20 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests a case where the 'aliased' flag on a group plugin was always active
+   * (and ignoring schema/table - on root, there's no currentAlias (null))
+   * and causes severe errors when executing a query
+   * (ambiguous column)
+   */
+  public function testGroupAliasBugFixed(): void {
+    $model = $this->getModel('person')->setVirtualFieldResult(true)
+      ->addModel($this->getModel('person'))
+      ->addGroup('person_id');
+    $res = $model->search()->getResult();
+    $this->expectNotToPerformAssertions();
+  }
+
+  /**
    * [testNormalizeData description]
    * @return [type] [description]
    */

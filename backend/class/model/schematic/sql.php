@@ -1627,7 +1627,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
         $query .= $this->getFilterQuery($params, $mainAlias);
 
-        $groups = $this->getGroups();
+        $groups = $this->getGroups($mainAlias);
         if(count($groups) > 0) {
           $query .= ' GROUP BY '. implode(', ', $groups);
         }

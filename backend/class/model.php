@@ -1536,7 +1536,7 @@ abstract class model implements \codename\core\model\modelInterface {
       }
       $class = '\\codename\\core\\model\\plugin\\group\\' . $this->getType();
       $groupInstance = new $class($field);
-      $groupInstance->aliased = true;
+      $groupInstance->aliased = $aliased;
       $this->group[] = $groupInstance;
       return $this;
     }
