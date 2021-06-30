@@ -142,6 +142,10 @@ class rest extends \codename\core\api\codename {
 
     curl_close($this->curlHandler);
 
+    // WARNING: reset data after request is needed
+    // to prevent information leakage to following requests.
+    $this->resetData();
+
     if(is_bool($res) && !$res) {
       // we may throw an exception here
       return false;
