@@ -39,7 +39,7 @@ class hex extends \codename\core\tests\validator\text {
      * @return void
      */
     public function testValueInvalidHexString() {
-        $this->assertEquals('VALIDATION.VALUE_NOT_HEX_STRING', $this->getValidator()->validate('#ABCDEF')[0]['__CODE'] );
+        $this->assertEquals('VALIDATION.VALUE_NOT_HEX_STRING', $this->getValidator()->validate('ABCDEFF')[0]['__CODE'] );
     }
 
     /**
@@ -47,7 +47,7 @@ class hex extends \codename\core\tests\validator\text {
      * @return void
      */
     public function testValueValid() {
-        $this->assertEmpty($this->getValidator()->validate('AABBCC'));
+        $this->assertEmpty($this->getValidator()->validate('#AABBCC'));
     }
 
 }
