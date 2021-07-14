@@ -1953,6 +1953,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $this->cachedLastInsertId = null;
             $this->doQuery($query, $params);
             $this->cachedLastInsertId = $this->db->lastInsertId();
+
+            //
+            // affected rows might be != 1 (e.g. 2 on MySQL)
+            // of doing a saveCreate with replace = true
+            // (in overridden classes)
+            // This WILL fail at this point.
+            //
             if($this->db->affectedRows() !== 1) {
               throw new exception('MODEL_SAVE_CREATE_FAILED', exception::$ERRORLEVEL_ERROR);
             }
@@ -1965,7 +1972,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  array                  $data [description]
      * @return \codename\core\model   [this instance]
      */
-    public function replace(array $data) {
+    public function replace(array $data) : \codename\core\model {
       $params = [];
       $query = $this->saveCreate($data, $params, true); // saveCreate with $replace = true
       $this->doQuery($query, $params);
