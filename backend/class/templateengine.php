@@ -10,7 +10,7 @@ abstract class templateengine {
 
   /**
    * config
-   * @var datacontainer
+   * @var config
    */
   protected $config = null;
 
@@ -34,7 +34,24 @@ abstract class templateengine {
       }
     }
 
-    $this->config = new datacontainer($config);
+    $this->config = new config($config);
+  }
+
+  /**
+   * Returns the path for storing (temporary) assets
+   * for rendering or output
+   * @return string [description]
+   */
+  public function getAssetsPath(): string {
+    throw new \LogicException('Not implemented');
+  }
+
+  /**
+   * [getConfig description]
+   * @return config [description]
+   */
+  public function getConfig(): config {
+    return $this->config;
   }
 
   /**
