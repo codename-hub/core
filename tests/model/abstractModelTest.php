@@ -2474,6 +2474,38 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests grouping on a calculated field
+   */
+  public function testAddGroupOnCalculatedFieldDoesNotCrash(): void {
+    $model = $this->getModel('testdata');
+    // For the sake of simplicity: just do a simple alias here...
+    $model->addCalculatedField('calc_field', '(testdata_text)');
+    $model->addGroup('calc_field');
+
+    // We do not check for data integrity in this test.
+    $this->expectNotToPerformAssertions();
+    $model->search()->getResult();
+  }
+
+  /**
+   * Tests grouping on a nested model's calculated field
+   * which in which case the alias of the model MUST NOT propagate
+   * as it is a unique, temporary field
+   */
+  public function testAddGroupOnNestedCalculatedFieldDoesNotCrash(): void {
+    $model = $this->getModel('testdata')
+      ->addModel($detailsModel = $this->getModel('details'));
+
+    // For the sake of simplicity: just do a simple alias here...
+    $detailsModel->addCalculatedField('nested_calc_field', '(details_data)');
+    $detailsModel->addGroup('nested_calc_field');
+
+    // We do not check for data integrity in this test.
+    $this->expectNotToPerformAssertions();
+    $model->search()->getResult();
+  }
+
+  /**
    * [testAggregateCount description]
    */
   public function testAggregateCount(): void {

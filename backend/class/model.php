@@ -1524,7 +1524,13 @@ abstract class model implements \codename\core\model\modelInterface {
         foreach($this->fieldlist as $checkField) {
           if($checkField->field->get() == $field->get()) {
             $foundInFieldlist = true;
-            if($checkField instanceof \codename\core\model\plugin\aggregate) {
+
+            // At this point, check for 'virtuality' of a field
+            // e.g. aliased, calculated and aggregates
+            // (the latter ones are usually calculated fields)
+            //
+            if($checkField instanceof \codename\core\model\plugin\calculatedfield
+              || $checkField instanceof \codename\core\model\plugin\aggregate) {
               $aliased = true;
             }
             break;
