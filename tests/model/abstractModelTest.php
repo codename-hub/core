@@ -2506,6 +2506,51 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests whether we get an exception when trying to group
+   * on a nonexisting field
+   */
+  public function testAddGroupNonExistingField(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ADDGROUP_FIELDDOESNOTEXIST);
+
+    $model = $this->getModel('testdata')
+      ->addModel($detailsModel = $this->getModel('details'));
+
+    $model->addGroup('nonexisting');
+  }
+
+  /**
+   * [testAmbiguousAliasFieldsNormalization description]
+   */
+  public function testAmbiguousAliasFieldsNormalization(): void {
+    $model = $this->getModel('testdata')
+      ->addField('testdata_text', 'aliasedField')
+      ->addModel(
+        $detailsModel = $this->getModel('details')
+          ->addField('details_data', 'aliasedField')
+      );
+
+    $res = $model->search()->getResult();
+
+    // Same-level keys mapped to array
+    $this->assertEquals([
+      [ 'foo', null ],
+      [ 'bar', null ],
+      [ 'foo', null ],
+      [ 'bar', null ],
+    ], array_column($res, 'aliasedField'));
+
+    // Modify model to put details into a virtual field
+    $model->setVirtualFieldResult(true);
+    $model->getNestedJoins('details')[0]->virtualField = 'temp_virtual';
+
+    $res2 = $model->search()->getResult();
+
+    $this->assertEquals([ 'foo', 'bar', 'foo', 'bar' ], array_column($res2, 'aliasedField'));
+    $this->assertEquals([ null, null, null, null ], array_column(array_column($res2, 'temp_virtual'), 'aliasedField'));
+  }
+
+  /**
    * [testAggregateCount description]
    */
   public function testAggregateCount(): void {
