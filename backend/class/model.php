@@ -1929,18 +1929,10 @@ abstract class model implements \codename\core\model\modelInterface {
               // they're not part of the DB.
               //
               $fieldAlias = $field->alias !== null ? $field->alias->get() : null;
-              if($alias != null) {
-                if($fieldAlias) {
-                  $result[] = $fieldAlias;
-                } else {
-                  $result[] = $field->field->get();
-                }
+              if($fieldAlias) {
+                $result[] = $fieldAlias;
               } else {
-                if($fieldAlias) {
-                  $result[] = $fieldAlias;
-                } else {
-                  $result[] = $field->field->get();
-                }
+                $result[] = $field->field->get();
               }
             }
           }
