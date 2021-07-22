@@ -2797,6 +2797,44 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests ->addFilter() with an empty array value as to-be-filtered-for value
+   * This is an edge case which might change in the future.
+   */
+  public function testAddFilterWithEmptyArrayValue(): void {
+    $this->addWarning('Empty array filter values are silently ignored.');
+    $model = $this->getModel('testdata');
+    $model->addFilter('testdata_text', []); // this is discarded internally
+    $this->assertEquals(4, $model->getCount());
+  }
+
+  /**
+   * see above
+   */
+  public function testAddDefaultfilterWithEmptyArrayValue(): void {
+    // $this->addWarning('Empty array filter values are silently ignored.'); // See above
+    $model = $this->getModel('testdata');
+    $model->addDefaultfilter('testdata_text', []); // this is discarded internally
+    $this->assertEquals(4, $model->getCount());
+  }
+
+  /**
+   * [testAddDefaultfilterWithArrayValue description]
+   */
+  public function testAddDefaultfilterWithArrayValue(): void {
+    $model = $this->getModel('testdata');
+    $model->addDefaultfilter('testdata_date', [ '2021-03-22', '2021-03-23' ]);
+    $this->assertCount(3, $model->search()->getResult());
+
+    // second call, filter should still be active
+    $this->assertCount(3, $model->search()->getResult());
+
+    // third call, filter should still be active
+    // we reset explicitly
+    $model->reset();
+    $this->assertCount(3, $model->search()->getResult());
+  }
+
+  /**
    * [testDefaultfilterSimple description]
    */
   public function testDefaultfilterSimple(): void {
