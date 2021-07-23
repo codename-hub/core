@@ -142,6 +142,74 @@ abstract class abstractModelTest extends base {
       'connection' => 'default'
     ]);
 
+    static::createModel('multi_fkey', 'table1', [
+      'field' => [
+        'table1_id',
+        'table1_created',
+        'table1_modified',
+        'table1_key1',
+        'table1_key2',
+        'table1_value',
+      ],
+      'primary' => [
+        'table1_id'
+      ],
+      'foreign' => [
+        'multi_component_fkey' => [
+          'schema'  => 'multi_fkey',
+          'model'   => 'table2',
+          'key'     => [
+            'table1_key1' => 'table2_key1',
+            'table1_key2' => 'table2_key2',
+          ],
+          'optional' => true
+        ]
+      ],
+      'options' => [
+        'table1_key1' => [
+          'length'    => 16,
+        ]
+      ],
+      'datatype' => [
+        'table1_id'       => 'number_natural',
+        'table1_created'  => 'text_timestamp',
+        'table1_modified' => 'text_timestamp',
+        'table1_modified' => 'text_timestamp',
+        'table1_key1'     => 'text',
+        'table1_key2'     => 'number_natural',
+        'table1_value'    => 'text',
+      ],
+      'connection' => 'default'
+    ]);
+    static::createModel('multi_fkey', 'table2', [
+      'field' => [
+        'table2_id',
+        'table2_created',
+        'table2_modified',
+        'table2_key1',
+        'table2_key2',
+        'table2_value',
+      ],
+      'primary' => [
+        'table2_id'
+      ],
+      'options' => [
+        'table2_key1' => [
+          'length'    => 16,
+        ]
+      ],
+      'datatype' => [
+        'table2_id'       => 'number_natural',
+        'table2_created'  => 'text_timestamp',
+        'table2_modified' => 'text_timestamp',
+        'table2_modified' => 'text_timestamp',
+        'table2_key1'     => 'text',
+        'table2_key2'     => 'number_natural',
+        'table2_value'    => 'text',
+      ],
+      'connection' => 'default'
+    ]);
+
     static::createModel('vfields', 'customer', [
       'field' => [
         'customer_id',
@@ -1002,6 +1070,45 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testMultiComponentForeignKeyJoin description]
+   */
+  public function testMultiComponentForeignKeyJoin(): void {
+    $table1 = $this->getModel('table1');
+    $table2 = $this->getModel('table2');
+
+    $table1->save([
+      'table1_key1'   => 'first',
+      'table1_key2'   => 1,
+      'table1_value'  => 'table1'
+    ]);
+    $table2->save([
+      'table2_key1'   => 'first',
+      'table2_key2'   => 1,
+      'table2_value'  => 'table2'
+    ]);
+    $table1->save([
+      'table1_key1'   => 'arbitrary',
+      'table1_key2'   => 2,
+      'table1_value'  => 'not in table2'
+    ]);
+    $table2->save([
+      'table2_key1'   => 'arbitrary',
+      'table2_key2'   => 3,
+      'table2_value'  => 'not in table1'
+    ]);
+
+    $table1->addModel($table2);
+    $res = $table1->search()->getResult();
+
+    $this->assertCount(2, $res);
+    $this->assertEquals('table1', $res[0]['table1_value']);
+    $this->assertEquals('table2', $res[0]['table2_value']);
+
+    $this->assertEquals('not in table2', $res[1]['table1_value']);
+    $this->assertEquals(null, $res[1]['table2_value']);
+  }
+
+  /**
    * [testDeleteSinglePkeyTimemachineEnabled description]
    */
   public function testDeleteSinglePkeyTimemachineEnabled(): void {
@@ -1223,6 +1330,25 @@ abstract class abstractModelTest extends base {
     // NOTE: order is not guaranteed, therefore: just compare item presence
     $this->assertEqualsCanonicalizing([ 'Harry', 'Stephen', 'Michael' ], array_column($res, 'person_firstname'));
 
+    //
+    // Root-level traverse down using filter instance
+    //
+    $rootTraverseDownUsingFilterInstanceModel = $this->getModel('person')
+      ->setRecursive(
+        'person_id',
+        'person_parent_id',
+        [
+          // Single anchor condition, as filter plugin instance.
+          // In this case, we use dynamic, just so we get a better compatibility
+          // across differing drivers
+          new \codename\core\model\plugin\filter\dynamic(\codename\core\value\text\modelfield::getInstance('person_lastname'), 'Sanders', '=')
+        ]
+      );
+    $res = $rootTraverseDownUsingFilterInstanceModel->search()->getResult();
+    $this->assertCount(3, $res);
+    // NOTE: order is not guaranteed, therefore: just compare item presence
+    $this->assertEqualsCanonicalizing([ 'Harry', 'Stephen', 'Michael' ], array_column($res, 'person_firstname'));
+
 
     //
     // TODO: describe the following code block... tests??
@@ -1249,6 +1375,64 @@ abstract class abstractModelTest extends base {
     foreach(array_reverse($ids) as $id) {
       $personModel->delete($id);
     }
+  }
+
+  /**
+   * Tests whether calling setRecursive a second time will throw an exception
+   */
+  public function testSetRecursiveTwiceWillThrow(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage('EXCEPTION_MODEL_SETRECURSIVE_ALREADY_ENABLED');
+
+    $model = $this->getModel('person');
+    for ($i=1; $i <= 2; $i++) {
+      $model->setRecursive(
+        'person_parent_id',
+        'person_id',
+        [
+          // Single anchor condition
+          [ 'field' => 'person_lastname', 'operator' => '=', 'value' => 'Sanders' ]
+        ]
+      );
+    }
+  }
+
+  /**
+   * Tests whether setRecursive will throw an exception
+   * if an undefined relation is used as recursion parameter
+   */
+  public function testSetRecursiveInvalidConfigWillThrow(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage('INVALID_RECURSIVE_MODEL_CONFIG');
+
+    $model = $this->getModel('person');
+    $model->setRecursive(
+      'person_firstname',
+      'person_id',
+      [
+        // Single anchor condition
+        [ 'field' => 'person_lastname', 'operator' => '=', 'value' => 'Sanders' ]
+      ]
+    );
+  }
+
+  /**
+   * Tests whether setRecursive throws an exception
+   * if a nonexisting field is provided in the configuration
+   */
+  public function testSetRecursiveNonexistingFieldWillThrow(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage('INVALID_RECURSIVE_MODEL_CONFIG');
+
+    $model = $this->getModel('person');
+    $model->setRecursive(
+      'person_nonexisting',
+      'person_id',
+      [
+        // Single anchor condition
+        [ 'field' => 'person_lastname', 'operator' => '=', 'value' => 'Sanders' ]
+      ]
+    );
   }
 
   /**
@@ -2508,6 +2692,17 @@ abstract class abstractModelTest extends base {
     $model->setOffset(0);
     $res = $model->search()->getResult();
     $this->assertCount(4, $res);
+  }
+
+  /**
+   * Tests whether calling model::addOrder() using a nonexisting field
+   * throws an exception
+   */
+  public function testAddOrderOnNonexistingFieldWillThrow(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ADDORDER_FIELDNOTFOUND);
+    $model = $this->getModel('testdata');
+    $model->addOrder('testdata_nonexisting', 'ASC');
   }
 
   /**
