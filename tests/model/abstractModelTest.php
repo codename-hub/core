@@ -621,6 +621,45 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests whether ::addField() works with comma-separated field names (string)
+   */
+  public function testHideAllFieldsAddMultiple(): void {
+    $model = $this->getModel('testdata');
+    $res = $model
+      ->hideAllFields()
+      ->addField('testdata_integer,testdata_text, testdata_number ') // internal trimming
+      ->search()->getResult();
+    $this->assertCount(4, $res);
+    foreach($res as $r) {
+      // Make sure 'testdata_integer' is the one and only field in the result datasets
+      $this->assertArrayHasKey('testdata_integer', $r);
+      $this->assertArrayHasKey('testdata_text', $r);
+      $this->assertArrayHasKey('testdata_number', $r);
+      $this->assertEquals([ 'testdata_integer', 'testdata_text', 'testdata_number' ], array_keys($r));
+    }
+  }
+
+  /**
+   * [testAddFieldFailsWithNonexistingField description]
+   */
+  public function testAddFieldFailsWithNonexistingField(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ADDFIELD_FIELDNOTFOUND);
+    $model = $this->getModel('testdata');
+    $model->addField('testdata_nonexisting'); // We expect an early failure
+  }
+
+  /**
+   * [testAddFieldFailsWithMultipleFieldsAndAliasProvided description]
+   */
+  public function testAddFieldFailsWithMultipleFieldsAndAliasProvided(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage('EXCEPTION_ADDFIELD_ALIAS_ON_MULTIPLE_FIELDS');
+    $model = $this->getModel('testdata');
+    $model->addField('testdata_integer,testdata_text', 'some_alias'); // Obviously, this is a no-go.
+  }
+
+  /**
    * [testHideAllFieldsAddAliasedField description]
    */
   public function testHideAllFieldsAddAliasedField(): void {

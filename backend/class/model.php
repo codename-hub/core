@@ -1430,6 +1430,11 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function addField(string $field, string $alias = null) : model {
         if(strpos($field, ',') !== false) {
+            if($alias) {
+              // This is impossible, multiple fields and a singular alias.
+              // We won't support (field1, field2), (alias1, alias2) in this method
+              throw new exception('EXCEPTION_ADDFIELD_ALIAS_ON_MULTIPLE_FIELDS', exception::$ERRORLEVEL_ERROR, [ 'field' => $field, 'alias' => $alias ]);
+            }
             foreach(explode(',', $field) as $myField) {
                 $this->addField(trim($myField));
             }
