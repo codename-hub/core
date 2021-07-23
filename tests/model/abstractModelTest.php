@@ -29,6 +29,7 @@ abstract class abstractModelTest extends base {
    */
   public static function tearDownAfterClass(): void
   {
+    static::deleteTestData();
     parent::tearDownAfterClass();
     static::$initialized = false;
   }
@@ -357,9 +358,31 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Deletes data that is created during createTestData()
+   */
+  public static function deleteTestData(): void {
+    $cleanupModels = [
+      'testdata',
+      'details',
+      'timemachine',
+    ];
+    foreach($cleanupModels as $modelName) {
+      $model = static::getModelStatic($modelName);
+      $model->addFilter($model->getPrimarykey(), 0, '>')
+        ->delete()->reset();
+      static::assertEquals(0, $model->getCount());
+    }
+  }
+
+  /**
    * [createTestData description]
    */
   protected static function createTestData(): void {
+
+    // Just to make sure... initial cleanup
+    // If there has been a shutdown failure after the last test
+    // if this executed using a still running DB.
+    static::deleteTestData();
 
     $testdataModel = static::getModelStatic('testdata');
 
@@ -420,8 +443,9 @@ abstract class abstractModelTest extends base {
   public function testSetConfigExplicitConnectionValid(): void {
     $model = $this->getModel('testdata');
     $model->setConfig('default', 'testschema', 'testdata');
-    $dataset = $model->load(1);
-    $this->assertEquals(1, $dataset['testdata_id']);
+
+    $dataset = $model->setLimit(1)->search()->getResult()[0];
+    $this->assertGreaterThanOrEqual(1, $dataset['testdata_id']);
   }
 
   /**
@@ -2428,7 +2452,8 @@ abstract class abstractModelTest extends base {
     $testLimitModel->setOffset(1);
     $res = $testLimitModel->search()->getResult();
     $this->assertCount(1, $res);
-    $this->assertEquals(2,$res[0]['testdata_id']);
+    $this->assertEquals('bar', $res[0]['testdata_text']);
+    $this->assertEquals(4.25, $res[0]['testdata_number']);
   }
 
   /**
@@ -2451,15 +2476,24 @@ abstract class abstractModelTest extends base {
    */
   public function testStructureData(): void {
     $model = $this->getModel('testdata');
-    $testdata = $model->load(1);
+    $res = $model
+      ->addFilter('testdata_text', 'foo')
+      ->addFilter('testdata_date', '2021-03-22')
+      ->addFilter('testdata_number', 3.14)
+      ->search()->getResult();
+    $this->assertCount(1, $res);
+
+    $testdata = $res[0];
+    $id = $testdata[$model->getPrimarykey()];
+
     $model->save([
       $model->getPrimarykey() => $testdata[$model->getPrimarykey()],
       'testdata_structure'    => [ 'changed' => true ],
     ]);
-    $updated = $model->load(1);
+    $updated = $model->load($id);
     $this->assertEquals([ 'changed' => true ], $updated['testdata_structure']);
     $model->save($testdata);
-    $restored = $model->load(1);
+    $restored = $model->load($id);
     $this->assertEquals($testdata['testdata_structure'], $restored['testdata_structure']);
   }
 
@@ -2967,23 +3001,31 @@ abstract class abstractModelTest extends base {
   public function testTimemachineDelta(): void {
     $testdataTm = $this->getTimemachineEnabledModel('testdata');
 
+    $res = $this->getModel('testdata')
+      ->addFilter('testdata_text', 'foo')
+      ->addFilter('testdata_date', '2021-03-22')
+      ->addFilter('testdata_number', 3.14)
+      ->search()->getResult();
+    $this->assertCount(1, $res);
+    $id = $res[0]['testdata_id'];
+
     $testdataTm->save([
-      'testdata_id'       => 1,
+      'testdata_id'       => $id,
       'testdata_integer'  => 888,
     ]);
 
     $timemachine = new \codename\core\timemachine($testdataTm);
-    $history = $timemachine->getHistory(1);
+    $history = $timemachine->getHistory($id);
 
-    $delta = $timemachine->getDeltaData(1, 0);
+    $delta = $timemachine->getDeltaData($id, 0);
     $this->assertEquals([ 'testdata_integer' => 3], $delta);
 
-    $bigbangState = $timemachine->getHistoricData(1, 0);
+    $bigbangState = $timemachine->getHistoricData($id, 0);
     $this->assertEquals(3, $bigbangState['testdata_integer']);
 
     // restore via delta
     $testdataTm->save(array_merge([
-      'testdata_id'       => 1,
+      'testdata_id'       => $id,
     ], $delta));
   }
 
