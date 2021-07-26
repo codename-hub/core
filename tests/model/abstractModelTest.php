@@ -219,6 +219,7 @@ abstract class abstractModelTest extends base {
         'customer_person_id',
         'customer_person',
         'customer_contactentries',
+        'customer_notes',
       ],
       'primary' => [
         'customer_id'
@@ -264,7 +265,8 @@ abstract class abstractModelTest extends base {
         'customer_no'             => 'text',
         'customer_person_id'      => 'number_natural',
         'customer_person'         => 'virtual',
-        'customer_contactentries' => 'virtual'
+        'customer_contactentries' => 'virtual',
+        'customer_notes'          => 'text',
       ],
       'connection' => 'default'
     ]);
@@ -1068,6 +1070,36 @@ abstract class abstractModelTest extends base {
     }
     foreach($personIds as $id) {
       $personModel->delete($id);
+    }
+  }
+
+  /**
+   * Tests replace() method of model (UPSERT)
+   */
+  public function testReplace(): void {
+    $ids = [];
+    $model = $this->getModel('customer');
+
+    if(!($this instanceof \codename\core\tests\model\schematic\mysqlTest)) {
+      $this->markTestIncomplete('Upsert is working differently on this platform - not implemented yet!');
+    }
+
+    $model->save([
+      'customer_no'     => 'R1000',
+      'customer_notes'  => 'Replace me'
+    ]);
+    $ids[] = $firstId = $model->lastInsertId();
+
+    $model->replace([
+      'customer_no'     => 'R1000',
+      'customer_notes'  => 'Replaced'
+    ]);
+
+    $dataset = $model->load($firstId);
+    $this->assertEquals('Replaced', $dataset['customer_notes']);
+
+    foreach($ids as $id) {
+      $model->delete($id);
     }
   }
 
