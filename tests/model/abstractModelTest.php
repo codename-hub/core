@@ -433,6 +433,8 @@ abstract class abstractModelTest extends base {
       'testdata',
       'details',
       'timemachine',
+      'table1',
+      'table2',
     ];
     foreach($cleanupModels as $modelName) {
       $model = static::getModelStatic($modelName);
