@@ -1349,18 +1349,20 @@ abstract class abstractModelTest extends base {
     // NOTE: order is not guaranteed, therefore: just compare item presence
     $this->assertEqualsCanonicalizing([ 'Harry', 'Stephen', 'Michael' ], array_column($res, 'person_firstname'));
 
-
     //
-    // TODO: describe the following code block... tests??
+    // Test joining a model that is used recursively
     //
     $joinedRecursiveModel = $this->getModel('person')
       ->hideAllFields()
       ->addField('person_id', 'main_id')
       ->addField('person_parent_id', 'main_parent')
+      ->addField('person_firstname', 'main_firstname')
+      ->addField('person_lastname', 'main_lastname')
       ->addModel(
         $this->getModel('person')
           // ->hideField('__anchor')
           ->setRecursive('person_parent_id', 'person_id', [
+            // No filters in this case, we're just using an 'entry point' (Vaughn) below
             // [ 'field' => 'person_lastname', 'operator' => '=', 'value' => 'Sanders' ]
           ])
         , \codename\core\model\plugin\join::TYPE_INNER
@@ -1368,10 +1370,19 @@ abstract class abstractModelTest extends base {
         // , 'person_id'
       );
 
-    // $joinedRecursiveModel->addFilter('person_lastname', 'Vaughn' );
-    $joinedRecursiveModel->saveLastQuery = True;
-    // print_r($joinedRecursiveModel->search()->getResult());
-    // print_r($joinedRecursiveModel->getLastQuery());
+    $joinedRecursiveModel->addFilter('person_lastname', 'Vaughn' );
+    $res = $joinedRecursiveModel->search()->getResult();
+    $this->assertCount(3, $res);
+    $this->assertEquals([ 'Vaughn' ], array_unique(array_column($res, 'main_lastname')));
+
+    // NOTE: databases might behave differently regarding order
+    //
+    // e.g. SQLite: see https://www.sqlite.org/lang_with.html:
+    // "If there is no ORDER BY clause, then the order in which rows are extracted is undefined."
+    // SQLite is mostly doing FIFO.
+    //
+    $this->assertEqualsCanonicalizing([ 'Ella', 'Harry', 'Stephen' ], array_column($res, 'person_firstname'));
+
     foreach(array_reverse($ids) as $id) {
       $personModel->delete($id);
     }

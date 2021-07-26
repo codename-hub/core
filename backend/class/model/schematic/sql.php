@@ -1050,7 +1050,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $cte[] = $nest->getRecursiveSqlCteStatement($cteName, $params);
               $join->referenceField = '__anchor';
               $tableUsage[$cteName] = 1;
-              // $tableUsage["{$nest->schema}.{$nest->table}"]++;
+              // Also increase this counter, though this is a CTE
+              // to correctly keep track of ambiguous fields
+              $tableUsage["{$nest->schema}.{$nest->table}"]++;
               $alias = $cteName;
               $aliasAs = ''; // "AS ".$alias;
               // $parentAlias = $cteName;
@@ -1069,6 +1071,8 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   throw new exception('MODEL_SCHEMATIC_SQL_DEEP_JOIN_CTE_NAME_COLLISION', exception::$ERRORLEVEL_ERROR, $cteName);
                 } else {
                   $tableUsage[$cteName] = 1;
+                  // Also increase this counter, though this is a CTE
+                  // to correctly keep track of ambiguous fields
                   $tableUsage["{$nest->schema}.{$nest->table}"]++;
                 }
                 $cte[] = $join->getSqlCteStatement($cteName, $params, $cteAlias);
