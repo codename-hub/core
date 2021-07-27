@@ -1898,7 +1898,7 @@ abstract class model implements \codename\core\model\modelInterface {
         //
         // Include all fields but specific ones
         //
-        foreach($this->config->get('field') as $fieldName) {
+        foreach($this->getFields() as $fieldName) {
           if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
             if(!in_array($fieldName, $this->hiddenFields)) {
               $result[] = $fieldName;
@@ -1946,7 +1946,7 @@ abstract class model implements \codename\core\model\modelInterface {
           // add the rest of the data-model-defined fields
           // as long as they're not hidden.
           //
-          foreach($this->config->get('field') as $fieldName) {
+          foreach($this->getFields() as $fieldName) {
             if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
               if(!in_array($fieldName, $this->hiddenFields)) {
                 $result[] = $fieldName;
@@ -1970,7 +1970,7 @@ abstract class model implements \codename\core\model\modelInterface {
             //
             // The rest of the fields. Skip virtual fields
             //
-            foreach($this->config->get('field') as $fieldName) {
+            foreach($this->getFields() as $fieldName) {
               if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
                 $result[] = $fieldName;
               }
@@ -2214,7 +2214,7 @@ abstract class model implements \codename\core\model\modelInterface {
         $flagFieldName = $this->table . '_flag';
 
         if(!$this->normalizeDataFieldCache) {
-          $this->normalizeDataFieldCache = $this->config->get('field');
+          $this->normalizeDataFieldCache = $this->getFields();
         }
 
         foreach($this->normalizeDataFieldCache as $field) {

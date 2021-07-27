@@ -1308,7 +1308,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             if($cteName !== null) {
               $ret .= " {$joinMethod} {$cteName} {$aliasAs}{$useIndex} ON $joinComponentsString";
             } else if($nest->isDiscreteModel() && $nest instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
-              $ret .= " {$joinMethod} {$nest->getDiscreteModelQuery()} {$aliasAs}{$useIndex} ON $joinComponentsString";
+              $ret .= " {$joinMethod} {$nest->getDiscreteModelQuery($params)} {$aliasAs}{$useIndex} ON $joinComponentsString";
             } else {
               $ret .= " {$joinMethod} {$nest->getTableIdentifier()} {$aliasAs}{$useIndex} ON $joinComponentsString";
             }
@@ -1553,6 +1553,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           $parentAlias = $cteName;
         }
 
+        $explicitDiscrete = false;
+
+        // Root model is a discrete model
+        // Use getTableIdentifier for setting a main alias
+        if($this->isDiscreteModel()) {
+          $cteName = $this->getTableIdentifier();
+          $tableUsage[$cteName] = 1;
+          $parentAlias = $cteName;
+          $explicitDiscrete = true;
+        }
+
         //
         // NOTE/CHANGED 2020-09-15: allow params in deepJoin() (conditions!)
         //
@@ -1598,10 +1609,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // NOTE: we're checking for discrete models here
         // as they don't represent a table on its own, but merely an entire subquery
         //
-        if($cteName !== null) {
+        if($cteName !== null && !$explicitDiscrete) {
           $query .= ' FROM ' . $cteName . ' ';
         } else if($this->isDiscreteModel() && $this instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
-          $query .= ' FROM ' . $this->getDiscreteModelQuery() . ' AS '. $this->table . ' '; // directly apply table alias
+          $query .= ' FROM ' . $this->getDiscreteModelQuery($params) . ' AS '. $this->table . ' '; // directly apply table alias
         } else {
           $query .= ' FROM ' . $this->getTableIdentifier() . ' ';
         }
@@ -2755,7 +2766,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         //
         // Include all fields but specific ones
         //
-        foreach($this->config->get('field') as $fieldName) {
+        foreach($this->getFields() as $fieldName) {
           if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
             if(!in_array($fieldName, $this->hiddenFields)) {
               if($alias != null) {
@@ -2821,7 +2832,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           // add the rest of the data-model-defined fields
           // as long as they're not hidden.
           //
-          foreach($this->config->get('field') as $fieldName) {
+          foreach($this->getFields() as $fieldName) {
             if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
               if(!in_array($fieldName, $this->hiddenFields)) {
                 if($alias != null) {

@@ -10,7 +10,8 @@ interface discreteModelSchematicSqlInterface
   /**
    * returns the (sub)query or arbitrary query
    * that contains the model's data
+   * @param  array  &$params
    * @return string
    */
-  function getDiscreteModelQuery() : string;
+  function getDiscreteModelQuery(array &$params) : string;
 }

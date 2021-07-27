@@ -3177,6 +3177,72 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests using a discrete model as root
+   * and compares equality.
+   */
+  public function testAdhocDiscreteModelAsRoot(): void {
+    $testdataModel = $this->getModel('testdata');
+    $originalRes = $testdataModel->search()->getResult();
+    $discreteModelTest = new \codename\core\model\schematic\discreteDynamic('sample1', $testdataModel);
+    $discreteRes = $discreteModelTest->search()->getResult();
+    $this->assertEquals($originalRes, $discreteRes);
+
+    // TODO: add some filters and compare again.
+  }
+
+  /**
+   * Fun with discrete models
+   */
+  public function testAdhocDiscreteModelComplex(): void {
+    $testdataModel = $this->getModel('testdata');
+    $testdataModel
+      ->hideAllFields()
+      ->addField('testdata_id', 'testdataidaliased')
+      ->addCalculatedField('calculated', 'testdata_id * 4')
+      // ->addDefaultfilter('testdata_id', 2, '>')
+      ->addGroup('testdata_date')
+      ->addModel($this->getModel('details'))
+      ;
+    $discreteModelTest = new \codename\core\model\schematic\discreteDynamic('sample1', $testdataModel);
+    $res = $discreteModelTest->search()->getResult();
+
+    $this->assertCount(3, $res);
+
+    $rootModel = $this->getModel('testdata')->setVirtualFieldResult(true)
+      ->addCustomJoin(
+        $discreteModelTest,
+        \codename\core\model\plugin\join::TYPE_LEFT,
+        'testdata_id',
+        'testdataidaliased'
+      );
+    $rootModel->getNestedJoins('sample1')[0]->virtualField = 'virtualSample1';
+
+    $res2 = $rootModel->search()->getResult();
+    // print_r($res2);
+
+    $this->assertCount(4, $res2);
+    $this->assertEquals([ 4, null, 12, 16 ], array_column(array_column($res2, 'virtualSample1'), 'calculated'));
+
+    $secondaryDiscreteModelTest = new \codename\core\model\schematic\discreteDynamic('sample2', $testdataModel);
+    $secondaryDiscreteModelTest->addCalculatedField('calcCeption', 'sample2.calculated * sample2.calculated');
+    $rootModel->addCustomJoin(
+        $secondaryDiscreteModelTest,
+        \codename\core\model\plugin\join::TYPE_LEFT,
+        'testdata_id',
+        'testdataidaliased'
+      );
+    $rootModel->getNestedJoins('sample2')[0]->virtualField = 'virtualSample2';
+
+    $rootModel->addCalculatedField('calcCeption2', 'sample1.calculated * sample2.calculated');
+
+    $res3 = $rootModel->search()->getResult();
+    // print_r($res3);
+
+    $this->assertEquals([ 16, null, 144, 256 ], array_column(array_column($res3, 'virtualSample2'), 'calcCeption'));
+    $this->assertEquals([ 16, null, 144, 256 ], array_column($res3, 'calcCeption2'));
+  }
+
+  /**
    * Tests a case where the 'aliased' flag on a group plugin was always active
    * (and ignoring schema/table - on root, there's no currentAlias (null))
    * and causes severe errors when executing a query
