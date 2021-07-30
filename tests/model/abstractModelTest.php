@@ -3198,7 +3198,7 @@ abstract class abstractModelTest extends base {
     $testdataModel
       ->hideAllFields()
       ->addField('testdata_id', 'testdataidaliased')
-      ->addCalculatedField('calculated', 'testdata_id * 4')
+      ->addCalculatedField('calculated', 'testdata_integer * 4')
       // ->addDefaultfilter('testdata_id', 2, '>')
       ->addGroup('testdata_date')
       ->addModel($this->getModel('details'))
@@ -3221,7 +3221,7 @@ abstract class abstractModelTest extends base {
     // print_r($res2);
 
     $this->assertCount(4, $res2);
-    $this->assertEquals([ 4, null, 12, 16 ], array_column(array_column($res2, 'virtualSample1'), 'calculated'));
+    $this->assertEquals([ 12, null, 4, 168 ], array_column(array_column($res2, 'virtualSample1'), 'calculated'));
 
     $secondaryDiscreteModelTest = new \codename\core\model\schematic\discreteDynamic('sample2', $testdataModel);
     $secondaryDiscreteModelTest->addCalculatedField('calcCeption', 'sample2.calculated * sample2.calculated');
@@ -3238,8 +3238,8 @@ abstract class abstractModelTest extends base {
     $res3 = $rootModel->search()->getResult();
     // print_r($res3);
 
-    $this->assertEquals([ 16, null, 144, 256 ], array_column(array_column($res3, 'virtualSample2'), 'calcCeption'));
-    $this->assertEquals([ 16, null, 144, 256 ], array_column($res3, 'calcCeption2'));
+    $this->assertEquals([ 144, null, 16, 28224 ], array_column(array_column($res3, 'virtualSample2'), 'calcCeption'));
+    $this->assertEquals([ 144, null, 16, 28224 ], array_column($res3, 'calcCeption2'));
   }
 
   /**
@@ -3250,7 +3250,7 @@ abstract class abstractModelTest extends base {
     $testdataModel
       ->hideAllFields()
       ->addField('testdata_id', 'testdataidaliased')
-      ->addCalculatedField('calculated', 'testdata_id * 4')
+      ->addCalculatedField('calculated', 'testdata_integer * 4')
       // ->addDefaultfilter('testdata_id', 2, '>')
       ->addGroup('testdata_date')
       ->addModel($this->getModel('details'))
@@ -3274,6 +3274,12 @@ abstract class abstractModelTest extends base {
    * [testDiscreteModelAddOrder description]
    */
   public function testDiscreteModelAddOrder(): void {
+    //
+    // ORDER BY in a subquery is ignored in MySQL
+    // See https://mariadb.com/kb/en/why-is-order-by-in-a-from-subquery-ignored/
+    //
+    $this->markTestIncomplete('Ordering in subqueries is ignored on certain RDBMS');
+
     $testdataModel = $this->getModel('testdata');
 
     // NOTE order instance gets reset after query
@@ -3295,9 +3301,9 @@ abstract class abstractModelTest extends base {
    */
   public function testDiscreteModelSimpleAggregate(): void {
     $testdataModel = $this->getModel('testdata')
-      ->addAggregateField('id_sum', 'sum', 'testdata_id')
+      ->addAggregateField('id_sum', 'sum', 'testdata_integer')
       ->addGroup('testdata_date')
-      ->addDefaultAggregateFilter('id_sum', 3, '<=')
+      ->addDefaultAggregateFilter('id_sum', 10, '<=')
       ;
 
     $originalRes = $testdataModel->search()->getResult();
