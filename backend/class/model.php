@@ -1330,6 +1330,14 @@ abstract class model implements \codename\core\model\modelInterface {
       return $this;
     }
 
+    /**
+     * [addDefaultFilterCollection description]
+     * @param  array        $filters                     [array of filters]
+     * @param  string|null  $groupOperator               [operator inside the group items]
+     * @param  string       $groupName                   [name of group to usage across models]
+     * @param  string|null  $conjunction                 [conjunction of this group, inside the group of same-name filtercollections]
+     * @return model                 [description]
+     */
     public function addDefaultFilterCollection(array $filters, string $groupOperator = null, string $groupName = 'default', string $conjunction = null) : model {
       $filterCollection = array();
       foreach($filters as $filter) {
@@ -1379,11 +1387,13 @@ abstract class model implements \codename\core\model\modelInterface {
             if(count($value) == 0) {
                 return $this;
             }
-            array_push($this->defaultfilter, new $class($field, $value, $operator, $conjunction));
-            array_push($this->filter, new $class($field, $value, $operator, $conjunction));
+            $instance = new $class($field, $value, $operator, $conjunction);
+            array_push($this->defaultfilter, $instance);
+            array_push($this->filter, $instance);
         } else {
-            array_push($this->defaultfilter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
-            array_push($this->filter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
+            $instance = new $class($field, $this->delimit($field, $value), $operator, $conjunction);
+            array_push($this->defaultfilter, $instance);
+            array_push($this->filter, $instance);
         }
         return $this;
     }
@@ -1404,11 +1414,13 @@ abstract class model implements \codename\core\model\modelInterface {
             if(count($value) == 0) {
                 return $this;
             }
-            array_push($this->defaultfilter, new $class($field, $value, $operator, $conjunction));
-            array_push($this->filter, new $class($field, $value, $operator, $conjunction));
+            $instance = new $class($field, $value, $operator, $conjunction);
+            array_push($this->defaultfilter, $instance);
+            array_push($this->filter, $instance);
         } else {
-            array_push($this->defaultfilter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
-            array_push($this->filter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
+            $instance = new $class($field, $this->delimit($field, $value), $operator, $conjunction);
+            array_push($this->defaultfilter, $instance);
+            array_push($this->filter, $instance);
         }
         return $this;
     }
