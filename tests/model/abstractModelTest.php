@@ -3300,9 +3300,16 @@ abstract class abstractModelTest extends base {
     // to make sure we have ORDER+LIMIT+OFFSET really working
     // inside the subquery
     // though the final order might be different.
+    $testdataModel->addOrder('testdata_id', 'DESC');
     $testdataModel->setOffset(0)->setLimit(2);
     $offset0Res = $testdataModel->search()->getResult();
+
     $this->assertNotEquals($offset0Res, $originalRes);
+
+    $this->assertLessThan(
+      array_sum(array_column($offset0Res, 'testdata_id')), // Offset 0-based results should be topmost => sum of IDs must be greater
+      array_sum(array_column($originalRes, 'testdata_id')) // ... and this sum must be LESS THAN the above.
+    );
   }
 
   /**
