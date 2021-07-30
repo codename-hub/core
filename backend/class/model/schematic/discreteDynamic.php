@@ -194,15 +194,15 @@ class discreteDynamic extends \codename\core\model\schematic\sql
     }
 
     $orderQueryString = '';
-    if(count($this->order) > 0) {
+    if($this->baseModel->order) {
       $query .= $this->baseModel->getOrders($this->baseModel->order);
     }
 
-    if(!is_null($this->limit)) {
+    if($this->baseModel->limit) {
       $query .= $this->baseModel->getLimit($this->baseModel->limit);
     }
 
-    if(!is_null($this->offset) > 0) {
+    if($this->baseModel->offset) {
       $query .= $this->baseModel->getOffset($this->baseModel->offset);
     }
 

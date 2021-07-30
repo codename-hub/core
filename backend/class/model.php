@@ -1228,6 +1228,32 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [addDefaultAggregateFilter description]
+     * @param  string               $field       [description]
+     * @param  string|int|bool|null $value       [description]
+     * @param  string $operator    [description]
+     * @param  string|null          $conjunction [description]
+     * @return model               [description]
+     */
+    public function addDefaultAggregateFilter(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
+      $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
+      if(is_array($value)) {
+          if(count($value) == 0) {
+              return $this;
+          }
+          $instance = new $class($this->getModelfieldInstance($field), $value, $operator, $conjunction);
+          array_push($this->aggregateFilter, $instance);
+          array_push($this->defaultAggregateFilter, $instance);
+      } else {
+          $modelfieldInstance = $this->getModelfieldInstance($field);
+          $instance = new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $conjunction);
+          array_push($this->aggregateFilter, $instance);
+          array_push($this->defaultAggregateFilter, $instance);
+      }
+      return $this;
+    }
+
+    /**
      * [addAggregateFilterPlugin description]
      * @param  \codename\core\model\plugin\aggregatefilter $filterPlugin [description]
      * @return model                                                [description]

@@ -3243,6 +3243,74 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testDiscreteModelLimit description]
+   */
+  public function testDiscreteModelLimitAndOffset(): void {
+    $testdataModel = $this->getModel('testdata');
+    $testdataModel
+      ->hideAllFields()
+      ->addField('testdata_id', 'testdataidaliased')
+      ->addCalculatedField('calculated', 'testdata_id * 4')
+      // ->addDefaultfilter('testdata_id', 2, '>')
+      ->addGroup('testdata_date')
+      ->addModel($this->getModel('details'))
+      ;
+
+    // NOTE limit & offset instances get reset after query
+    $testdataModel->setLimit(2)->setOffset(1);
+
+    $originalRes = $testdataModel->search()->getResult();
+    $discreteModelTest = new \codename\core\model\schematic\discreteDynamic('sample1', $testdataModel);
+
+    // NOTE limit & offset instances get reset after query
+    $testdataModel->setLimit(2)->setOffset(1);
+    $discreteRes = $discreteModelTest->search()->getResult();
+
+    $this->assertCount(2, $discreteRes);
+    $this->assertEquals($originalRes, $discreteRes);
+  }
+
+  /**
+   * [testDiscreteModelAddOrder description]
+   */
+  public function testDiscreteModelAddOrder(): void {
+    $testdataModel = $this->getModel('testdata');
+
+    // NOTE order instance gets reset after query
+    $testdataModel->addOrder('testdata_id', 'DESC');
+
+    $originalRes = $testdataModel->search()->getResult();
+    $discreteModelTest = new \codename\core\model\schematic\discreteDynamic('sample1', $testdataModel);
+
+    // NOTE order instance gets reset after query
+    $testdataModel->addOrder('testdata_id', 'DESC');
+    $discreteRes = $discreteModelTest->search()->getResult();
+
+    $this->assertCount(4, $discreteRes);
+    $this->assertEquals($originalRes, $discreteRes);
+  }
+
+  /**
+   * [testDiscreteModelSimpleAggregate description]
+   */
+  public function testDiscreteModelSimpleAggregate(): void {
+    $testdataModel = $this->getModel('testdata')
+      ->addAggregateField('id_sum', 'sum', 'testdata_id')
+      ->addGroup('testdata_date')
+      ->addDefaultAggregateFilter('id_sum', 3, '<=')
+      ;
+
+    $originalRes = $testdataModel->search()->getResult();
+    $discreteModelTest = new \codename\core\model\schematic\discreteDynamic('sample1', $testdataModel);
+
+    $discreteRes = $discreteModelTest->search()->getResult();
+
+    $this->assertCount(2, $discreteRes);
+    $this->assertEquals($originalRes, $discreteRes);
+  }
+
+
+  /**
    * Tests a case where the 'aliased' flag on a group plugin was always active
    * (and ignoring schema/table - on root, there's no currentAlias (null))
    * and causes severe errors when executing a query
