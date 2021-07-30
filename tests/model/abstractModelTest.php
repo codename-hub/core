@@ -3331,6 +3331,46 @@ abstract class abstractModelTest extends base {
     $this->assertEquals($originalRes, $discreteRes);
   }
 
+  /**
+   * [testDiscreteModelSaveWillThrow description]
+   */
+  public function testDiscreteModelSaveWillThrow(): void {
+    $this->expectException(\LogicException::class);
+    $this->expectExceptionMessage('Not implemented.');
+    $discreteModelTest = new \codename\core\model\schematic\discreteDynamic('sample1', $this->getModel('testdata'));
+    $discreteModelTest->save([ 'value' => 'doesnt matter']);
+  }
+
+  /**
+   * [testDiscreteModelUpdateWillThrow description]
+   */
+  public function testDiscreteModelUpdateWillThrow(): void {
+    $this->expectException(\LogicException::class);
+    $this->expectExceptionMessage('Not implemented.');
+    $discreteModelTest = new \codename\core\model\schematic\discreteDynamic('sample1', $this->getModel('testdata'));
+    $discreteModelTest->update([ 'value' => 'doesnt matter']);
+  }
+
+  /**
+   * [testDiscreteModelReplaceWillThrow description]
+   */
+  public function testDiscreteModelReplaceWillThrow(): void {
+    $this->expectException(\LogicException::class);
+    $this->expectExceptionMessage('Not implemented.');
+    $discreteModelTest = new \codename\core\model\schematic\discreteDynamic('sample1', $this->getModel('testdata'));
+    $discreteModelTest->replace([ 'value' => 'doesnt matter']);
+  }
+
+  /**
+   * [testDiscreteModelDeleteWillThrow description]
+   */
+  public function testDiscreteModelDeleteWillThrow(): void {
+    $this->expectException(\LogicException::class);
+    $this->expectExceptionMessage('Not implemented.');
+    $discreteModelTest = new \codename\core\model\schematic\discreteDynamic('sample1', $this->getModel('testdata'));
+    $discreteModelTest->delete(1);
+  }
+
 
   /**
    * Tests a case where the 'aliased' flag on a group plugin was always active
