@@ -3275,25 +3275,34 @@ abstract class abstractModelTest extends base {
    */
   public function testDiscreteModelAddOrder(): void {
     //
-    // ORDER BY in a subquery is ignored in MySQL
+    // NOTE ORDER BY in a subquery is ignored in MySQL for final output
     // See https://mariadb.com/kb/en/why-is-order-by-in-a-from-subquery-ignored/
+    // But it is essential for LIMIT/OFFSETs used in the subquery!
     //
-    $this->markTestIncomplete('Ordering in subqueries is ignored on certain RDBMS');
-
     $testdataModel = $this->getModel('testdata');
 
     // NOTE order instance gets reset after query
     $testdataModel->addOrder('testdata_id', 'DESC');
+    $testdataModel->setOffset(2)->setLimit(2);
 
     $originalRes = $testdataModel->search()->getResult();
     $discreteModelTest = new \codename\core\model\schematic\discreteDynamic('sample1', $testdataModel);
 
     // NOTE order instance gets reset after query
     $testdataModel->addOrder('testdata_id', 'DESC');
+    $testdataModel->setOffset(2)->setLimit(2);
     $discreteRes = $discreteModelTest->search()->getResult();
 
-    $this->assertCount(4, $discreteRes);
+    $this->assertCount(2, $discreteRes);
     $this->assertEquals($originalRes, $discreteRes);
+
+    // finally, query the thing with a zero offset
+    // to make sure we have ORDER+LIMIT+OFFSET really working
+    // inside the subquery
+    // though the final order might be different.
+    $testdataModel->setOffset(0)->setLimit(2);
+    $offset0Res = $testdataModel->search()->getResult();
+    $this->assertNotEquals($offset0Res, $originalRes);
   }
 
   /**

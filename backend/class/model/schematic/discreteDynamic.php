@@ -195,6 +195,10 @@ class discreteDynamic extends \codename\core\model\schematic\sql
 
     $orderQueryString = '';
     if($this->baseModel->order) {
+      //
+      // WARNING: real ordering via ORDER BY in subqueries is usually ignored by typical RDBMS
+      // in the final output - but it is applicable for ORDER BY + LIMIT/OFFSET queries!
+      //
       $query .= $this->baseModel->getOrders($this->baseModel->order);
     }
 
