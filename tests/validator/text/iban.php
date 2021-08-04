@@ -47,7 +47,7 @@ class iban extends \codename\core\tests\validator\text {
      * @return void
      */
     public function testValueValid() {
-        $this->assertEquals(array(), $this->getValidator()->validate('DE79532900000010422000'));
+        $this->assertEmpty($this->getValidator()->validate('DE79532900000010422000'));
     }
 
 }

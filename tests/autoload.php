@@ -16,6 +16,9 @@
  *
  */
 
+// Default fixed environment for unit tests
+define('CORE_ENVIRONMENT', 'test');
+
 // cross-project autoloader
 $globalBootstrap = realpath(__DIR__.'/../../../../bootstrap-cli.php');
 if(file_exists($globalBootstrap)) {

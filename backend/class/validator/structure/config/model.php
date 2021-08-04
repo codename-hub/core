@@ -25,15 +25,31 @@ class model extends \codename\core\validator\structure\config implements \codena
      */
     public function validate($value) : array
     {
-      parent::validate($value);
+      if(count(parent::validate($value)) != 0) {
+          return $this->errorstack->getErrors();
+      }
+
+      if(is_null($value)) {
+          return $this->errorstack->getErrors();
+      }
 
       // check field names
       if(!empty($value['field'])) {
+        if (!is_array($value['field'])) {
+            $this->errorstack->addError('VALUE', 'KEY_FIELD_NOT_A_ARRAY', $value);
+            return $this->errorstack->getErrors();
+        }
+        if (!is_array($value['datatype'])) {
+            $this->errorstack->addError('VALUE', 'KEY_DATATYPE_NOT_A_ARRAY', $value);
+            return $this->errorstack->getErrors();
+        }
+
         foreach($value['field'] as $field) {
 
           // validate modelfield
           if(count($errors = app::getValidator('text_modelfield')->reset()->validate($field)) > 0) {
-            $this->errorstack->addErrors($errors);
+            $this->errorstack->addError('VALUE', 'KEY_FIELD_INVALID', $errors);
+            return $this->errorstack->getErrors();
           } else {
             // validate datatype config existance AND its validity
             if(!array_key_exists($field, $value['datatype'])) {
@@ -48,6 +64,11 @@ class model extends \codename\core\validator\structure\config implements \codena
       // check primary key existance
       // we expect an array!
       if(!empty($value['primary'])) {
+        if (!is_array($value['primary'])) {
+            $this->errorstack->addError('VALUE', 'KEY_PRIMARY_NOT_A_ARRAY', $value);
+            return $this->errorstack->getErrors();
+        }
+
         foreach($value['primary'] as $primary) {
           if(!in_array($primary, $value['field'])) {
             $this->errorstack->addError('VALUE', 'PRIMARY_KEY_NOT_CONTAINED_IN_FIELD_ARRAY', $primary);

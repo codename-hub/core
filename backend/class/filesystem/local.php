@@ -247,20 +247,18 @@ class local extends \codename\core\filesystem implements \codename\core\filesyst
      * @return bool
      */
     protected function makePath(string $directory) : bool {
-        $folders = explode('/', $directory);
-        array_pop($folders);
-        $myDir = '/';
-        foreach ($folders as $folder) {
-            $myDir = $myDir . '/' . $folder;
-            if($this->dirAvailable($myDir)) {
-                continue;
-            }
 
-            if(!$this->dirCreate($myDir)) {
-                return false;
-            }
+        // CHANGED 2021-03-25 to improve Windows support
+        // We can't rely on '/'-splitting
+        // Extract directory from path
+        $basedir = pathinfo($directory, PATHINFO_DIRNAME);
+        
+        try {
+          @mkdir($basedir, 0777, true);
+        } catch (\Exception $e) {
         }
-        return true;
+
+        return $this->dirAvailable($basedir);
     }
 
 }

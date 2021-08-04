@@ -466,7 +466,9 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_END);
 
         // fire exit code
-        exit(self::$exitCode);
+        if(self::$exitCode !== null) {
+          exit(self::$exitCode);
+        }
 
         return;
     }
@@ -823,6 +825,28 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     }
 
     /**
+     * returns a custom base namespace, if desired
+     * (as a starting point for the current app)
+     * @return string|null
+     */
+    final public static function getNamespace() : ?string {
+      return static::$namespace ?? null;
+    }
+
+    /**
+     * overridden base namespace
+     * @var string
+     */
+    protected static $namespace = null;
+
+    /**
+     * App's home dir - null by default
+     * set to override.
+     * @var string|null
+     */
+    protected static $homedir = null;
+
+    /**
      * Returns the appstack of the instance. Can be used to load files by their existance (not my app? -> parent app? -> parent's parent...)
      * @return array
      */
@@ -865,13 +889,71 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     /**
      * Returns the directory where the app must be stored in
      * <br />This method relies on the constant CORE_VENDORDIR
-     * @return string
+     * @param string $vendor
+     * @param string $app
+     * @return string|null
      */
     final public static function getHomedir(string $vendor = '', string $app = '') : string {
         if(strlen($vendor) == 0) {$vendor = self::getVendor();}
         if(strlen($app) == 0) {$app = self::getApp(); }
 
-        return CORE_VENDORDIR . $vendor . '/' . $app . '/';
+        $dir = null;
+        if(($vendor == static::getVendor()) && ($app == static::getApp())) {
+          $dir = static::$homedir ?? ($vendor . '/' . $app);
+        } else {
+          // Check for appstack being set
+          // this prevents a recursion (during env init/config loading)
+          if(static::$appstack === null) {
+            $dir = null;
+          } else {
+            //
+            // traverse appstack
+            //
+            foreach(static::getAppstack() as $appEntry) {
+              if(($appEntry['vendor'] == $vendor) && ($appEntry['app'] == $app)) {
+                $dir = $appEntry['homedir'] ?? ($appEntry['vendor'] . '/' . $appEntry['app']);
+                break;
+              }
+            }
+          }
+
+        }
+
+        if($dir === null) {
+          // DEBUG:
+          // print_r([$vendor, $app, static::getAppstack()]);
+
+          // NOTE/WARNING:
+          // We _should_ enable this in the future.
+          // At the moment, it breaks a lot of scenarious -
+          // but it might be security-relevant,
+          // as it prevents out-of-appdir file lookups
+          //
+          // Before, we returned a value that is fully based on VENDOR DIR
+          // and it simply was "vendor/app".
+          // now, we really return NULL, just to make sure.
+          // But this won't be the end of the story.
+          //
+          // NOTE: changed back, crashes architect.
+          //
+          // throw new \codename\core\exception('EXCEPTION_APP_HOMEDIR_REQUEST_OUT_OF_SCOPE', \codename\core\exception::$ERRORLEVEL_ERROR, [
+          //   'vendor'  => $vendor,
+          //   'app'     => $app,
+          // ]);
+
+          // Legacy style:
+          // $dir = $vendor . '/' . $app;
+
+          // Crashes Architect:
+          // if($nullFallback) {
+          //   return null;
+          // } else {
+          //   $dir = $vendor . '/' . $app;
+          // }
+          $dir = $vendor . '/' . $app;
+        }
+
+        return CORE_VENDORDIR . $dir . '/';
     }
 
     /**
@@ -1142,7 +1224,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         $file = str_replace('\\', '/', $classname);
 
         foreach(self::getAppstack() as $parentapp) {
-            $filename = CORE_VENDORDIR . $parentapp['vendor'] . '/' . $parentapp['app'] . '/backend/class/' . $file . '.php';
+            $dir = $parentapp['homedir'] ?? ($parentapp['vendor'] . '/' . $parentapp['app']);
+            $filename = CORE_VENDORDIR . $dir . '/backend/class/' . $file . '.php';
             if(self::getInstance('filesystem_local')->fileAvailable($filename)) {
                 $namespace = $parentapp['namespace'] ?? '\\' . $parentapp['vendor'] . '\\' . $parentapp['app'];
                 return $namespace . '\\' . $classname;
@@ -1277,7 +1360,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
               throw new \codename\core\exception(self::EXCEPTION_GETCONTEXT_REQUESTEDCLASSFILENOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $filename);
           	}
           }
-          $classname = "\\".self::getVendor()."\\".self::getApp()."\\context\\{$context}";
+          $classname = (static::getNamespace() ?? ("\\".self::getVendor()."\\".self::getApp()))."\\context\\{$context}";
           $_REQUEST['instances'][$simplename] = new $classname();
         }
         return $_REQUEST['instances'][$simplename];

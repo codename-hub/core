@@ -39,7 +39,7 @@ class appname extends \codename\core\tests\validator\text {
      * @return void
      */
     public function testValueValid() {
-        $this->assertEquals(array(), $this->getValidator()->validate('core'));
+        $this->assertEmpty($this->getValidator()->validate('core'));
     }
 
 }

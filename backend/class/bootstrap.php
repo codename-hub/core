@@ -39,8 +39,16 @@ class bootstrap {
         $app = strlen($app) == 0 ? app::getApp() : $app;
         $vendor = strlen($vendor) == 0 ? app::getVendor() : $vendor;
 
-        // construct a FQCN to check for
-        $classname = "\\{$vendor}\\{$app}\\model\\{$model}";
+        // Current app may define a namespace override
+        // therefore: check if requested app is this app and test for this namespace.
+        if($app == app::getApp() && $vendor == app::getVendor()) {
+          $namespace = app::getNamespace() ?? null;
+        }
+
+        // custom namespace from appstack config -
+        // fallback to original format if not defined:
+        // \vendorname\appname
+        $namespace = $namespace ?? "\\{$vendor}\\{$app}";
 
         // check, if vendor / app is contained in current Appstack
         // otherwise, we have to explicitly do some additional work
@@ -53,8 +61,8 @@ class bootstrap {
         }) == null;
 
         $initConfig = [
-          'vendor' => $vendor,
-          'app' => $app
+          'vendor'  => $vendor,
+          'app'     => $app
         ];
 
         // construct a virtual appstack
@@ -65,6 +73,9 @@ class bootstrap {
           ]]);
           $initConfig['appstack'] = $appstack;
         }
+
+        // construct a FQCN to check for
+        $classname = "{$namespace}\\model\\{$model}";
 
         // check for existance using autoloading capabilities
         if(class_exists($classname)) {

@@ -56,10 +56,9 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
     public function __construct(array $data) {
         parent::__construct($data);
 
-        if(count($errors = app::getValidator('structure_config_bucket_sftp')->validate($data)) > 0) {
+        if(count($errors = app::getValidator('structure_config_bucket_sftp')->reset()->validate($data)) > 0) {
             $this->errorstack->addError('CONFIGURATION', 'CONFIGURATION_INVALID', $errors);
-            throw new exception('EXCEPTION_BUCKET_SFTP_INVALID_CONFIG', exception::$ERRORLEVEL_ERROR, $this->errorstack->getErrors());
-            return $this;
+            throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONFIGURATIONINVALID, \codename\core\exception::$ERRORLEVEL_ERROR, $errors);
         }
 
         $this->basedir = $data['basedir'];
@@ -160,7 +159,8 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
         }
 
         if($this->fileAvailable($remotefile)) {
-            $this->fileDelete($remotefile);
+            $this->errorstack->addError('FILE', 'REMOTE_FILE_EXISTS', $remotefile);
+            return false;
         }
 
         $directory = $this->extractDirectory($remotefile);
@@ -184,7 +184,7 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
               throw new exception("Unable to open local file for reading: {$localfile}", exception::$ERRORLEVEL_ERROR);
           }
           // Remote stream
-          if (!($remoteStream = @fopen("ssh2.sftp://{$this->connection}/{$this->basedir}{$remotefile}", 'w'))) {
+          if (!($remoteStream = fopen("ssh2.sftp://{$this->connection}/{$this->basedir}{$remotefile}", 'w'))) {
               throw new exception("Unable to open remote file for writing: {$this->basedir}{$remotefile}", exception::$ERRORLEVEL_ERROR);
           }
           // Write from our remote stream to our local stream
@@ -282,18 +282,7 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
      * @see \codename\core\bucket_interface::dirAvailable($directory)
      */
     public function dirAvailable(string $directory) : bool {
-      // TODO: check if dir or file?
-      try {
-        return @ssh2_sftp_stat($this->connection, $this->basedir . $directory) !== false;
-      } catch (\Exception $e) {
-        return false;
-      }
-
-      // $list = $this->getDirlist($directory);
-      // if(is_bool($list) && !$list) {
-      //     return false;
-      // }
-      // return true;
+      return $this->isDirectory($directory);
     }
 
     /**
@@ -313,10 +302,12 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
         }
 
         $files = array();
+
+        $prefix = $directory != '' ? $directory.'/' : '';
         while (false !== ($entry = readdir($handle))) {
           // exclude current dir and parent
           if($entry != '.' && $entry != '..') {
-            $files[] = $entry;
+            $files[] = $prefix.$entry;
           }
         }
 
@@ -324,20 +315,6 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
         @closedir($handle);
 
         return $files;
-
-        //
-        // $list = $this->getDirlist($directory);
-        // $myList = array();
-        //
-        // if(!is_array($list)) {
-        //     return $myList;
-        // }
-        //
-        // foreach($list as $element) {
-        //     $myList[] = str_replace('/', '', str_replace(str_replace('//', '/', $this->basedir . $directory), '', $element));
-        //
-        // }
-        // return $myList;
     }
 
     /**
@@ -346,12 +323,8 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
      * @see \codename\core\bucket_interface::fileAvailable($remotefile)
      */
     public function fileAvailable(string $remotefile) : bool {
-      // TODO: check if dir or file
-      try {
-        return @ssh2_sftp_stat($this->connection, $this->basedir . $remotefile) !== false;
-      } catch (\Exception $e) {
-        return false;
-      }
+      // CHANGED 2021-03-30: improved and fixed internal SFTP bucket handling
+      return $this->isFile($remotefile);
     }
 
     /**
@@ -424,6 +397,28 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
     }
 
     /**
+     * [isDirectory description]
+     * @param  string $directory [description]
+     * @return bool              [description]
+     */
+    public function isDirectory(string $directory): bool {
+      $statResult = @ssh2_sftp_stat($this->connection, $this->basedir . $directory);
+      if ($statResult === false) {
+        return false;
+      }
+
+      //
+      // check for dir
+      // @see https://www.php.net/manual/en/function.stat.php#54999
+      //
+      if (self::S_IFDIR == ($statResult['mode'] & self::S_IFMT)) {
+        return true;
+      }
+
+      return false;
+    }
+
+    /**
      * [S_IFMT description]
      * @see https://www.php.net/manual/en/function.stat.php#54999
      * @var int
@@ -455,7 +450,7 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
 
     /**
      * Creates the given $directory on this instance's remote hostname
-     * @param string $dirname
+     * @param string $directory
      * @return bool
      */
     public function dirCreate(string $directory) {

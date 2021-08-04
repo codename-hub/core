@@ -20,9 +20,7 @@ class structure extends \codename\core\validator implements \codename\core\valid
      * @see \codename\core\validator_interface::validate($value)
      */
     public function validate($value) : array {
-        parent::validate($value);
-
-        if(count($this->errorstack->getErrors()) > 0) {
+        if(count(parent::validate($value)) != 0) {
             return $this->errorstack->getErrors();
         }
         

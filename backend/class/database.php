@@ -89,7 +89,9 @@ class database extends \codename\core\observable {
             }
 
             try {
-              $this->connection = new \PDO($this->driver . ":" . ( $autoconnectDatabase ? "dbname=" . $config['database'] . ";" : '') . 'host=' . $host . (isset($config['port']) ? (';port='.$config['port']) : '') . (isset($config['charset']) ? (';charset='.$config['charset']) : ''), $user, $pass);
+              // CHANGED 2021-05-04: allow driver-specific default attrs, if any.
+              $attrs = $this->getDefaultAttributes();
+              $this->connection = new \PDO($this->driver . ":" . ( $autoconnectDatabase ? "dbname=" . $config['database'] . ";" : '') . 'host=' . $host . (isset($config['port']) ? (';port='.$config['port']) : '') . (isset($config['charset']) ? (';charset='.$config['charset']) : ''), $user, $pass, $attrs);
             } catch (\Exception $e) {
               throw new sensitiveException($e);
             }
@@ -106,6 +108,15 @@ class database extends \codename\core\observable {
 
         $this->attach(new \codename\core\observer\database());
         return $this;
+    }
+
+    /**
+     * Default attributes to use during connection creation
+     * as some attributes have no effect otherwise
+     * @return array
+     */
+    protected function getDefaultAttributes(): array {
+      return [];
     }
 
     /**
@@ -231,6 +242,19 @@ class database extends \codename\core\observable {
      */
     public function lastInsertId() : string {
         return $this->connection->lastInsertId();
+    }
+
+    /**
+     * Returns count of affected rows of last
+     * create, update or delete operation
+     * @return int|null
+     */
+    public function affectedRows(): ?int {
+      if($this->statement) {
+        return $this->statement->rowCount();
+      } else {
+        return null;
+      }
     }
 
     /**

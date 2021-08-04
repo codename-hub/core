@@ -123,7 +123,7 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function __construct(array $data) {
       $this->errorstack = new \codename\core\errorstack('BUCKET');
-      if(count($errors = app::getValidator('structure_config_bucket_s3')->validate($data)) > 0) {
+      if(count($errors = app::getValidator('structure_config_bucket_s3')->reset()->validate($data)) > 0) {
           $this->errorstack->addError('CONFIGURATION', 'CONFIGURATION_INVALID', $errors);
           throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONFIGURATIONINVALID, 4, $errors);
       }
@@ -177,6 +177,16 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function filePush(string $localfile, string $remotefile): bool
   {
+    if(!app::getFilesystem()->fileAvailable($localfile)) {
+        $this->errorstack->addError('FILE', 'LOCAL_FILE_NOT_FOUND', $localfile);
+        return false;
+    }
+
+    if($this->fileAvailable($remotefile)) {
+        $this->errorstack->addError('FILE', 'REMOTE_FILE_EXISTS', $remotefile);
+        return false;
+    }
+
     try{
       $result = $this->client->putObject([
           'Bucket'     => $this->bucket,
@@ -196,6 +206,16 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function filePull(string $remotefile, string $localfile): bool
   {
+    if(app::getFilesystem()->fileAvailable($localfile)) {
+        $this->errorstack->addError('FILE', 'LOCAL_FILE_EXISTS', $localfile);
+        return false;
+    }
+
+    if(!$this->fileAvailable($remotefile)) {
+        $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
+        return false;
+    }
+
     try{
       $result = $this->client->getObject([
           'Bucket'     => $this->bucket,
@@ -265,6 +285,17 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function fileMove(string $remotefile, string $newremotefile): bool
   {
+    if(!$this->fileAvailable($remotefile)) {
+        $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
+        return false;
+    }
+
+    // check for existance of the new file
+    if($this->fileAvailable($newremotefile)) {
+        $this->errorstack->addError('FILE', 'FILE_ALREADY_EXISTS', $newremotefile);
+        return false;
+    }
+
     try{
       /**
        * @see http://docs.aws.amazon.com/AmazonS3/latest/dev/CopyingObjectUsingPHP.html
@@ -363,10 +394,15 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
       $continuationToken = null;
       $objects = array();
 
+      $prefixedPath = $this->getPrefixedPath($directory);
+      if(strlen($prefixedPath) > 0 && strpos($prefixedPath, '/', -1) === false) {
+        $prefixedPath .= '/';
+      }
+
       do {
         $response = $this->client->listObjectsV2([
           "Bucket" => $this->bucket,
-          "Prefix" => $this->getPrefixedPath($directory),
+          "Prefix" => $prefixedPath, // $this->getPrefixedPath($directory),
           "Delimiter" => '/',
           "ContinuationToken" => $continuationToken,
         ]);
@@ -441,9 +477,16 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
         * @see http://stackoverflow.com/questions/18683206/list-objects-in-a-specific-folder-on-amazon-s3
         */
 
+       $prefixedPath = $this->getPrefixedPath($directory);
+       if(strlen($prefixedPath) > 0 && strpos($prefixedPath, '/', -1) === false) {
+         // Add /, if missing to make it a real directory search
+         // for S3-compat
+         $prefixedPath .= '/';
+       }
+
        $response = $this->client->listObjectsV2([
          "Bucket" => $this->bucket,
-         "Prefix" => $this->getPrefixedPath($directory),
+         "Prefix" => $prefixedPath, // $this->getPrefixedPath($directory), // explicitly look for '/' suffix
          "Delimiter" => '/',
          "MaxKeys" => 1
        ]);

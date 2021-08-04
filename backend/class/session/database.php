@@ -256,6 +256,15 @@ class database extends \codename\core\session implements \codename\core\session\
     /**
      * @inheritDoc
      */
+    public function isDefined(string $key): bool
+    {
+      return ($this->sessionData && $this->sessionData->isDefined($key))
+        || ($this->sessionEntry && $this->sessionEntry->isDefined($key));
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function getData(string $key = '')
     {
       $value = null;

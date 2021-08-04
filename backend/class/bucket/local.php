@@ -12,13 +12,6 @@ use \codename\core\app;
 class local extends \codename\core\bucket implements \codename\core\bucket\bucketInterface {
 
     /**
-     * The given config cannot be validated agains structure_config_bucket_local.
-     * <br />See the validator for more info
-     * @var string
-     */
-    CONST EXCEPTION_CONSTRUCT_CONFIGURATIONINVALID = 'EXCEPTION_CONSTRUCT_CONFIGURATIONINVALID';
-
-    /**
      * is TRUE if the bucket's basedir is publically available via HTTP(s)
      * @var bool
      */
@@ -37,9 +30,9 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
     public function __construct(array $data) {
         $this->errorstack = new \codename\core\errorstack('BUCKET');
 
-        if(count($errors = app::getValidator('structure_config_bucket_local')->validate($data)) > 0) {
+        if(count($errors = app::getValidator('structure_config_bucket_local')->reset()->validate($data)) > 0) {
             $this->errorstack->addError('CONFIGURATION', 'CONFIGURATION_INVALID', $errors);
-            throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONFIGURATIONINVALID, 4, $errors);
+            throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONFIGURATIONINVALID, \codename\core\exception::$ERRORLEVEL_ERROR, $errors);
         }
 
         $this->basedir = $data['basedir'];
@@ -105,7 +98,7 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
     public function fileAvailable (string $remotefile) : bool {
         $remotefile = $this->normalizePath($remotefile);
         app::getLog('debug')->debug('Searching file ' . $remotefile);
-        return app::getFilesystem()->fileAvailable($remotefile);
+        return app::getFilesystem()->fileAvailable($remotefile) && app::getFilesystem()->isFile($remotefile);
     }
 
     /**

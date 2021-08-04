@@ -15,7 +15,9 @@ class relative extends \codename\core\validator\text implements \codename\core\v
    */
   public function validate($value) : array
   {
-    parent::validate($value);
+    if(count(parent::validate($value)) != 0) {
+      return $this->errorstack->getErrors();
+    }
     try {
       $dtObj = new \DateTime($value);
     } catch (\Exception $e) {

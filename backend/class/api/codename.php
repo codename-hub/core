@@ -156,6 +156,15 @@ class codename extends \codename\core\api {
     }
 
     /**
+     * Resets internal data storage
+     * e.g. after firing a request
+     * or on purpose. This WONT reset prepared headers
+     */
+    public function resetData(): void {
+      $this->data = [];
+    }
+
+    /**
      * Returns the errorstack of the API instance
      * @return \codename\core\errorstack
      */
@@ -250,6 +259,10 @@ class codename extends \codename\core\api {
         // \codename\core\app::getResponse()->setData('curl_response', $response);
 
         curl_close($this->curlHandler);
+
+        // WARNING: reset data after request is needed
+        // to prevent information leakage to following requests.
+        $this->resetData();
 
         if(is_bool($res) && !$res) {
             return false;

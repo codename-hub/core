@@ -47,7 +47,7 @@ class ipv4 extends \codename\core\tests\validator\text {
      * @return void
      */
     public function testValueValid() {
-        $this->assertEquals(array(), $this->getValidator()->validate('192.168.100.12'));
+        $this->assertEmpty($this->getValidator()->validate('192.168.100.12'));
     }
 
 }

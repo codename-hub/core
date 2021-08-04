@@ -90,8 +90,24 @@ class email extends \codename\core\tests\validator\text {
      * Testing validators for Erors
      * @return void
      */
+    public function testValueEmptyString() {
+        $this->assertEmpty($this->getValidator()->validate(''));
+    }
+
+    /**
+     * Testing validators for Erors
+     * @return void
+     */
+    public function testValueInvalid() {
+        $this->assertEquals('VALIDATION.EMAIL_INVALID', $this->getValidator()->validate('.@example.com')[0]['__CODE'] );
+    }
+
+    /**
+     * Testing validators for Erors
+     * @return void
+     */
     public function testValueValid() {
-        $this->assertEquals(array(), $this->getValidator()->validate('mymail@example.com'));
+        $this->assertEmpty($this->getValidator()->validate('mymail@example.com'));
     }
 
 }

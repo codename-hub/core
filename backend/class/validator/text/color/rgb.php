@@ -20,12 +20,14 @@ class rgb extends \codename\core\validator\text\color implements \codename\core\
      */
     public function validate($value) : array
     {
-      parent::validate($value);
+      if(count(parent::validate($value)) != 0) {
+        return $this->errorstack->getErrors();
+      }
 
       // RGB Regex
       // @see https://stackoverflow.com/questions/43706082/validation-hex-and-rgba-colors-using-regex-in-php
       // rgb\((?:\s*\d+\s*,){2}\s*[\d]+\)
-      $regexp = '/rgb\((?:\s*\d+\s*,){2}\s*[\d]+\)/';
+      $regexp = '/^rgb\((?:\s*\d+\s*,){2}\s*[\d]+\)$/';
       $isValid = (bool) preg_match($regexp, $value);
 
       if($isValid !== true) {

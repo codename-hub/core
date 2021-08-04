@@ -40,11 +40,6 @@ class iban extends \codename\core\validator\text implements \codename\core\valid
             return $this->errorstack->getErrors();
         }
         
-        if(strlen($value) == 0) {
-            $this->errorstack->addError('VALUE', 'IBAN_STRING_IS_EMPTY', $value);
-            return $this->errorstack->getErrors();
-        }
-        
         $value = strtolower($value);
         
         $countrycode = substr($value, 0, 2);

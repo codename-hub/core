@@ -38,8 +38,16 @@ class bic extends \codename\core\tests\validator\text {
      * Testing validators for Erors
      * @return void
      */
+    public function testValueInvalidScheme() {
+        $this->assertEquals('VALIDATION.VALUE_NOT_A_BIC', $this->getValidator()->validate('12345678901')[0]['__CODE'] );
+    }
+
+    /**
+     * Testing validators for Erors
+     * @return void
+     */
     public function testValueValid() {
-        $this->assertEquals(array(), $this->getValidator()->validate('GENODEF1BEB'));
+        $this->assertEmpty($this->getValidator()->validate('GENODEF1BEB'));
     }
 
 }

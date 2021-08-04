@@ -470,8 +470,9 @@ abstract class model implements \codename\core\model\modelInterface {
      * [addCollectionModel description]
      * @param \codename\core\model $model      [description]
      * @param string|null          $modelField [description]
+     * @return \codename\core\model
      */
-    public function addCollectionModel(\codename\core\model $model, string $modelField = null) {
+    public function addCollectionModel(\codename\core\model $model, string $modelField = null) : \codename\core\model {
       if($this->config->exists('collection')) {
 
         $collectionConfig = null;
@@ -532,7 +533,12 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
-     * @todo DOCUMENTATION
+     * [addModel description]
+     * @param  \codename\core\model   $model          [description]
+     * @param  string                 $type           [description]
+     * @param  string|null            $modelField     [description]
+     * @param  string|null            $referenceField [description]
+     * @return \codename\core\model                 [description]
      */
     public function addModel(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT, string $modelField = null, string $referenceField = null) : \codename\core\model {
 
@@ -709,6 +715,128 @@ abstract class model implements \codename\core\model\modelInterface {
       array_push($this->nestedModels, new $class($model, $type, $thisKey, $joinKey, $conditions));
       return $this;
     }
+
+    /**
+     * [addRecursiveModel description]
+     * @param  \codename\core\model     $model              [model instance to recurse]
+     * @param  string                   $selfReferenceField [field used for self-referencing]
+     * @param  string                   $anchorField        [field used as anchor point]
+     * @param  array                    $anchorConditions   [additional anchor conditions - e.g. the starting point]
+     * @param  string                   $type               [type of join]
+     * @param  string|null              $modelField         [description]
+     * @param  string|null              $referenceField     [description]
+     * @param  array                    $conditions         [description]
+     * @return \codename\core\model                     [description]
+     */
+    public function addRecursiveModel(\codename\core\model $model, string $selfReferenceField, string $anchorField, array $anchorConditions, string $type = plugin\join::TYPE_LEFT, ?string $modelField = null, ?string $referenceField = null, array $conditions = []) : \codename\core\model {
+      $thisKey = $modelField;
+      $joinKey = $referenceField;
+
+      // TODO: auto-determine modelField and referenceField / thisKey and joinKey
+
+      if((!$model->config->get('foreign>'.$selfReferenceField.'>model') == $model->getIdentifier()
+        || !$model->config->get('foreign>'.$selfReferenceField.'>key') == $model->getPrimaryKey())
+        && (!$model->config->get('foreign>'.$anchorField.'>model') == $model->getIdentifier()
+        || !$model->config->get('foreign>'.$anchorField.'>key') == $model->getPrimaryKey())
+      ) {
+        throw new exception('INVALID_RECURSIVE_MODEL_JOIN', exception::$ERRORLEVEL_ERROR);
+      }
+
+      // fallback to bare model joining
+      if($model instanceof \codename\core\model\schemeless\dynamic || $this instanceof \codename\core\model\schemeless\dynamic) {
+        $pluginDriver = 'dynamic';
+      } else {
+        $pluginDriver = $this->compatibleJoin($model) ? $this->getType() : 'bare';
+      }
+
+      $class = '\\codename\\core\\model\\plugin\\join\\recursive\\' . $pluginDriver;
+      array_push($this->nestedModels, new $class($model, $selfReferenceField, $anchorField, $anchorConditions, $type, $thisKey, $joinKey, $conditions));
+      return $this;
+    }
+
+    /**
+     * [setRecursive description]
+     * @param  string               $selfReferenceField [description]
+     * @param  string               $anchorField        [description]
+     * @param  array                $anchorConditions   [description]
+     * @return \codename\core\model                     [description]
+     */
+    public function setRecursive(string $selfReferenceField, string $anchorField, array $anchorConditions): \codename\core\model {
+
+      if($this->recursive) {
+        // kill, already active?
+        throw new exception('EXCEPTION_MODEL_SETRECURSIVE_ALREADY_ENABLED', exception::$ERRORLEVEL_ERROR);
+      }
+
+      $this->recursive = true;
+
+      if((!$this->config->get('foreign>'.$selfReferenceField.'>model') == $this->getIdentifier()
+        || !$this->config->get('foreign>'.$selfReferenceField.'>key') == $this->getPrimaryKey())
+        && (!$this->config->get('foreign>'.$anchorField.'>model') == $this->getIdentifier()
+        || !$this->config->get('foreign>'.$anchorField.'>key') == $this->getPrimaryKey())
+      ) {
+        throw new exception('INVALID_RECURSIVE_MODEL_CONFIG', exception::$ERRORLEVEL_ERROR);
+      }
+
+      $this->recursiveSelfReferenceField = $this->getModelfieldInstance($selfReferenceField);
+      $this->recursiveAnchorField = $this->getModelfieldInstance($anchorField);
+
+      foreach($anchorConditions as $cond) {
+        if($cond instanceof \codename\core\model\plugin\filter) {
+          $this->recursiveAnchorConditions[] = $cond;
+        } else {
+          $this->recursiveAnchorConditions[] = $this->createFilterPluginInstance($cond);
+        }
+      }
+
+      return $this;
+    }
+
+    /**
+     * [createFilterPluginInstance description]
+     * @param  array                               $data [description]
+     * @return \codename\core\model\plugin\filter        [description]
+     */
+    protected function createFilterPluginInstance(array $data): \codename\core\model\plugin\filter {
+      $field = $data['field'];
+      $value = $data['value'];
+      $operator = $data['operator'];
+      $conjunction = $data['conjunction'] ?? null;
+      $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
+      if(\is_array($value)) {
+        if(\count($value) === 0) {
+            throw new exception('EXCEPTION_MODEL_CREATEFILTERPLUGININSTANCE_INVALID_VALUE', exception::$ERRORLEVEL_ERROR);
+        }
+        return new $class($this->getModelfieldInstance($field), $value, $operator, $conjunction);
+      } else {
+        $modelfieldInstance = $this->getModelfieldInstance($field);
+        return new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $conjunction);
+      }
+    }
+
+    /**
+     * [protected description]
+     * @var bool
+     */
+    protected $recursive = false;
+
+    /**
+     * [protected description]
+     * @var \codename\core\value\text\modelfield|null
+     */
+    protected $recursiveSelfReferenceField = null;
+
+    /**
+     * [protected description]
+     * @var \codename\core\value\text\modelfield|null
+     */
+    protected $recursiveAnchorField = null;
+
+    /**
+     * [protected description]
+     * @var \codename\core\model\plugin\filter[]
+     */
+    protected $recursiveAnchorConditions = [];
 
     /**
      * contains configured join plugin instances for nested models
@@ -952,6 +1080,20 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * Initiates a servicing instance for this model
+     * @return void
+     */
+    protected function initServicingInstance() {
+      // no implementation for base model
+    }
+
+    /**
+     * [protected description]
+     * @var model\servicing
+     */
+    protected $servicingInstance = null;
+
+    /**
      * model data passed during initialization
      * @var \codename\core\config
      */
@@ -1086,6 +1228,32 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [addDefaultAggregateFilter description]
+     * @param  string               $field       [description]
+     * @param  string|int|bool|null $value       [description]
+     * @param  string $operator    [description]
+     * @param  string|null          $conjunction [description]
+     * @return model               [description]
+     */
+    public function addDefaultAggregateFilter(string $field, $value = null, string $operator = '=', string $conjunction = null) : model {
+      $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
+      if(is_array($value)) {
+          if(count($value) == 0) {
+              return $this;
+          }
+          $instance = new $class($this->getModelfieldInstance($field), $value, $operator, $conjunction);
+          array_push($this->aggregateFilter, $instance);
+          array_push($this->defaultAggregateFilter, $instance);
+      } else {
+          $modelfieldInstance = $this->getModelfieldInstance($field);
+          $instance = new $class($modelfieldInstance, $this->delimitImproved($modelfieldInstance->get(), $value), $operator, $conjunction);
+          array_push($this->aggregateFilter, $instance);
+          array_push($this->defaultAggregateFilter, $instance);
+      }
+      return $this;
+    }
+
+    /**
      * [addAggregateFilterPlugin description]
      * @param  \codename\core\model\plugin\aggregatefilter $filterPlugin [description]
      * @return model                                                [description]
@@ -1162,6 +1330,14 @@ abstract class model implements \codename\core\model\modelInterface {
       return $this;
     }
 
+    /**
+     * [addDefaultFilterCollection description]
+     * @param  array        $filters                     [array of filters]
+     * @param  string|null  $groupOperator               [operator inside the group items]
+     * @param  string       $groupName                   [name of group to usage across models]
+     * @param  string|null  $conjunction                 [conjunction of this group, inside the group of same-name filtercollections]
+     * @return model                 [description]
+     */
     public function addDefaultFilterCollection(array $filters, string $groupOperator = null, string $groupName = 'default', string $conjunction = null) : model {
       $filterCollection = array();
       foreach($filters as $filter) {
@@ -1211,11 +1387,13 @@ abstract class model implements \codename\core\model\modelInterface {
             if(count($value) == 0) {
                 return $this;
             }
-            array_push($this->defaultfilter, new $class($field, $value, $operator, $conjunction));
-            array_push($this->filter, new $class($field, $value, $operator, $conjunction));
+            $instance = new $class($field, $value, $operator, $conjunction);
+            array_push($this->defaultfilter, $instance);
+            array_push($this->filter, $instance);
         } else {
-            array_push($this->defaultfilter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
-            array_push($this->filter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
+            $instance = new $class($field, $this->delimit($field, $value), $operator, $conjunction);
+            array_push($this->defaultfilter, $instance);
+            array_push($this->filter, $instance);
         }
         return $this;
     }
@@ -1236,11 +1414,13 @@ abstract class model implements \codename\core\model\modelInterface {
             if(count($value) == 0) {
                 return $this;
             }
-            array_push($this->defaultfilter, new $class($field, $value, $operator, $conjunction));
-            array_push($this->filter, new $class($field, $value, $operator, $conjunction));
+            $instance = new $class($field, $value, $operator, $conjunction);
+            array_push($this->defaultfilter, $instance);
+            array_push($this->filter, $instance);
         } else {
-            array_push($this->defaultfilter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
-            array_push($this->filter, new $class($field, $this->delimit($field, $value), $operator, $conjunction));
+            $instance = new $class($field, $this->delimit($field, $value), $operator, $conjunction);
+            array_push($this->defaultfilter, $instance);
+            array_push($this->filter, $instance);
         }
         return $this;
     }
@@ -1251,7 +1431,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @see \codename\core\model_interface::addOrder($field, $order)
      */
     public function addOrder(string $field, string $order = 'ASC') : model {
-        $field = $this->getModelfieldInstance($field);
+        $field = $this->getModelfieldInstanceRecursive($field) ?? $this->getModelfieldInstance($field);
         if(!$this->fieldExists($field)) {
             // check for existance of a calculated field!
             $found = false;
@@ -1288,6 +1468,11 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function addField(string $field, string $alias = null) : model {
         if(strpos($field, ',') !== false) {
+            if($alias) {
+              // This is impossible, multiple fields and a singular alias.
+              // We won't support (field1, field2), (alias1, alias2) in this method
+              throw new exception('EXCEPTION_ADDFIELD_ALIAS_ON_MULTIPLE_FIELDS', exception::$ERRORLEVEL_ERROR, [ 'field' => $field, 'alias' => $alias ]);
+            }
             foreach(explode(',', $field) as $myField) {
                 $this->addField(trim($myField));
             }
@@ -1382,7 +1567,13 @@ abstract class model implements \codename\core\model\modelInterface {
         foreach($this->fieldlist as $checkField) {
           if($checkField->field->get() == $field->get()) {
             $foundInFieldlist = true;
-            if($checkField instanceof \codename\core\model\plugin\aggregate) {
+
+            // At this point, check for 'virtuality' of a field
+            // e.g. aliased, calculated and aggregates
+            // (the latter ones are usually calculated fields)
+            //
+            if($checkField instanceof \codename\core\model\plugin\calculatedfield
+              || $checkField instanceof \codename\core\model\plugin\aggregate) {
               $aliased = true;
             }
             break;
@@ -1394,7 +1585,7 @@ abstract class model implements \codename\core\model\modelInterface {
       }
       $class = '\\codename\\core\\model\\plugin\\group\\' . $this->getType();
       $groupInstance = new $class($field);
-      $groupInstance->aliased = true;
+      $groupInstance->aliased = $aliased;
       $this->group[] = $groupInstance;
       return $this;
     }
@@ -1739,13 +1930,13 @@ abstract class model implements \codename\core\model\modelInterface {
      *
      * @return string[]
      */
-    protected function getCurrentAliasedFieldlist() : array {
+    public function getCurrentAliasedFieldlist() : array {
       $result = array();
       if(\count($this->fieldlist) == 0 && \count($this->hiddenFields) > 0) {
         //
         // Include all fields but specific ones
         //
-        foreach($this->config->get('field') as $fieldName) {
+        foreach($this->getFields() as $fieldName) {
           if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
             if(!in_array($fieldName, $this->hiddenFields)) {
               $result[] = $fieldName;
@@ -1781,18 +1972,10 @@ abstract class model implements \codename\core\model\modelInterface {
               // they're not part of the DB.
               //
               $fieldAlias = $field->alias !== null ? $field->alias->get() : null;
-              if($alias != null) {
-                if($fieldAlias) {
-                  $result[] = $fieldAlias;
-                } else {
-                  $result[] = $field->field->get();
-                }
+              if($fieldAlias) {
+                $result[] = $fieldAlias;
               } else {
-                if($fieldAlias) {
-                  $result[] = $fieldAlias;
-                } else {
-                  $result[] = $field->field->get();
-                }
+                $result[] = $field->field->get();
               }
             }
           }
@@ -1801,7 +1984,7 @@ abstract class model implements \codename\core\model\modelInterface {
           // add the rest of the data-model-defined fields
           // as long as they're not hidden.
           //
-          foreach($this->config->get('field') as $fieldName) {
+          foreach($this->getFields() as $fieldName) {
             if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
               if(!in_array($fieldName, $this->hiddenFields)) {
                 $result[] = $fieldName;
@@ -1825,7 +2008,7 @@ abstract class model implements \codename\core\model\modelInterface {
             //
             // The rest of the fields. Skip virtual fields
             //
-            foreach($this->config->get('field') as $fieldName) {
+            foreach($this->getFields() as $fieldName) {
               if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
                 $result[] = $fieldName;
               }
@@ -1838,6 +2021,15 @@ abstract class model implements \codename\core\model\modelInterface {
       }
 
       return array_values($result);
+    }
+
+    /**
+    * Enables virtual field result functionality on this model instance
+    * @param  bool                 $state [description]
+    * @return \codename\core\model        [description]
+    */
+    public function setVirtualFieldResult(bool $state) : \codename\core\model {
+      return $this;
     }
 
     /**
@@ -2060,7 +2252,7 @@ abstract class model implements \codename\core\model\modelInterface {
         $flagFieldName = $this->table . '_flag';
 
         if(!$this->normalizeDataFieldCache) {
-          $this->normalizeDataFieldCache = $this->config->get('field');
+          $this->normalizeDataFieldCache = $this->getFields();
         }
 
         foreach($this->normalizeDataFieldCache as $field) {
@@ -2384,6 +2576,23 @@ abstract class model implements \codename\core\model\modelInterface {
             continue;
           }
 
+          // make sure vKey is in current fieldlist...
+          // this is for  situations
+          // where
+          // - virtual field result enabled
+          // - vfield config present
+          // - respective model joined
+          // - another (bare-joined) model relying on a field
+          // - but field(s) hidden, e.g. by hideAllFields
+          $ifl = $this->getInternalIntersectFieldlist();
+
+          if(!array_key_exists($vKey, $ifl)) {
+            throw new exception('EXCEPTION_MODEL_PERFORMBAREJOIN_MISSING_VKEY', exception::$ERRORLEVEL_ERROR, [
+              'model' => $this->getIdentifier(),
+              'vKey'  => $vKey,
+            ]);
+          }
+
           //
           // Unwind resultset
           // [ item, item, item ] -> [ item[key], item[key], item[key] ]
@@ -2568,6 +2777,49 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     protected function getModelfieldInstance(string $field): \codename\core\value\text\modelfield {
       return \codename\core\value\text\modelfield::getInstance($field);
+    }
+
+    /**
+     * Returns a modelfield instance or null
+     * by traversing the current nested join tree
+     * and identifying the correct schema and table
+     *
+     * @param  string                               $field [description]
+     * @return \codename\core\value\text\modelfield|null
+     */
+    protected function getModelfieldInstanceRecursive(string $field): ?\codename\core\value\text\modelfield {
+      $initialInstance = $this->getModelfieldInstance($field);
+
+      // Already defined (schema+table+field)
+      if($initialInstance->getSchema()) {
+        return $initialInstance;
+      }
+
+      if(!$initialInstance->getSchema() || !$initialInstance->getTable()) {
+        // Schema or even table not defined, search for it.
+        if($initialInstance->getTable()) {
+          // table is already defined, compare to current model and perform checks
+          if($initialInstance->getTable() == $this->table) {
+            if(in_array($initialInstance->get(), $this->getFields())) {
+              return $this->getModelfieldInstance($this->schema.'.'.$this->table.'.'.$initialInstance->get());
+            }
+          }
+        } else {
+          // search by field only
+          if(in_array($initialInstance->get(), $this->getFields())) {
+            return $this->getModelfieldInstance($this->schema.'.'.$this->table.'.'.$initialInstance->get());
+          }
+        }
+      }
+
+      // Traverse tree
+      foreach($this->getNestedJoins() as $join) {
+        if($instance = $join->model->getModelfieldInstanceRecursive($field)) {
+          return $instance;
+        }
+      }
+
+      return null;
     }
 
     /**

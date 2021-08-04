@@ -25,10 +25,6 @@ class date extends \codename\core\validator\text implements \codename\core\valid
             return $this->errorstack->getErrors();
         }
 
-        if(strlen($value) == 0) {
-            return $this->errorstack->getErrors();
-        }
-        
         $datearr = explode('-', $value);
         
         if(count($datearr) != 3) {
@@ -47,13 +43,7 @@ class date extends \codename\core\validator\text implements \codename\core\valid
             $this->errorstack->addError('VALUE', 'INVALID_MONTH', $value);
             return $this->errorstack->getErrors();
         }
-        
-        // search invalid characters
-        if(strlen($datearr[2]) != 2) {
-            $this->errorstack->addError('VALUE', 'INVALID_DAY', $value);
-            return $this->errorstack->getErrors();
-        }
-        
+
         if(!checkdate($datearr[1],$datearr[2],$datearr[0])) {
             $this->errorstack->addError('VALUE', 'INVALID_DATE', $value);
             return $this->errorstack->getErrors();

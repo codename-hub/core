@@ -1,5 +1,8 @@
 <?xml version="1.0"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="tests/autoload.php" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
+  <php>
+    <ini name="memory_limit" value="4G" />
+  </php>
   <coverage processUncoveredFiles="true">
     <include>
       <directory suffix=".php">backend/class/</directory>
@@ -9,16 +12,32 @@
     </report>
   </coverage>
   <testsuites>
-    <testsuite name="All Tests">
+    <testsuite name="all">
       <directory suffix=".php">tests</directory>
     </testsuite>
-    <testsuite name="All validators">
+    <testsuite name="lifecycle">
+      <directory suffix=".php">tests/lifecycle</directory>
+    </testsuite>
+    <testsuite name="bucket">
+      <directory suffix=".php">tests/bucket</directory>
+    </testsuite>
+    <testsuite name="cache">
+      <directory suffix=".php">tests/cache</directory>
+    </testsuite>
+    <testsuite name="config">
+      <directory suffix=".php">tests/config</directory>
+    </testsuite>
+    <testsuite name="mail">
+      <directory suffix=".php">tests/mail</directory>
+    </testsuite>
+    <testsuite name="model">
+      <directory suffix=".php">tests/model</directory>
+    </testsuite>
+    <testsuite name="session">
+      <directory suffix=".php">tests/session</directory>
+    </testsuite>
+    <testsuite name="validator">
       <directory suffix=".php">tests/validator</directory>
     </testsuite>
   </testsuites>
-  <filter>
-    <whitelist processUncoveredFilesFromWhitelist="true">
-      <directory suffix=".php">backend/class/</directory>
-    </whitelist>
-  </filter>
 </phpunit>

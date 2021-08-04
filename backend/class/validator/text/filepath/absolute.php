@@ -9,7 +9,11 @@ class absolute extends \codename\core\validator\text {
      * @see \codename\core\validator_text::__construct($nullAllowed, $minlength, $maxlength, $allowedchars, $forbiddenchars)
      */
     public function __CONSTRUCT(bool $nullAllowed = false) {
-        parent::__CONSTRUCT($nullAllowed, 1, 256, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789öäüßÖÄÜabcdefghijklmnopqrstuvwxyz_-./() ');
+        if(strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+          parent::__CONSTRUCT($nullAllowed, 1, 256, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789öäüßÖÄÜabcdefghijklmnopqrstuvwxyz_-./()\: ');
+        } else {
+          parent::__CONSTRUCT($nullAllowed, 1, 256, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789öäüßÖÄÜabcdefghijklmnopqrstuvwxyz_-./() ');
+        }
         return $this;
     }
 
@@ -30,7 +34,7 @@ class absolute extends \codename\core\validator\text {
             return $this->errorstack->getErrors();
         }
 
-        if(strpos($value, '/') === strlen($value) - 1) {
+        if(substr($value, -1) === '/') {
             $this->errorstack->addError('VALUE', 'MUST_NOT_END_WITH_SLASH', $value);
             return $this->errorstack->getErrors();
         }

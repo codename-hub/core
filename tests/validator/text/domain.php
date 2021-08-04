@@ -55,5 +55,13 @@ class domain extends \codename\core\tests\validator\text {
         $this->assertEquals('VALIDATION.DOMAIN_NOT_RESOLVED', $this->getValidator()->validate('domain.invalid')[0]['__CODE'] );
     }
 
+    /**
+     * Testing validators for Erors
+     * @return void
+     */
+    public function testValueValid() {
+        $this->assertEmpty($this->getValidator()->validate('example.com'));
+    }
+
 
 }

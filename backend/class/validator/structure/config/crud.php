@@ -25,18 +25,15 @@ class crud extends \codename\core\validator\structure\config implements \codenam
      * @see \codename\core\validator_interface::validate($value)
      */
     public function validate($value) : array {
-        parent::validate($value);
-        
-        if(count($this->errorstack->getErrors()) > 0) {
+        if(count(parent::validate($value)) != 0) {
             return $this->errorstack->getErrors();
         }
-        
-        if(!array_key_exists('pagination', $value)) {
-            $this->errorstack->addError('VALUE', 'PAGINATION_CONFIGURATION_MISSING', $value);
+
+        if(is_null($value)) {
             return $this->errorstack->getErrors();
         }
-        
-        if(count(app::getValidator('structure_config_crud_pagination')->validate($value['pagination'])) > 0) {
+
+        if(count($errors = app::getValidator('structure_config_crud_pagination')->reset()->validate($value['pagination'])) > 0) {
             $this->errorstack->addError('VALUE', 'PAGINATION_CONFIGURATION_INVALID', $errors);
             return $this->errorstack->getErrors();
         }

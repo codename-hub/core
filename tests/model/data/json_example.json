@@ -1,0 +1,17 @@
+{
+  "FIRST": {
+    "example_text": "foo",
+    "example_integer": 123,
+    "example_number": 12.34
+  },
+  "SECOND": {
+    "example_text": "bar",
+    "example_integer": 234,
+    "example_number": 23.45
+  },
+  "THIRD": {
+    "example_text": "baz",
+    "example_integer": 345,
+    "example_number": 34.56
+  }
+}

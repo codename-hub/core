@@ -1,0 +1,14 @@
+{
+  "extensions" : [ ],
+  "defaultcontext": "testcontext",
+  "x-defaulttemplateengine" : "twig_default",
+  "defaulttemplate": "blank",
+  "context": {
+    "testcontext": {
+      "defaultview": "default",
+      "view": {
+        "default": { "public": true }
+      }
+    }
+  }
+}

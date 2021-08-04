@@ -13,4 +13,11 @@ class money extends \codename\core\tests\validator\number {
     $this->assertEquals('VALIDATION.TOO_MANY_DIGITS_AFTER_COMMA', $this->getValidator()->validate(1.222)[0]['__CODE'] );
   }
 
+  /**
+   * @return void
+   */
+  public function testValueIsMoney() {
+    $this->assertEquals(0, count($this->getValidator()->validate(1.23)) );
+  }
+
 }

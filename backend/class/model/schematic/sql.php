@@ -30,6 +30,18 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     protected $storeConnection = true;
 
     /**
+     * returns the cache key to be used for the config
+     * @return string
+     */
+    protected function getModelconfigCacheKey(): string {
+      if($this->schema && $this->table) {
+        return get_class($this).'-'.$this->schema.'_'.$this->table;
+      } else {
+        throw new exception('EXCEPTION_MODELCONFIG_CACHE_KEY_MISSING_DATA', exception::$ERRORLEVEL_FATAL);
+      }
+    }
+
+    /**
      * Creates and configures the instance of the model. Fallback connection is 'default' database
      * @param string|null $connection  [Name of the connection in the app configuration file]
      * @param string $schema      [Schema to use the model for]
@@ -45,7 +57,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         	$this->db = app::getDb($connection, $this->storeConnection);
         }
 
-        $config = app::getCache()->get('MODELCONFIG_', get_class($this));
+        $config = app::getCache()->get('MODELCONFIG_', $this->getModelconfigCacheKey());
         if(is_array($config)) {
             $this->config = new \codename\core\config($config);
 
@@ -80,8 +92,51 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
            throw new exception('EXCEPTION_MODEL_CONFIG_MISSING_FIELD', exception::$ERRORLEVEL_FATAL, "{$this->table}_modified");
         }
 
-        app::getCache()->set('MODELCONFIG_', get_class($this), $this->config->get());
+        app::getCache()->set('MODELCONFIG_', $this->getModelconfigCacheKey(), $this->config->get());
         return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function getType(): string
+    {
+      return $this->db->driver;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function initServicingInstance()
+    {
+      $testModules = [
+        'sql_'.$this->getType(),
+        'sql',
+      ];
+
+      foreach($testModules as $module) {
+        try {
+          $class = \codename\core\app::getInheritedClass('model_servicing_sql_'.$this->getType());
+          $this->servicingInstance = new $class();
+          return;
+        } catch (\Exception $e) {
+        }
+      }
+
+      if($this->servicingInstance === null) {
+        throw new exception('EXCEPTON_MODEL_FAILED_INIT_SERVICING_INSTANCE', exception::$ERRORLEVEL_FATAL);
+      }
+    }
+
+    /**
+     * [getServicingSqlInstance description]
+     * @return \codename\core\model\servicing\sql [description]
+     */
+    protected function getServicingSqlInstance(): \codename\core\model\servicing\sql {
+      if($this->servicingInstance === null) {
+        $this->initServicingInstance();
+      }
+      return $this->servicingInstance;
     }
 
     /**
@@ -460,6 +515,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // echo("</pre>");
       }
 
+      // CHANGED 2021-03-13: build static fieldlist for normalization
+      // reduces calls to various array functions
+      // AND: fixes hidden field handling for certain use cases
+      $currentFieldlist = $this->getInternalIntersectFieldlist();
+
       //
       // Normalize using this model's fields
       //
@@ -470,7 +530,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // - "structure"-type fields are not json_decode'd, if present on the root model
         // - ... other things?
         // NOTE: as of 2019-09-10 the normalization of structure fields has changed
-        $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeRow($this->normalizeByFieldlist($r)));
+        $fResult[$index] = array_merge(($fResult[$index] ?? []), $this->normalizeRow($this->normalizeByFieldlist($r, $currentFieldlist)));
       }
 
       // \codename\core\app::getResponse()->setData('model_normalize_debug', array_merge(\codename\core\app::getResponse()->getData('model_normalize_debug') ?? [], $fResult));
@@ -485,16 +545,50 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * [normalizeByFieldlist description]
-     * @param  array $dataset [description]
+     * @param  array        $dataset    [description]
+     * @param  array|null   $fieldlist  [optional, new: static fieldlist]
      * @return array          [description]
      */
-    public function normalizeByFieldlist(array $dataset) : array {
-      if(count($this->fieldlist) > 0) {
+    public function normalizeByFieldlist(array $dataset, ?array $fieldlist = null) : array {
+      if($fieldlist) {
+        // CHANGED 2021-04-13: use provided fieldlist, see above
+        return array_intersect_key($dataset, $fieldlist);
+      } else if(count($this->fieldlist) > 0) {
         // return $dataset;
         return array_intersect_key( $dataset, array_flip( array_merge( $this->getFieldlistArray($this->fieldlist), $this->getFields(), array_keys($this->virtualFields) ) ) );
       } else {
         // return $dataset;
         return array_intersect_key( $dataset, array_flip( array_merge( $this->getFields(), array_keys($this->virtualFields)) ) );
+      }
+    }
+
+    /**
+     * returns the internal list of fields
+     * to be expected in the output and used via array intersection
+     * NOTE: the returned result array is flipped!
+     * @return array [description]
+     */
+    protected function getInternalIntersectFieldlist(): array {
+      $fields = $this->getFields();
+      if(count($this->hiddenFields) > 0) {
+        // remove hidden fields
+        $diff = array_diff($fields, $this->hiddenFields);
+        $fields = array_intersect($fields, $diff);
+      }
+      // VFR keys
+      $vfrKeys = [];
+      if($this->virtualFieldResult) {
+        foreach($this->getNestedJoins() as $join) {
+          if($join->virtualField) {
+            $vfrKeys[] = $join->virtualField;
+          }
+        }
+      }
+
+      if(count($this->fieldlist) > 0) {
+        return array_flip( array_merge( $this->getFieldlistArray($this->fieldlist), $fields, $vfrKeys,array_keys($this->virtualFields) ) );
+      } else {
+        return array_flip( array_merge( $fields, array_keys($this->virtualFields), $vfrKeys ) );
       }
     }
 
@@ -616,7 +710,17 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           if($this->compatibleJoin($join->model)) {
             $result = $join->model->getVirtualFieldResult($result, $track, array_merge($structure, $structureDive), $trackFields);
           } else {
-            $result = $join->model->getVirtualFieldResult($result);
+            //
+            // CHANGED 2021-04-13: kicked out, as it does not apply
+            // NOTE: we should keep an eye on this.
+            // At this point, we're not calling getVirtualFieldResult, as we either have
+            // - a completely different model technology
+            // - a forced virtual join
+            // - sth. else?
+            //
+            // >>> Those models handle their results for themselves.
+            //
+            // $result = $join->model->getVirtualFieldResult($result);
           }
         }
       }
@@ -627,16 +731,25 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       // instead of iterating over all vField/children-supporting models
       // We iterate over all models - as we have to handle mixed cases, too.
       //
-      foreach($this->getNestedJoins() as $join) {
+      // CHANGED 2021-04-13, we include $this (current model)
+      // to propage/include renormalization for root model
+      // (e.g. if joining the same model recursively)
+      //
+      $subjects = array_merge([$this], $this->getNestedJoins());
 
-        // Re-name/alias the current join model instance
-        $vModel = $join->model;
+      foreach($subjects as $join) {
+
+        $vModel = null;
         $virtualField = null;
-
-        if($this->virtualFieldResult) {
-          // TODO:
-          // handle $join->virtualField
-          $virtualField = $join->virtualField;
+        // Re-name/alias the current join model instance
+        if($join === $this) {
+          $vModel = $join; // this (model), root model renormalization
+        } else {
+          $vModel = $join->model;
+          if($this->virtualFieldResult) {
+            // handle $join->virtualField
+            $virtualField = $join->virtualField;
+          }
         }
 
         $index = null;
@@ -910,9 +1023,10 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  array                  &$tableUsage    [table usage as reference]
      * @param  int                    &$aliasCounter  [alias counter as reference]
      * @param  array                  &$params
+     * @param  array                  &$cte [common table expressions, if any]
      * @return string                 [query part]
      */
-    public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0, string $parentAlias = null, array &$params = []) {
+    public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0, string $parentAlias = null, array &$params = [], array &$cte = []) {
         if(\count($model->getNestedJoins()) == 0 && \count($model->getSiblingJoins()) == 0) {
             return '';
         }
@@ -927,28 +1041,77 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               continue;
             }
 
-            if(array_key_exists("{$nest->schema}.{$nest->table}", $tableUsage)) {
-              $aliasCounter++;
-              $tableUsage["{$nest->schema}.{$nest->table}"]++;
-              $alias = "a".$aliasCounter;
-              $aliasAs = "AS ".$alias;
-            } else {
-              $tableUsage["{$nest->schema}.{$nest->table}"] = 1;
-              $aliasAs = '';
+            $cteName = null;
 
-              if($nest->isDiscreteModel()) {
-                //
-                // CHANGED/ADDED 2020-06-10
-                // derived table, explicitly specify alias
-                // for usage with discrete model feature
-                // This is needed in the case of ONE/the first join of this derived table
-                //
-                $aliasAs = $nest->table;
-                $alias = implode('.', array_filter([ $nest->schema, $nest->table ]));
+            // preliminary CTE, model itself is recursive
+            // $cteName = null;
+            if($nest->recursive) {
+              $cteName = '__cte_recursive_'.(count($cte)+1);
+              $cte[] = $nest->getRecursiveSqlCteStatement($cteName, $params);
+              $join->referenceField = '__anchor';
+              $tableUsage[$cteName] = 1;
+              // Also increase this counter, though this is a CTE
+              // to correctly keep track of ambiguous fields
+              $tableUsage["{$nest->schema}.{$nest->table}"]++;
+              $alias = $cteName;
+              $aliasAs = ''; // "AS ".$alias;
+              // $parentAlias = $cteName;
+            }
+
+
+            if($nest->recursive || $join instanceof \codename\core\model\plugin\join\recursive) {
+              //
+              // 'WITH ... RECURSIVE' CTE support
+              //
+              if($join instanceof \codename\core\model\plugin\sqlCteStatementInterface) {
+                $cteAlias = $cteName; // if table is already a CTE, passthrough
+                $cteName = '__cte_recursive_'.(count($cte)+1);
+                if(array_key_exists($cteName, $tableUsage)) {
+                  // name collision
+                  throw new exception('MODEL_SCHEMATIC_SQL_DEEP_JOIN_CTE_NAME_COLLISION', exception::$ERRORLEVEL_ERROR, $cteName);
+                } else {
+                  $tableUsage[$cteName] = 1;
+                  // Also increase this counter, though this is a CTE
+                  // to correctly keep track of ambiguous fields
+                  $tableUsage["{$nest->schema}.{$nest->table}"]++;
+                }
+                $cte[] = $join->getSqlCteStatement($cteName, $params, $cteAlias);
+                $alias = $cteName;
+                $aliasAs = "AS ".$alias;
               } else {
-                $alias = "{$nest->schema}.{$nest->table}";
+                //
+                // NOTE: only fire exception, if this really is a recursive join plugin
+                // as we also handle root-model recursion here.
+                //
+                if($join instanceof \codename\core\model\plugin\join\recursive) {
+                  throw new exception('MODEL_SCHEMATIC_SQL_DEEP_JOIN_UNSUPPORTED_JOIN_RECURSIVE_PLUGIN', exception::$ERRORLEVEL_ERROR, get_class($join));
+                }
+              }
+            } else {
+              if(array_key_exists("{$nest->schema}.{$nest->table}", $tableUsage)) {
+                $aliasCounter++;
+                $tableUsage["{$nest->schema}.{$nest->table}"]++;
+                $alias = "a".$aliasCounter;
+                $aliasAs = "AS ".$alias;
+              } else {
+                $tableUsage["{$nest->schema}.{$nest->table}"] = 1;
+                $aliasAs = '';
+
+                if($nest->isDiscreteModel()) {
+                  //
+                  // CHANGED/ADDED 2020-06-10
+                  // derived table, explicitly specify alias
+                  // for usage with discrete model feature
+                  // This is needed in the case of ONE/the first join of this derived table
+                  //
+                  $aliasAs = $nest->table;
+                  $alias = $nest->getTableIdentifier(); // implode('.', array_filter([ $nest->schema, $nest->table ]));
+                } else {
+                  $alias = $nest->getTableIdentifier(); // "{$nest->schema}.{$nest->table}";
+                }
               }
             }
+
 
             // get join method from plugin
             $joinMethod = $join->getJoinMethod();
@@ -1009,7 +1172,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
             $joinComponents = [];
 
-            $useAlias = $parentAlias ?? $this->table;
+            $useAlias = $parentAlias ?? $this->getTableIdentifier(); // $this->table;
 
             if($thisKey === null && $joinKey === null) {
               // only rely on conditions
@@ -1142,10 +1305,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             // NOTE: we're checking for discrete models here
             // as they don't represent a table on its own, but merely an entire subquery
             //
-            if($nest->isDiscreteModel() && $nest instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
-              $ret .= " {$joinMethod} {$nest->getDiscreteModelQuery()} {$aliasAs}{$useIndex} ON $joinComponentsString";
+            if($cteName !== null) {
+              $ret .= " {$joinMethod} {$cteName} {$aliasAs}{$useIndex} ON $joinComponentsString";
+            } else if($nest->isDiscreteModel() && $nest instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
+              $ret .= " {$joinMethod} {$nest->getDiscreteModelQuery($params)} {$aliasAs}{$useIndex} ON $joinComponentsString";
             } else {
-              $ret .= " {$joinMethod} {$nest->schema}.{$nest->table} {$aliasAs}{$useIndex} ON $joinComponentsString";
+              $ret .= " {$joinMethod} {$nest->getTableIdentifier()} {$aliasAs}{$useIndex} ON $joinComponentsString";
             }
 
             // CHANGED 2020-11-26: set alias or fallback to table name, by default
@@ -1163,7 +1328,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             //   '$join->currentAlias' => $join->currentAlias,
             // ]);
 
-            $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter, $join->currentAlias, $params);
+            $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter, $join->currentAlias, $params, $cte);
         }
 
         // Loop through siblings
@@ -1272,6 +1437,85 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
+     * Returns a db-specific identifier (e.g. schema.table for the current model)
+     * or, if schema and model are specified, for a different schema+table
+     * @param  string|null $schema [name of schema]
+     * @param  string|null $model  [name of schema]
+     * @return string         [description]
+     */
+    public function getTableIdentifier(?string $schema = null, ?string $model = null): string {
+      if($schema || $model) {
+        return $this->getServicingSqlInstance()->getTableIdentifierParametrized($schema, $model);
+      } else {
+        return $this->getServicingSqlInstance()->getTableIdentifier($this);
+      }
+    }
+
+    /**
+     * [getRecursiveSqlCteStatement description]
+     * @param  string $cteName [description]
+     * @param  array  &$params  [description]
+     * @return string
+     */
+    protected function getRecursiveSqlCteStatement(string $cteName, array &$params): string {
+      $anchorConditionQuery = '';
+      if(count($this->recursiveAnchorConditions) > 0) {
+        $anchorConditionQuery = 'WHERE '.\codename\core\model\schematic\sql::convertFilterQueryArray(
+          $this->getFilters($this->recursiveAnchorConditions, [], [], $params) // ??
+        );
+      }
+
+      // Default anchor field name (__anchor)
+      // Not to be confused with recursiveAnchorField
+      // In contrast to recursive joins, this is more or less static here.
+      $anchorFieldName = '__anchor';
+
+      //
+      // CTE Prefix / "WITH [RECURSIVE]" is implicitly added by the model class
+      //
+      $sql = "{$cteName} "
+        . " AS ( "
+        . "   SELECT "
+        //        We default to the PKEY as (visible) anchor field:
+        . "       {$this->getPrimarykey()} as {$anchorFieldName} "
+        // . "     , 0 as __level " // TODO: internal level tracking for keeping order?
+
+        // Endless loop / circular reference protection for array-supporting RDBMS:
+        // . "     , array[{$this->getPrimarykey()}] as __traversed "
+
+        . "     , {$this->getTableIdentifier()}.* "
+        . "   FROM {$this->getTableIdentifier()} "
+        . "   {$anchorConditionQuery} "
+
+        //   NOTE: UNION instead of UNION ALL prevents duplicates
+        //   and is an implicit termination condition for the recursion
+        //   as the some query might return rows already selected
+        //   leading to 'zero added rows' - and finishing our query
+        . "   UNION "
+
+        . "   SELECT "
+        . "       {$cteName}.{$anchorFieldName} "
+        // . "     , __level+1 " // TODO: internal level tracking for keeping order?
+
+        // Endless loop / circular reference protection for array-supporting RDBMS:
+        // . "     , {$cteName}.__traversed || {$this->getTableIdentifier()}.{$this->getPrimarykey()} "
+
+        . "     , {$this->getTableIdentifier()}.* "
+
+        . "   FROM {$this->getTableIdentifier()}, {$cteName} "
+        . "   WHERE {$cteName}.{$this->recursiveSelfReferenceField->get()} = {$this->getTableIdentifier()}.{$this->recursiveAnchorField->get()} "
+        // . "   ORDER BY {$cteName}.{$anchorFieldName}, __level" // TODO internal level tracking for keeping order?
+
+        // Endless loop / circular reference protection for array-supporting RDBMS:
+        // . "  AND {$this->getPrimarykey()} <> ALL ({$cteName}.__traversed) "
+
+        . " )";
+
+        // print_r($sql);
+        return $sql;
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \codename\core\model_interface::search()
@@ -1296,11 +1540,44 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // done by-ref, so the values are arriving right here after
         // running getFilterQuery()
         $params = [];
+        $parentAlias = null;
+
+        // ADDED 2021-05-05: CTEs
+        $cte = [];
+
+        $cteName = null;
+        if($this->recursive) {
+          $cteName = '__cte_recursive_'.(count($cte)+1);
+          $cte[] = $this->getRecursiveSqlCteStatement($cteName, $params);
+          $tableUsage[$cteName] = 1;
+          $parentAlias = $cteName;
+        }
+
+        $explicitDiscrete = false;
+
+        // Root model is a discrete model
+        // Use getTableIdentifier for setting a main alias
+        if($this->isDiscreteModel()) {
+          $cteName = $this->getTableIdentifier();
+          $tableUsage[$cteName] = 1;
+          $parentAlias = $cteName;
+          $explicitDiscrete = true;
+        }
 
         //
         // NOTE/CHANGED 2020-09-15: allow params in deepJoin() (conditions!)
         //
-        $deepjoin = $this->deepJoin($this, $tableUsage, $aliasCounter = 0, $parentAlias = null, $params);
+        $aliasCounter = 0;
+        $deepjoin = $this->deepJoin($this, $tableUsage, $aliasCounter, $parentAlias, $params, $cte);
+
+        // Prepend CTEs, if there are any
+        // We default to WITH RECURSIVE as we do not track whether they are or not.
+        // This leads to the fact
+        // - we do not have to take care of the order of the CTEs
+        // - we simply enable RECURSIVE by default, no matter we really use it
+        if(count($cte) > 0) {
+          $query = 'WITH RECURSIVE ' . implode(", \n", $cte) . "\n" . $query;
+        }
 
         //
         // Russian Caviar
@@ -1311,7 +1588,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         } else {
           // retrieve a list of all model field lists, recursively
           // respecting hidden fields and duplicate field names in other models/tables
-          $fieldlist = $this->getCurrentFieldlist(null, $params);
+          $fieldlist = $this->getCurrentFieldlist($cteName, $params);
 
           if(count($fieldlist) == 0) {
               $query .= ' * ';
@@ -1332,10 +1609,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // NOTE: we're checking for discrete models here
         // as they don't represent a table on its own, but merely an entire subquery
         //
-        if($this->isDiscreteModel() && $this instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
-          $query .= ' FROM ' . $this->getDiscreteModelQuery() . ' AS '. $this->table . ' '; // directly apply table alias
+        if($cteName !== null && !$explicitDiscrete) {
+          $query .= ' FROM ' . $cteName . ' ';
+        } else if($this->isDiscreteModel() && $this instanceof \codename\core\model\discreteModelSchematicSqlInterface) {
+          $query .= ' FROM ' . $this->getDiscreteModelQuery($params) . ' AS '. $this->table . ' '; // directly apply table alias
         } else {
-          $query .= ' FROM ' . $this->schema . '.' . $this->table . ' ';
+          $query .= ' FROM ' . $this->getTableIdentifier() . ' ';
         }
 
         if($this->useIndex ?? false && count($this->useIndex) > 0) {
@@ -1358,12 +1637,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // As this crashes queries using pre-set schema names
         $mainAlias = null;
         if($tableUsage["{$this->schema}.{$this->table}"] > 1) {
-          $mainAlias = "{$this->schema}.{$this->table}";
+          $mainAlias = $this->getTableIdentifier();
         }
 
         $query .= $this->getFilterQuery($params, $mainAlias);
 
-        $groups = $this->getGroups();
+        $groups = $this->getGroups($mainAlias);
         if(count($groups) > 0) {
           $query .= ' GROUP BY '. implode(', ', $groups);
         }
@@ -1452,7 +1731,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           $raw = $data;
         }
 
-        $query = 'UPDATE ' . $this->schema . '.' . $this->table .' SET ';
+        $query = 'UPDATE ' . $this->getTableIdentifier() .' SET ';
         $parts = [];
 
         foreach ($this->config->get('field') as $field) {
@@ -1481,7 +1760,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
 
         if($this->saveUpdateSetModifiedTimestamp) {
-          $parts[] = $this->table . "_modified = now()";
+          $parts[] = $this->table . "_modified = ".$this->getServicingSqlInstance()->getSaveUpdateSetModifiedTimestampStatement($this);
         }
         $query .= implode(',', $parts);
 
@@ -1527,7 +1806,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // TEMPORARY: SAVE LOG DISABLED
         // $this->saveLog('CREATE', $data);
 
-        $query = 'INSERT INTO ' . $this->schema . '.' . $this->table .' ';
+        $query = 'INSERT INTO ' . $this->getTableIdentifier() .' ';
         $query .= ' (';
         $index = 0;
         foreach ($this->config->get('field') as $field) {
@@ -1681,11 +1960,24 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         if (array_key_exists($this->getPrimarykey(), $data) && strlen($data[$this->getPrimarykey()]) > 0) {
             $query = $this->saveUpdate($data, $params);
             $this->doQuery($query, $params);
+            if($this->db->affectedRows() !== 1) {
+              throw new exception('MODEL_SAVE_UPDATE_FAILED', exception::$ERRORLEVEL_ERROR);
+            }
         } else {
             $query = $this->saveCreate($data, $params);
             $this->cachedLastInsertId = null;
             $this->doQuery($query, $params);
             $this->cachedLastInsertId = $this->db->lastInsertId();
+
+            //
+            // affected rows might be != 1 (e.g. 2 on MySQL)
+            // of doing a saveCreate with replace = true
+            // (in overridden classes)
+            // This WILL fail at this point.
+            //
+            if($this->db->affectedRows() !== 1) {
+              throw new exception('MODEL_SAVE_CREATE_FAILED', exception::$ERRORLEVEL_ERROR);
+            }
         }
         return $this;
     }
@@ -1695,7 +1987,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  array                  $data [description]
      * @return \codename\core\model   [this instance]
      */
-    public function replace(array $data) {
+    public function replace(array $data) : \codename\core\model {
       $params = [];
       $query = $this->saveCreate($data, $params, true); // saveCreate with $replace = true
       $this->doQuery($query, $params);
@@ -1711,7 +2003,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       if(count($this->filter) == 0) {
           throw new exception('EXCEPTION_MODEL_SCHEMATIC_SQL_UPDATE_NO_FILTERS_DEFINED', exception::$ERRORLEVEL_FATAL);
       }
-      $query = 'UPDATE ' . $this->schema . '.' . $this->table .' SET ';
+      $query = 'UPDATE ' . $this->getTableIdentifier() .' SET ';
       $parts = [];
 
       $param = array();
@@ -1741,7 +2033,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       }
 
       if($this->saveUpdateSetModifiedTimestamp) {
-        $parts[] = $this->table . "_modified = now()";
+        $parts[] = $this->table . "_modified = ".$this->getServicingSqlInstance()->getSaveUpdateSetModifiedTimestampStatement($this);
       }
       $query .= implode(',', $parts);
 
@@ -1753,7 +2045,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
       // and submit each to timemachine
       //
       if($this->useTimemachine()) {
-        $timemachineQuery = "SELECT {$this->getPrimaryKey()} FROM " . $this->schema . "." . $this->table . ' ';
+        $timemachineQuery = "SELECT {$this->getPrimaryKey()} FROM " . $this->getTableIdentifier() . ' ';
         // NOTE: we have to use a separate array for this
         // as we're also storing bound params of the update data in $param above
         $timemachineFilterQueryParams = [];
@@ -1807,7 +2099,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $tm->saveState($primaryKey, [], true); // supply empty array and deletion flag
             }
 
-            $query = "DELETE FROM " . $this->schema . "." . $this->table . " WHERE " . $this->getPrimarykey() . " = " . $primaryKey;
+            $query = "DELETE FROM " . $this->getTableIdentifier() . " WHERE " . $this->getPrimarykey() . " = " . $primaryKey;
             $this->doQuery($query);
             return $this;
         }
@@ -1829,7 +2121,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // New method: use the filterquery to construct a single query delete statement
         //
 
-        $query = "DELETE FROM " . $this->schema . "." . $this->table . ' ';
+        $query = "DELETE FROM " . $this->getTableIdentifier() . ' ';
 
         // from search()
         // prepare an array for values to submit as PDO statement parameters
@@ -1845,7 +2137,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // and submit each to timemachine
         //
         if($this->useTimemachine()) {
-          $timemachineQuery = "SELECT {$this->getPrimaryKey()} FROM " . $this->schema . "." . $this->table . ' ';
+          $timemachineQuery = "SELECT {$this->getPrimaryKey()} FROM " . $this->getTableIdentifier() . ' ';
           $timemachineQuery .= $filterQuery;
           $timemachineQueryResponse = $this->internalQuery($timemachineQuery, $params);
           $timemachineResult = $this->db->getResult();
@@ -2319,7 +2611,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @param  array  $filterQueryArray [description]
      * @return string                   [description]
      */
-    protected static function convertFilterQueryArray(array $filterQueryArray) : string {
+    public static function convertFilterQueryArray(array $filterQueryArray) : string {
       $queryPart = '';
       foreach($filterQueryArray as $index => $filterQuery) {
         if($index > 0) {
@@ -2349,17 +2641,21 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $order .= ($appliedOrders > 0) ? ', ' : ' ORDER BY ';
             $identifier = array();
 
-            if($myOrder->field->getSchema() != null) {
-              $identifier[] = $myOrder->field->getSchema();
-            }
-            if($myOrder->field->getTable() != null) {
-              $identifier[] = $myOrder->field->getTable();
-            }
-            if($myOrder->field->get() != null) {
-              $identifier[] = $myOrder->field->get();
-            }
+            $schema = $myOrder->field->getSchema();
+            $table = $myOrder->field->getTable();
+            $field = $myOrder->field->get();
 
-            $order .= implode('.', $identifier) . ' ' . $myOrder->direction . ' ';
+            $specifier = [];
+            if($schema && $table) {
+              $specifier[] = $this->getServicingSqlInstance()->getTableIdentifierParametrized($schema, $table);
+            } else if($table) {
+              $specifier[] = $table;
+            } else {
+              // might be local alias
+            }
+            $specifier[] = $field;
+
+            $order .= implode('.', $specifier) . ' ' . $myOrder->direction . ' ';
             $appliedOrders++;
         }
 
@@ -2417,6 +2713,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         if ($limit->limit > 0) {
             return " LIMIT " . $limit->limit . " ";
         }
+        return '';
     }
 
     /**
@@ -2451,6 +2748,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         return $text;
     }
 
+    /**
+     * custom wrapping override due to PG's case sensitivity
+     * @param  string $identifier [description]
+     * @return string             [description]
+     */
+    protected function wrapIdentifier(string $identifier): string {
+      return $this->getServicingSqlInstance()->wrapIdentifier($identifier);
+    }
 
     /**
      * retrieves the fieldlist of this model
@@ -2466,13 +2771,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         //
         // Include all fields but specific ones
         //
-        foreach($this->config->get('field') as $fieldName) {
+        foreach($this->getFields() as $fieldName) {
           if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
             if(!in_array($fieldName, $this->hiddenFields)) {
               if($alias != null) {
-                $result[] = array($alias, $fieldName);
+                $result[] = array($alias, $this->wrapIdentifier($fieldName));
               } else {
-                $result[] = array($this->schema, $this->table, $fieldName);
+                $result[] = array($this->getTableIdentifier($this->schema, $this->table), $this->wrapIdentifier($fieldName));
               }
             }
           }
@@ -2514,15 +2819,15 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               $fieldAlias = $field->alias !== null ? $field->alias->get() : null;
               if($alias != null) {
                 if($fieldAlias) {
-                  $result[] = [ $alias, $field->field->get() . ' AS ' . $fieldAlias ];
+                  $result[] = [ $alias, $this->wrapIdentifier($field->field->get()) . ' AS ' . $this->wrapIdentifier($fieldAlias) ];
                 } else {
-                  $result[] = [ $alias, $field->field->get() ];
+                  $result[] = [ $alias, $this->wrapIdentifier($field->field->get()) ];
                 }
               } else {
                 if($fieldAlias) {
-                  $result[] = [ $field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get() . ' AS ' . $fieldAlias ];
+                  $result[] = [ $this->getTableIdentifier($field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table), $this->wrapIdentifier($field->field->get()) . ' AS ' . $this->wrapIdentifier($fieldAlias) ];
                 } else {
-                  $result[] = [ $field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table, $field->field->get() ];
+                  $result[] = [ $this->getTableIdentifier($field->field->getSchema() ?? $this->schema, $field->field->getTable() ?? $this->table), $this->wrapIdentifier($field->field->get()) ];
                 }
               }
             }
@@ -2532,13 +2837,13 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           // add the rest of the data-model-defined fields
           // as long as they're not hidden.
           //
-          foreach($this->config->get('field') as $fieldName) {
+          foreach($this->getFields() as $fieldName) {
             if($this->config->get('datatype>'.$fieldName) !== 'virtual') {
               if(!in_array($fieldName, $this->hiddenFields)) {
                 if($alias != null) {
-                  $result[] = array($alias, $fieldName);
+                  $result[] = array($alias, $this->wrapIdentifier($fieldName));
                 } else {
-                  $result[] = array($this->schema, $this->table, $fieldName);
+                  $result[] = array($this->getTableIdentifier($this->schema, $this->table), $this->wrapIdentifier($fieldName));
                 }
               }
             }
@@ -2563,13 +2868,12 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             if($alias != null) {
               $result[] = array($alias, '*');
             } else {
-              $result[] = array($this->schema, $this->table, '*');
+              $result[] = array($this->getTableIdentifier($this->schema, $this->table), '*');
             }
           } else {
             // ugh?
           }
         }
-
       }
 
       return $result;

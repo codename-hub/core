@@ -20,13 +20,15 @@ class rgba extends \codename\core\validator\text\color implements \codename\core
      */
     public function validate($value) : array
     {
-      parent::validate($value);
+      if(count(parent::validate($value)) != 0) {
+        return $this->errorstack->getErrors();
+      }
 
       // RGBA Regex
       // @see https://stackoverflow.com/questions/43706082/validation-hex-and-rgba-colors-using-regex-in-php
       // but this was wrong, spaces after the last comma caused mis-validation
       // rgba\((\s*\d+\s*,\s*){3}[\d\.]+\)
-      $regexp = '/rgba\((\s*\d+\s*,\s*){3}[\d\.]+\)/';
+      $regexp = '/^rgba\((\s*\d+\s*,\s*){3}[\d\.]+\)$/';
       $isValid = (bool) preg_match($regexp, $value);
 
       if($isValid !== true) {
