@@ -12,7 +12,8 @@
     </include>
     <report>
       <html outputDirectory=".phpunit/coverage-html" />
-      <clover outputFile=".phpunit/coverage.clover.xml" />
+      <!-- <clover outputFile=".phpunit/coverage.clover.xml" /> -->
+      <cobertura outputFile=".phpunit/coverage.cobertura.xml" />
     </report>
   </coverage>
   <testsuites>

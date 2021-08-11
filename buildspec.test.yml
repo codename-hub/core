@@ -25,9 +25,14 @@ phases:
 
 reports:
   coverage:
+    # files:
+    #   - .phpunit/coverage.clover.xml
+    # file-format: CloverXml
     files:
-      - .phpunit/coverage.clover.xml
-    file-format: CloverXml
+      - .phpunit/coverage.cobertura.xml
+    file-format: CoberturaXml
+
+
 
   test-report:
     files:
