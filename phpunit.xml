@@ -2,6 +2,9 @@
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="tests/autoload.php" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
   <php>
     <ini name="memory_limit" value="4G" />
+    <!-- on error 255 (especially during coverage), enable error logging -->
+    <!-- <ini name="log_errors" value="On" />
+    <ini name="error_log" value="/usr/var/workspace/php-errors.log" /> -->
   </php>
   <coverage processUncoveredFiles="true">
     <include>
