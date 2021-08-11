@@ -6,8 +6,8 @@ phases:
     commands:
       # pre-build custom image/container
       - docker-compose -f docker-compose.unittest.yml build unittest-php73
-      # install using integrated composer
-      - docker-compose -f docker-compose.unittest.yml run --no-deps unittest-php73 composer update
+      # install using integrated composer - NOTE: passthrough env var 'COMPOSER_AUTH'
+      - docker-compose -f docker-compose.unittest.yml run --no-deps -e COMPOSER_AUTH unittest-php73 composer update
       # alternatively: install on agent, w/o platform checks
       # - composer update --ignore-platform-reqs --no-progress --no-interaction
 
