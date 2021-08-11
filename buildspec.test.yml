@@ -24,6 +24,11 @@ phases:
       - docker-compose -f docker-compose.unittest.yml stop
 
 reports:
+  coverage:
+    files:
+      - .phpunit/coverage.clover.xml
+    file-format: CloverXml
+
   test-report:
     files:
       - .phpunit/report.junit.xml

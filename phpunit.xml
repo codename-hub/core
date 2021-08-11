@@ -12,6 +12,7 @@
     </include>
     <report>
       <html outputDirectory=".phpunit/coverage-html" />
+      <clover outputFile=".phpunit/coverage.clover.xml" />
     </report>
   </coverage>
   <testsuites>

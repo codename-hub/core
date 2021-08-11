@@ -14,7 +14,7 @@ services:
       unittest_core_db_mysql_database: database
       unittest_core_cache_memcached_host: unittest-memcached
       unittest_core_cache_memcached_port: 11211
-    command: vendor/bin/phpunit --no-coverage
+    command: vendor/bin/phpunit
     working_dir: /usr/var/workspace
     depends_on:
       - unittest-mysql
