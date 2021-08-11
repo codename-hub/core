@@ -5,7 +5,7 @@ phases:
       php: '7.3'
     commands:
       # pre-build custom image/container
-      - docker-compose build -f docker-compose.unittest.yml unittest-php73
+      - docker-compose -f docker-compose.unittest.yml build unittest-php73
       # install using integrated composer
       - docker-compose -f docker-compose.unittest.yml run --no-deps unittest-php73 composer update
       # alternatively: install on agent, w/o platform checks
@@ -21,7 +21,7 @@ phases:
   post_build:
     commands:
       # just for safety, cleanup.
-      - docker-compose stop -f docker-compose.unittest.yml
+      - docker-compose -f docker-compose.unittest.yml stop
 
 reports:
   test-report:
