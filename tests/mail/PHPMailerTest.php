@@ -1,5 +1,5 @@
 <?php
-namespace codename\core\tests\bucket;
+namespace codename\core\tests\mail;
 
 use codename\core\tests\mail\abstractMailTest;
 
