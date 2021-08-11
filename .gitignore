@@ -3,3 +3,4 @@
 .phpunit.result.cache
 .phpunit
 composer.lock
+auth.json
