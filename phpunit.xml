@@ -43,4 +43,8 @@
       <directory suffix=".php">tests/validator</directory>
     </testsuite>
   </testsuites>
+  <logging>
+    <!-- required for AWS CodeBuild reports -->
+    <junit outputFile=".phpunit/report.junit.xml" />
+  </logging>
 </phpunit>

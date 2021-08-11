@@ -1,0 +1,29 @@
+version: '0.2'
+phases:
+  install:
+    runtime-versions:
+      php: '7.3'
+    commands:
+      - docker-compose build
+      # install using integrated composer
+      - docker-compose -f docker-compose.unittest.yml run --no-deps unittest-php73 composer update
+      # alternatively: install on agent, w/o platform checks
+      # - composer update --ignore-platform-reqs --no-progress --no-interaction
+
+  build:
+    commands:
+      - docker-compose -f docker-compose.unittest.yml up unittest-php73
+
+      # full run including coverage report
+      # - docker-compose -f docker-compose.unittest.yml run unittest-php73 vendor/bin/phpunit
+
+  post_build:
+    commands:
+      # just for safety, cleanup.
+      - docker-compose stop
+
+reports:
+  test-report:
+    files:
+      - .phpunit/report.junit.xml
+    file-format: JunitXml
