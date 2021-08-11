@@ -4,7 +4,7 @@ phases:
     runtime-versions:
       php: '7.3'
     commands:
-      - docker-compose build
+      - docker-compose build -f docker-compose.unittest.yml
       # install using integrated composer
       - docker-compose -f docker-compose.unittest.yml run --no-deps unittest-php73 composer update
       # alternatively: install on agent, w/o platform checks
@@ -20,7 +20,7 @@ phases:
   post_build:
     commands:
       # just for safety, cleanup.
-      - docker-compose stop
+      - docker-compose stop -f docker-compose.unittest.yml 
 
 reports:
   test-report:
