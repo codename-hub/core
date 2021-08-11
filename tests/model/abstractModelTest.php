@@ -2155,7 +2155,7 @@ abstract class abstractModelTest extends base {
 
     foreach(range(0, $limit) as $l) {
       $path = array_fill(0, $l,'person_parent');
-      $childDataset = \codename\core\io\helper\deepaccess::get($dataset, $path);
+      $childDataset = \codename\core\helper\deepaccess::get($dataset, $path);
       $this->assertEquals('firstname'.($l + 1), $childDataset['person_firstname']);
     }
 
