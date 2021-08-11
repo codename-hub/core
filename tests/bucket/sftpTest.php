@@ -59,7 +59,8 @@ class sftpTest extends abstractBucketTest {
    */
   public function testUnreachableHost(): void {
     $this->expectException(\codename\core\exception::class);
-    $this->expectExceptionMessage('EXCEPTION_BUCKET_SFTP_SSH_CONNECTION_FAILED');
+    $this->expectExceptionMessageMatches('/EXCEPTION_BUCKET_SFTP_SSH_CONNECTION_FAILED|ssh2_connect\(\)\: php_network_getaddresses: getaddrinfo failed: Name or service not known/');
+
     $this->getBucket( [
       // Default config
       'basedir' => '/share/',
