@@ -1,0 +1,90 @@
+version: '3'
+
+services:
+
+  # PHP 7.3 CLI
+  unittest-php73:
+    build:
+      context: .
+      dockerfile: php73-cli.Dockerfile
+    environment:
+      unittest_core_db_mysql_host: unittest-mysql
+      unittest_core_db_mysql_user: root
+      unittest_core_db_mysql_pass: root
+      unittest_core_db_mysql_database: database
+      unittest_core_cache_memcached_host: unittest-memcached
+      unittest_core_cache_memcached_port: 11211
+    command: vendor/bin/phpunit --no-coverage
+    working_dir: /usr/var/workspace
+    depends_on:
+      - unittest-mysql
+      - unittest-memcached
+    links:
+      - unittest-mysql
+      - unittest-memcached
+      - unittest-smtp
+      - unittest-ftp
+      - unittest-sftp
+      - unittest-s3
+    volumes:
+      - '.:/usr/var/workspace:cached'
+      # include self for self-testing, but readonly, emulate a 'core-app' like structure
+      - './.:/usr/var/workspace/vendor/codename/core:ro'
+
+  # Memcached
+  unittest-memcached:
+    image: memcached:alpine
+
+  unittest-smtp:
+    image: mailhog/mailhog
+
+  # FTP
+  unittest-ftp:
+    image: stilliard/pure-ftpd
+    ports:
+      - "2122:22"
+    tmpfs:
+      # tmpfs on main ftpusers dir
+      - /home/ftpusers:rw
+      - /etc/pure-ftpd/passwd:rw
+    environment:
+      PUBLICHOST: unittest-ftp
+      # user home as subdir of ftpusers tmpfs
+      FTP_USER_HOME: /home/ftpusers/unittest-ftp-user
+      FTP_USER_NAME: unittest-ftp-user
+      FTP_USER_PASS: unittest-ftp-pass
+
+  # SFTP
+  unittest-sftp:
+    image: atmoz/sftp
+    tmpfs:
+      # two nested tmpfs needed for it to work:
+      - /home/unittest-sftp-user-auth-pw:rw
+      - /home/unittest-sftp-user-auth-pw/share:rw
+      # generic tmpfs stuff
+      - /var/run/sftp:rw
+      - /etc/sftp:rw
+    # ports:
+    #   - "2223:22"
+    command:
+      - 'unittest-sftp-user-auth-pw:unittest-sftp-user-pass:1001::'
+
+  # Fake S3
+  unittest-s3:
+    image: camjackson/fake-s3
+    tmpfs:
+      - /fakes3_root:rw
+    networks:
+      default:
+        aliases:
+          # - s3.local
+          - fakes3.unittest-s3
+
+  # MySQL/MariaDB
+  unittest-mysql:
+    image: mariadb:10.3
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=database
+    tmpfs:
+      - /var/lib/mysql:rw
