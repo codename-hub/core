@@ -48,7 +48,7 @@ RUN apt-get update \
 # RUN  pecl install xdebug \
 #   && docker-php-ext-enable xdebug
 
-RUN  pecl install pcov-1.0.8 \
+RUN  pecl install pcov-1.0.9 \
   && docker-php-ext-enable pcov
 
 # Programmatically install composer
