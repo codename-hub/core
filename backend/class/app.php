@@ -1621,13 +1621,15 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         // as an 'app', as it is returned by app::getParentapp
         // if there's no parent app defined
 
-        // inject apps, if available
-        foreach(self::$injectedApps as $injectApp) {
+        // First, we inject app extensions
+        foreach(self::getExtensions($vendor, $app) as $injectApp) {
           array_splice($stack, -1, 0, array($injectApp));
         }
 
-        foreach(self::getExtensions($vendor, $app) as $injectApp) {
-          array_splice($stack, -1, 0, array($injectApp));
+        // inject apps, if available.
+        // Those are injected dynamically, e.g. in app constructor
+        foreach(self::$injectedApps as $injectApp) {
+          array_splice($stack, $injectApp['injection_mode'], 0, array($injectApp));
         }
 
         // inject core-ui app before core app, if defined
@@ -1684,14 +1686,37 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     protected static $injectedAppIdentifiers = [];
 
     /**
-     * [final description]
-     * @param array $injectApp [app injection parameters]
+     * Injection mode for base apps
+     * (in-between core and extensions)
+     * @var int
      */
-    final protected static function injectApp(array $injectApp) {
+    public const INJECT_APP_BASE = -1;
+
+    /**
+     * Injection mode for extension apps
+     * (below main app, but above base apps)
+     * @var int
+     */
+    public const INJECT_APP_EXTENSION = 1;
+
+    /**
+     * Injection mode for app overrides
+     * (above main app!)
+     * @var int
+     */
+    public const INJECT_APP_OVERRIDE = 0;
+
+    /**
+     * Injects an app, optionally with an injection mode (the place where it goes in the appstack)
+     * @param  array  $injectApp                   [array/object containing the app identifiers]
+     * @param  int    $injectionMode               [defaults to INJECT_APP_BASE]
+     */
+    final protected static function injectApp(array $injectApp, int $injectionMode = self::INJECT_APP_BASE) {
       if(isset($injectApp['vendor']) && isset($injectApp['app']) && isset($injectApp['namespace'])) {
         $identifier = $injectApp['vendor'].'#'.$injectApp['app'].'#'.$injectApp['namespace'];
         // Prevent double-injecting the apps
         if(!in_array($identifier, self::$injectedAppIdentifiers)) {
+          $injectApp['injection_mode'] = $injectionMode;
           self::$injectedApps[] = $injectApp;
           self::$injectedAppIdentifiers[] = $identifier;
         }
