@@ -20,3 +20,6 @@ docker-compose -f docker-compose.unittest.yml run --no-deps unittest-php73 vendo
 
 # stop environment afterwards - especially if something went wrong during tests.
 docker-compose -f docker-compose.unittest.yml stop
+
+# destroy env
+docker-compose -f docker-compose.unittest.yml down
