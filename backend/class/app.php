@@ -980,7 +980,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         foreach($useAppstack as $parentapp) {
             $vendor = $parentapp['vendor'];
             $app = $parentapp['app'];
-            $filename = CORE_VENDORDIR . $vendor . '/' . $app . '/' . $file;
+            $dir = static::getHomedir($vendor, $app);
+            $filename = $dir . '/' . $file;
             if(self::getInstance('filesystem_local')->fileAvailable($filename)) {
                 return $filename;
             }
