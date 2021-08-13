@@ -953,7 +953,13 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
           $dir = $vendor . '/' . $app;
         }
 
-        return CORE_VENDORDIR . $dir . '/';
+        if(realpath($dir) === $dir) {
+          // assume $dir is an absolute path
+          // NOTE: this is a little bit hacky and should be improved somehow.
+          return $dir . '/';
+        } else {
+          return CORE_VENDORDIR . $dir . '/';
+        }
     }
 
     /**
@@ -1224,8 +1230,10 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         $file = str_replace('\\', '/', $classname);
 
         foreach(self::getAppstack() as $parentapp) {
-            $dir = $parentapp['homedir'] ?? ($parentapp['vendor'] . '/' . $parentapp['app']);
-            $filename = CORE_VENDORDIR . $dir . '/backend/class/' . $file . '.php';
+            // CHANGED 2021-08-13: directory derivation fully done via getHomeDir
+            $dir = static::getHomedir($parentapp['vendor'],$parentapp['app']);
+
+            $filename = $dir . '/backend/class/' . $file . '.php';
             if(self::getInstance('filesystem_local')->fileAvailable($filename)) {
                 $namespace = $parentapp['namespace'] ?? '\\' . $parentapp['vendor'] . '\\' . $parentapp['app'];
                 return $namespace . '\\' . $classname;
@@ -1565,8 +1573,15 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     final protected static function makeCurrentAppstack() : array {
       $stack = self::makeAppstack(self::getVendor(), self::getApp());
       self::$appstack = new \codename\core\value\structure\appstack($stack);
+      self::getHook()->fire(\codename\core\app::EVENT_APP_APPSTACK_AVAILABLE);
       return $stack;
     }
+
+    /**
+     * Event/Hook that is fired when the appstack has become available
+     * @var string
+     */
+    const EVENT_APP_APPSTACK_AVAILABLE = 'EVENT_APP_APPSTACK_AVAILABLE';
 
     /**
      * Generates an array of application names that depend from each other. Lower array positions are lower priorities
