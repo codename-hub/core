@@ -29,7 +29,7 @@ services:
     volumes:
       - '.:/usr/var/workspace:cached'
       # include self for self-testing, but readonly, emulate a 'core-app' like structure
-      - './.:/usr/var/workspace/vendor/codename/core:ro'
+      # - './.:/usr/var/workspace/vendor/codename/core:ro'
 
   # Memcached
   unittest-memcached:

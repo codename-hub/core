@@ -49,3 +49,21 @@ if(!$globalBootstrap) {
   // Fallback to this project's vendor dir (and add a slash at the end - because realpath doesn't add it)
   DEFINE("CORE_VENDORDIR", realpath(DIRNAME(__FILE__) . '/../vendor/').'/');
 }
+
+// Explicitly reset any appdata left
+// or implicitly re-init base data.
+\codename\core\test\overrideableApp::reset();
+
+//
+// Special quirk for single-project unit testing
+// We need to override the homedir for this app
+// as the framework itself assumes it resides in composer's vendor dir
+//
+// Additionally, we need to do this every time the appstack gets initialized in the tests
+// and only if this app is used, somehow.
+//
+\codename\core\app::getHook()->add(\codename\core\app::EVENT_APP_APPSTACK_AVAILABLE, function() {
+  \codename\core\test\overrideableApp::__modifyAppstackEntry('codename', 'core', [
+    'homedir' => realpath(__DIR__.'/../'), // One dir up (project root)
+  ]);
+});

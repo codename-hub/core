@@ -906,8 +906,10 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         if(strlen($app) == 0) {$app = self::getApp(); }
 
         $dir = null;
-        if(($vendor == static::getVendor()) && ($app == static::getApp())) {
-          $dir = static::$homedir ?? ($vendor . '/' . $app);
+        if(($vendor == static::getVendor()) && ($app == static::getApp()) && (static::$homedir)) {
+          // NOTE: we have to rely on appstack for 'homedir' key...
+          // this only takes effect, if $homedir static var is explicitly set.
+          $dir = static::$homedir; //  ?? ($vendor . '/' . $app);
         } else {
           // Check for appstack being set
           // this prevents a recursion (during env init/config loading)
@@ -1240,16 +1242,17 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
         foreach(self::getAppstack() as $parentapp) {
             // CHANGED 2021-08-13: directory derivation fully done via getHomeDir
-            $dir = static::getHomedir($parentapp['vendor'],$parentapp['app']);
+            $dir = static::getHomedir($parentapp['vendor'], $parentapp['app']);
 
             $filename = $dir . '/backend/class/' . $file . '.php';
+
             if(self::getInstance('filesystem_local')->fileAvailable($filename)) {
                 $namespace = $parentapp['namespace'] ?? '\\' . $parentapp['vendor'] . '\\' . $parentapp['app'];
                 return $namespace . '\\' . $classname;
             }
         }
+
         throw new \codename\core\exception(self::EXCEPTION_GETINHERITEDCLASS_CLASSFILENOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, $classname);
-        return '';
     }
 
     /**
@@ -1473,22 +1476,18 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             $config['driver'] = $config['driver'][0];
         }
 
-        // we have to traverse the appstack!
-        $classpath = self::getHomedir($vendor, $app) . '/backend/class/' . $type . '/' . $config['driver'] . '.php';
         $classname = "\\{$vendor}\\{$app}\\{$type}\\" . $config['driver'];
 
-
         // if not found in app, traverse appstack
-        if(!self::getInstance('filesystem_local')->fileAvailable($classpath)) {
+        if(!class_exists($classname)) {
           $found = false;
           foreach(self::getAppstack() as $parentapp) {
             $vendor = $parentapp['vendor'];
             $app = $parentapp['app'];
             $namespace = $parentapp['namespace'] ?? "\\{$vendor}\\{$app}";
-            $classpath = self::getHomedir($vendor, $app) . '/backend/class/' . $type . '/' . $config['driver'] . '.php';
             $classname = $namespace . "\\{$type}\\" . $config['driver'];
 
-            if(self::getInstance('filesystem_local')->fileAvailable($classpath)) {
+            if(class_exists($classname)) {
               $found = true;
               break;
             }
