@@ -249,14 +249,16 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         // - function nesting level reached
         //
         ini_set('display_errors', 0);
-        register_shutdown_function(function() {
-          if($error = error_get_last()) {
-            $exc = new \codename\core\exception('EXCEPTION_RUNTIME_SHUTDOWN', exception::$ERRORLEVEL_FATAL, $error);
-            app::getResponse()->setStatus(\codename\core\response::STATUS_INTERNAL_ERROR);
-            app::getResponse()->displayException($exc);
-            exit(1);
-          }
-        });
+        if($this->registerShutdownHandler) {
+          register_shutdown_function(function() {
+            if($error = error_get_last()) {
+              $exc = new \codename\core\exception('EXCEPTION_RUNTIME_SHUTDOWN', exception::$ERRORLEVEL_FATAL, $error);
+              app::getResponse()->setStatus(\codename\core\response::STATUS_INTERNAL_ERROR);
+              app::getResponse()->displayException($exc);
+              exit(1);
+            }
+          });
+        }
 
         // Make Exceptions out of PHP Errors
         set_error_handler(function ($err_severity, $err_msg, $err_file, $err_line, array $err_context) {
@@ -304,6 +306,12 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         self::getHook()->fire(\codename\core\hook::EVENT_APP_INITIALIZED);
         return;
     }
+
+    /**
+     * Whether to register custom shutdown handler(s)
+     * @var bool
+     */
+    protected $registerShutdownHandler = true;
 
     /**
      * [shouldThrowException description]
