@@ -6,13 +6,16 @@ docker-compose -f docker-compose.unittest.yml run --no-deps unittest-php73 compo
 # alternative, locally
 composer update --ignore-platform-reqs
 
-# full run, no coverage
+# full run, with coverage
 docker-compose -f docker-compose.unittest.yml up unittest-php73
 
 # single run w/ deps, e.g. other containers
 docker-compose -f docker-compose.unittest.yml run unittest-php73 vendor/bin/phpunit --no-coverage
 
-# single run(w/o deps, e.g. other containers
+# single run w/ deps, e.g. other containers + process isolation
+docker-compose -f docker-compose.unittest.yml run unittest-php73 vendor/bin/phpunit --no-coverage --process-isolation
+
+# single run w/o deps, e.g. other containers
 docker-compose -f docker-compose.unittest.yml run --no-deps unittest-php73 vendor/bin/phpunit --no-coverage
 
 # interactive
