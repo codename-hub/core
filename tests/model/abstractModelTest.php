@@ -442,7 +442,11 @@ abstract class abstractModelTest extends base {
       $model = static::getModelStatic($modelName);
       $model->addFilter($model->getPrimarykey(), 0, '>')
         ->delete()->reset();
-      static::assertEquals(0, $model->getCount());
+
+      // NOTE: we should not assert this in a static way
+      // as it interferes with parallel or isolated test execution
+      // and tests, that target doesNotPerformAssertions
+      // static::assertEquals(0, $model->getCount());
     }
   }
 
