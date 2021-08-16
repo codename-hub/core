@@ -17,7 +17,7 @@ class localTest extends abstractBucketTest {
   public static function setUpBeforeClass(): void
   {
     parent::setUpBeforeClass();
-    static::$localTmpDir = sys_get_temp_dir() . '/bucket-local-test-'.time().'/';
+    static::$localTmpDir = sys_get_temp_dir() . '/bucket-local-test-'.microtime(true).'/';
   }
 
   /**
@@ -26,16 +26,23 @@ class localTest extends abstractBucketTest {
   public static function tearDownAfterClass(): void
   {
     parent::tearDownAfterClass();
+
     //
-    // at this point, there _SHOULD_ be no file left, only (sub)dirs
-    // try to remove them...
+    // local tmp dir might be removed
+    // if tests are executed in parallel or process-isolated.
     //
-    $it = new \RecursiveDirectoryIterator(static::$localTmpDir, \FilesystemIterator::SKIP_DOTS);
-    $it = new \RecursiveIteratorIterator($it, \RecursiveIteratorIterator::CHILD_FIRST);
-    foreach($it as $file) {
+    if(is_dir(static::$localTmpDir)) {
+      //
+      // at this point, there _SHOULD_ be no file left, only (sub)dirs
+      // try to remove them...
+      //
+      $it = new \RecursiveDirectoryIterator(static::$localTmpDir, \FilesystemIterator::SKIP_DOTS);
+      $it = new \RecursiveIteratorIterator($it, \RecursiveIteratorIterator::CHILD_FIRST);
+      foreach($it as $file) {
         if ($file->isDir()) rmdir($file->getPathname());
+      }
+      rmdir(static::$localTmpDir);
     }
-    rmdir(static::$localTmpDir);
   }
 
   /**

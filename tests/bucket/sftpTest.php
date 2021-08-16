@@ -48,6 +48,13 @@ class sftpTest extends abstractBucketTest {
   {
     parent::setUpBeforeClass();
 
+    // Preliminary check, if DNS is not available
+    // we simply assume there's no host for testing, skip.
+    if(!gethostbynamel('unittest-sftp')) {
+      static::markTestSkipped('SFTP server unavailable, skipping.');
+      return;
+    }
+
     // wait for rmysql to come up
     if(!\codename\core\tests\helper::waitForIt('unittest-sftp', 22, 3, 3, 5)) {
       throw new \Exception('Failed to connect to sftp server');

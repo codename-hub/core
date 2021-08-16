@@ -51,6 +51,13 @@ class s3Test extends abstractBucketTest {
   {
     parent::setUpBeforeClass();
 
+    // Preliminary check, if DNS is not available
+    // we simply assume there's no host for testing, skip.
+    if(!gethostbynamel('unittest-s3')) {
+      static::markTestSkipped('S3 server unavailable, skipping.');
+      return;
+    }
+
     // wait for S3 to come up
     if(!\codename\core\tests\helper::waitForIt('unittest-s3', 4569, 3, 3, 5)) {
       throw new \Exception('Failed to connect to S3 server');
