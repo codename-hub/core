@@ -1238,17 +1238,13 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             return "\\codename\\core\\" . $classname;
         }
 
-        $file = str_replace('\\', '/', $classname);
-
         foreach(self::getAppstack() as $parentapp) {
-            // CHANGED 2021-08-13: directory derivation fully done via getHomeDir
-            $dir = static::getHomedir($parentapp['vendor'], $parentapp['app']);
+            // CHANGED 2021-08-16: purely rely on namespace/autoloading for inherited classes
+            $namespace = $parentapp['namespace'] ?? ('\\' . $parentapp['vendor'] . '\\' . $parentapp['app']);
+            $class = $namespace . '\\' . $classname;
 
-            $filename = $dir . '/backend/class/' . $file . '.php';
-
-            if(self::getInstance('filesystem_local')->fileAvailable($filename)) {
-                $namespace = $parentapp['namespace'] ?? '\\' . $parentapp['vendor'] . '\\' . $parentapp['app'];
-                return $namespace . '\\' . $classname;
+            if(class_exists($class)) {
+              return $class;
             }
         }
 
