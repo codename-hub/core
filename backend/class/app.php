@@ -991,7 +991,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             $vendor = $parentapp['vendor'];
             $app = $parentapp['app'];
             $dir = static::getHomedir($vendor, $app);
-            $filename = $dir . '/' . $file;
+            $filename = $dir . $file;
             if(self::getInstance('filesystem_local')->fileAvailable($filename)) {
                 return $filename;
             }
