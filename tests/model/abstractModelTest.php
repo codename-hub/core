@@ -2787,6 +2787,17 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests correct aliasing when using the same model twice
+   * and calling ->getCount()
+   */
+  public function testGetCountAliasing(): void {
+    $model = $this->getModel('person')
+      ->addModel($this->getModel('person'));
+
+    $this->assertEquals(0, $model->getCount());
+  }
+
+  /**
    * Tests grouping on a calculated field
    */
   public function testAddGroupOnCalculatedFieldDoesNotCrash(): void {

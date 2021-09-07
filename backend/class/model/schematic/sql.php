@@ -1584,7 +1584,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         // HACK/WORKAROUND for shrinking count-only-queries.
         //
         if($this->countingModeOverride) {
-          $query .= 'COUNT('.$this->getPrimarykey().') as ___count';
+          $query .= 'COUNT('.$this->getTableIdentifier() . '.' . $this->wrapIdentifier($this->getPrimarykey()).') as ___count';
         } else {
           // retrieve a list of all model field lists, recursively
           // respecting hidden fields and duplicate field names in other models/tables
