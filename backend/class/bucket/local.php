@@ -117,7 +117,10 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
             $this->errorstack->addError('FILE', 'LOCAL_FILE_EXISTS', $localfile);
             return false;
         }
-        app::getFilesystem()->fileCopy($remotefile, $localfile);
+
+        if(!app::getFilesystem()->fileCopy($remotefile, $localfile)) {
+          return false;
+        }
 
         return app::getFilesystem()->fileAvailable($localfile);
     }

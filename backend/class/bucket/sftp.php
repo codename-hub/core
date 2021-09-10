@@ -254,10 +254,13 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
           $read = 0;
           $fileSize = filesize("ssh2.sftp://{$this->connection}/{$this->basedir}{$remotefile}");
           while ($read < $fileSize && ($buffer = fread($remoteStream, $fileSize - $read))) {
+              $bufferSize = strlen($buffer);
               // Increase our bytes read
-              $read += strlen($buffer);
+              $read += $bufferSize;
               // Write to our local file
-              if (fwrite($localStream, $buffer) === FALSE) {
+              $writtenBytes = fwrite($localStream, $buffer);
+              // NOTE: fwrite does not return FALSE when not enough disk space
+              if ($writtenBytes === FALSE || ($writtenBytes < $bufferSize)) {
                   throw new exception("Unable to write to local file: {$localfile}", exception::$ERRORLEVEL_ERROR);
               }
           }

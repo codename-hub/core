@@ -103,7 +103,11 @@ class local extends \codename\core\filesystem implements \codename\core\filesyst
             return false;
         }
 
-        @copy($source, $destination);
+        // copying might fail due to quota, permissions or write errors
+        if(!@copy($source, $destination)) {
+          $this->errorstack->addError('FILE', 'COPY_FAILURE', [$source, $destination]);
+          return false;
+        }
 
         return $this->fileAvailable($destination);
     }

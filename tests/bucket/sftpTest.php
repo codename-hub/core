@@ -81,4 +81,26 @@ class sftpTest extends abstractBucketTest {
     ]);
   }
 
+  /**
+   * @inheritDoc
+   */
+  public function testVfsLocalDirNotWritableFilePull(): void
+  {
+    // SFTP bucket throws a custom exception in this case, in contrast to other buckets
+    $this->expectExceptionMessage('Unable to open local file for writing: vfs://vfs-test/not-writable-dir/file2.txt');
+    parent::testVfsLocalDirNotWritableFilePull();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function testVfsLocalDirQuotaLimitedFilePull(): void
+  {
+    // SFTP bucket throws a custom exception in this case, in contrast to other buckets
+    $this->expectExceptionMessage('Unable to write to local file: vfs://vfs-test/file.txt');
+    parent::testVfsLocalDirQuotaLimitedFilePull();
+  }
+
+
+
 }

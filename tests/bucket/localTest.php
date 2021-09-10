@@ -70,5 +70,38 @@ class localTest extends abstractBucketTest {
     return new \codename\core\bucket\local($config);
   }
 
+  /**
+   * tests pushing to a local bucket
+   * while having not enough disk space to do so.
+   */
+  public function testRemoteQuotaLimited(): void {
+    $bucketDir = $this->vfsRoot->url() . '/quota-limited/';
+    mkdir($bucketDir, 0777, true);
+    $bucket = $this->getBucket([
+      'basedir' => $bucketDir,
+      'public'  => false
+    ]);
+    \org\bovigo\vfs\vfsStream::setQuota(1);
+
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage(\codename\core\bucket\local::EXCEPTION_FILEPUSH_FILEWRITABLE_UNKNOWN_ERROR);
+    $this->assertFalse($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'pushed_file.ext'));
+  }
+
+  /**
+   * Emulates a not-writable remote target directory
+   */
+  public function testRemoteNotWritable(): void {
+    $bucketDir = $this->vfsRoot->url() . '/not-writable/';
+    mkdir($bucketDir, 0600, true);
+    $this->vfsRoot->getChild('not-writable')->chown('other-user');
+    $bucket = $this->getBucket([
+      'basedir' => $bucketDir,
+      'public'  => false
+    ]);
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage(\codename\core\bucket\local::EXCEPTION_FILEPUSH_FILENOTWRITABLE);
+    $this->assertFalse($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'pushed_file.ext'));
+  }
 
 }

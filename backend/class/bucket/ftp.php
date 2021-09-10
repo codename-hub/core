@@ -136,7 +136,12 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
             return false;
         }
 
-        @ftp_get($this->connection, $localfile, $this->basedir . $remotefile, FTP_BINARY);
+        // This might fail due to various reasons
+        // read error on remote - or write error on local target path
+        if(!@ftp_get($this->connection, $localfile, $this->basedir . $remotefile, FTP_BINARY)) {
+            $this->errorstack->addError('FILE', 'FTP_GET_ERROR', [$localfile, $remotefile]);
+            return false;
+        }
 
         return app::getFilesystem()->fileAvailable($localfile);
     }

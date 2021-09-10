@@ -13,6 +13,7 @@ abstract class abstractBucketTest extends base {
     $app = static::createApp();
     $app->getAppstack();
     
+
     static::setEnvironmentConfig([
       'test' => [
         'filesystem' =>[
@@ -42,7 +43,19 @@ abstract class abstractBucketTest extends base {
     if(!$bucket->filePush(__DIR__.'/testdata/testfile.ext', 'testfile.ext')) {
       $this->addWarning('Initial test setup failed');
     }
+
+    // create a VFS for testing various things
+    // e.g. erroneous local storage location
+    // or (if applicable) broken 'remote' storage (local bucket)
+    $this->vfsRoot = \org\bovigo\vfs\vfsStream::setup('vfs-test');
+    \org\bovigo\vfs\vfsStream::setQuota(\org\bovigo\vfs\Quota::UNLIMITED);
   }
+
+  /**
+   * VFS for helping with mocking erroneous storage
+   * @var \org\bovigo\vfs\vfsStreamDirectory
+   */
+  protected $vfsRoot = null;
 
   /**
    * @inheritDoc
@@ -83,6 +96,43 @@ abstract class abstractBucketTest extends base {
   public function testFileAvailableTrue(): void {
     $bucket = $this->getBucket();
     $this->assertTrue($bucket->fileAvailable('testfile.ext'));
+  }
+
+  /**
+   * makes sure VFS works
+   * and tries to pull a file to a directory
+   * where we have no access to.
+   */
+  public function testVfsLocalDirNotWritableFilePull(): void {
+    $bucket = $this->getBucket();
+
+    $writableLocalDir = $this->vfsRoot->url() . '/writable-dir';
+    mkdir($writableLocalDir, 0777, true);
+    $writableLocalFile = $writableLocalDir . '/file1.txt';
+    $this->assertTrue($bucket->filePull('testfile.ext', $writableLocalFile));
+
+    //
+    // Emulate dir that is owned by another user
+    // and not writable for the current one.
+    //
+    $notWritablePath = $this->vfsRoot->url() . '/not-writable-dir';
+    mkdir($notWritablePath, 0600, true);
+    $notWritableDir = $this->vfsRoot->getChild('not-writable-dir');
+    $notWritableDir->chown('other-user');
+
+    $notWritableLocalFile = $notWritablePath . '/file2.txt';
+    $this->assertFalse($bucket->filePull('testfile.ext', $notWritableLocalFile));
+  }
+
+  /**
+   * limits local VFS's quota (disk space)
+   * and tries to pull a file
+   */
+  public function testVfsLocalDirQuotaLimitedFilePull(): void {
+    \org\bovigo\vfs\vfsStream::setQuota(1); // ultra-low quota
+    $bucket = $this->getBucket();
+    $localFileTarget = $this->vfsRoot->url() . '/file.txt';
+    $this->assertFalse($bucket->filePull('testfile.ext', $localFileTarget));
   }
 
   /**
