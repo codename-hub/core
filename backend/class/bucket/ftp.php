@@ -225,7 +225,10 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
             return true;
         }
 
-        @ftp_delete($this->connection, $this->basedir . $remotefile);
+        if(!@ftp_delete($this->connection, $this->basedir . $remotefile)) {
+          $this->errorstack->addError('FILE', 'REMOTE_FILE_DELETE_FAILED', $remotefile);
+          return false;
+        }
 
         return !$this->fileAvailable($remotefile);
     }

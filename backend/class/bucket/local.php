@@ -131,6 +131,11 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
      * @see \codename\core\bucket_interface::fileDelete($remotefile)
      */
     public function fileDelete(string $remotefile) : bool {
+        if(!$this->fileAvailable($remotefile)) {
+            $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
+            return true;
+        }
+
         $remotefile = $this->normalizePath($remotefile);
         return app::getFilesystem()->fileDelete($remotefile);
     }

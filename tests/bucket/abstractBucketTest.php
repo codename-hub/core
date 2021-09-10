@@ -229,6 +229,16 @@ abstract class abstractBucketTest extends base {
   }
 
   /**
+   * Tests try to delete nonexistant file
+   * NOTE: bucket behaviour is defined to return TRUE
+   * if the respective object (file) does not exist.
+   */
+  public function testFileDeleteNonexistant(): void {
+    $bucket = $this->getBucket();
+    $this->assertTrue($bucket->fileDelete('non-existant.ext'));
+  }
+
+  /**
    * Tests try to move a nonexistant file
    */
   public function testFileMoveNonexistantFailed(): void {
