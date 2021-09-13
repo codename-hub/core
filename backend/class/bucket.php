@@ -52,6 +52,65 @@ abstract class bucket implements \codename\core\bucket\bucketInterface {
     }
 
     /**
+     * Normalizes a given path. By default, $strict is being used
+     * which denies usage of any . or .. and throws an exception, if found.
+     * @param  string $path
+     * @param  bool   $strict [default: true]
+     * @return string
+     */
+    protected function normalizeRelativePath(string $path, bool $strict = true): string {
+      //
+      // Make sure we also handle Windows-style backslash paths
+      // Though bucket convention is slashes only
+      //
+      $path = str_replace('\\', '/', $path);
+      $parts = [];
+      foreach (explode('/', $path) as $part) {
+        switch ($part) {
+          case '.':
+            //
+            // NOTE: we might make this thing more tolerant
+            // '.' might be just discarded w/o throwing an exception
+            // This just enforces a strict programming style and data handling.
+            //
+            if($strict) {
+              throw new exception(static::BUCKET_EXCEPTION_BAD_PATH, exception::$ERRORLEVEL_FATAL);
+            }
+          case '': // initial/starting slash or //
+            break;
+
+          case '..':
+            if($strict) {
+              throw new exception(static::BUCKET_EXCEPTION_BAD_PATH, exception::$ERRORLEVEL_FATAL);
+            }
+            if (empty($parts)) {
+              throw new exception(static::BUCKET_EXCEPTION_FORBIDDEN_PATH_TRAVERSAL, exception::$ERRORLEVEL_FATAL);
+            }
+            array_pop($parts);
+            break;
+
+          default:
+            $parts[] = $part;
+            break;
+        }
+      }
+      return implode('/', $parts);
+    }
+
+    /**
+     * Exception thrown if a bad path is passed as path parameter somewhere
+     * @var string
+     */
+    const BUCKET_EXCEPTION_BAD_PATH = 'BUCKET_EXCEPTION_BAD_PATH';
+
+    /**
+     * Exception thrown if there was a (possibly malicious) path traversal
+     * in a given path parameter
+     * @var string
+     */
+    const BUCKET_EXCEPTION_FORBIDDEN_PATH_TRAVERSAL = 'BUCKET_EXCEPTION_FORBIDDEN_PATH_TRAVERSAL';
+
+    /**
      * Returns the errorstack of the bucket
      * @return \codename\core\errorstack
      */

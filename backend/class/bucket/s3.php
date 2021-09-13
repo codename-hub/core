@@ -177,6 +177,9 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function filePush(string $localfile, string $remotefile): bool
   {
+    // Path sanitization
+    $remotefile = $this->normalizeRelativePath($remotefile);
+
     if(!app::getFilesystem()->fileAvailable($localfile)) {
         $this->errorstack->addError('FILE', 'LOCAL_FILE_NOT_FOUND', $localfile);
         return false;
@@ -206,6 +209,9 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function filePull(string $remotefile, string $localfile): bool
   {
+    // Path sanitization
+    $remotefile = $this->normalizeRelativePath($remotefile);
+
     if(app::getFilesystem()->fileAvailable($localfile)) {
         $this->errorstack->addError('FILE', 'LOCAL_FILE_EXISTS', $localfile);
         return false;
@@ -234,6 +240,8 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function fileAvailable(string $remotefile): bool
   {
+    // Path sanitization
+    $remotefile = $this->normalizeRelativePath($remotefile);
     return $this->objectExists($this->getPrefixedPath($remotefile));
   }
 
@@ -265,6 +273,8 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function fileDelete(string $remotefile): bool
   {
+    // Path sanitization
+    $remotefile = $this->normalizeRelativePath($remotefile);
     try{
       /**
        * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#deleteobject
@@ -285,6 +295,10 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function fileMove(string $remotefile, string $newremotefile): bool
   {
+    // Path sanitization
+    $remotefile = $this->normalizeRelativePath($remotefile);
+    $newremotefile = $this->normalizeRelativePath($newremotefile);
+
     if(!$this->fileAvailable($remotefile)) {
         $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
         return false;
@@ -321,6 +335,9 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function fileGetUrl(string $remotefile, $option = '+10 minutes'): string
   {
+    // Path sanitization
+    $remotefile = $this->normalizeRelativePath($remotefile);
+
     /**
      * we may use @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/class-Aws.S3.S3Client.html#_getObjectUrl
      * and @see https://docs.aws.amazon.com/aws-sdk-php/v3/guide/service/s3-presigned-url.html
@@ -378,6 +395,9 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function dirList(string $directory): array
   {
+    // Path sanitization
+    $directory = $this->normalizeRelativePath($directory);
+
     try{
       //
       // @see http://stackoverflow.com/questions/18683206/list-objects-in-a-specific-folder-on-amazon-s3
@@ -467,6 +487,9 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function dirAvailable(string $directory): bool
   {
+    // Path sanitization
+    $directory = $this->normalizeRelativePath($directory);
+
     /**
      * NOTE: we may have to check for objects in this bucket path
      * as s3 is a flat file system
@@ -515,6 +538,9 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    */
   public function isFile(string $remotefile): bool
   {
+    // Path sanitization
+    $remotefile = $this->normalizeRelativePath($remotefile);
+
     // workaround?
     // path prefixing by overwriting var value
     $remotefile = $this->getPrefixedPath($remotefile);
@@ -538,6 +564,9 @@ class s3 extends \codename\core\bucket implements \codename\core\bucket\bucketIn
    * @return string [class-defined ACL]
    */
   public function getAccessInfo(string $remotefile) : string {
+    // Path sanitization
+    $remotefile = $this->normalizeRelativePath($remotefile);
+
     // default/fallback
     $access = self::ACL_PRIVATE;
     try{

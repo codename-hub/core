@@ -153,6 +153,9 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
      * @see \codename\core\bucket_interface::filePush($localfile, $remotefile)
      */
     public function filePush(string $localfile, string $remotefile) : bool {
+        // Path sanitization
+        $remotefile = $this->normalizeRelativePath($remotefile);
+
         if(!app::getFilesystem()->fileAvailable($localfile)) {
             $this->errorstack->addError('FILE', 'LOCAL_FILE_NOT_FOUND', $localfile);
             return false;
@@ -222,6 +225,9 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
      * @see \codename\core\bucket_interface::filePull($remotefile, $localfile)
      */
     public function filePull(string $remotefile, string $localfile) : bool {
+        // Path sanitization
+        $remotefile = $this->normalizeRelativePath($remotefile);
+
         if(app::getFilesystem()->fileAvailable($localfile)) {
             $this->errorstack->addError('FILE', 'LOCAL_FILE_EXISTS', $localfile);
             return false;
@@ -285,6 +291,9 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
      * @see \codename\core\bucket_interface::dirAvailable($directory)
      */
     public function dirAvailable(string $directory) : bool {
+      // Path sanitization
+      $directory = $this->normalizeRelativePath($directory);
+
       return $this->isDirectory($directory);
     }
 
@@ -294,6 +303,9 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
      * @see \codename\core\bucket_interface::dirList($directory)
      */
     public function dirList(string $directory) : array {
+        // Path sanitization
+        $directory = $this->normalizeRelativePath($directory);
+
         if(!$this->dirAvailable($directory)) {
             $this->errorstack->addError('DIRECTORY', 'REMOTE_DIRECTORY_NOT_FOUND', $directory);
             return array();
@@ -326,6 +338,9 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
      * @see \codename\core\bucket_interface::fileAvailable($remotefile)
      */
     public function fileAvailable(string $remotefile) : bool {
+      // Path sanitization
+      $remotefile = $this->normalizeRelativePath($remotefile);
+
       // CHANGED 2021-03-30: improved and fixed internal SFTP bucket handling
       return $this->isFile($remotefile);
     }
@@ -336,6 +351,9 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
      * @see \codename\core\bucket_interface::fileDelete($remotefile)
      */
     public function fileDelete(string $remotefile) : bool {
+        // Path sanitization
+        $remotefile = $this->normalizeRelativePath($remotefile);
+
         if(!$this->fileAvailable($remotefile)) {
             $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
             return true;
@@ -354,6 +372,10 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
      */
     public function fileMove(string $remotefile, string $newremotefile): bool
     {
+      // Path sanitization
+      $remotefile = $this->normalizeRelativePath($remotefile);
+      $newremotefile = $this->normalizeRelativePath($newremotefile);
+
       if(!$this->fileAvailable($remotefile)) {
           $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
           return false;
@@ -383,6 +405,9 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
      * @see \codename\core\bucket\bucketInterface::isFile()
      */
     public function isFile(string $remotefile) : bool {
+      // Path sanitization
+      $remotefile = $this->normalizeRelativePath($remotefile);
+
       $statResult = @ssh2_sftp_stat($this->connection, $this->basedir . $remotefile);
       if ($statResult === false) {
         return false;
@@ -405,6 +430,9 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
      * @return bool              [description]
      */
     public function isDirectory(string $directory): bool {
+      // Path sanitization
+      $directory = $this->normalizeRelativePath($directory);
+
       $statResult = @ssh2_sftp_stat($this->connection, $this->basedir . $directory);
       if ($statResult === false) {
         return false;
@@ -457,6 +485,9 @@ class sftp extends \codename\core\bucket implements \codename\core\bucket\bucket
      * @return bool
      */
     public function dirCreate(string $directory) {
+        // Path sanitization
+        $directory = $this->normalizeRelativePath($directory);
+
         if($this->dirAvailable($directory)) {
             return true;
         }

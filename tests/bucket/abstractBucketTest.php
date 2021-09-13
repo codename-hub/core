@@ -144,6 +144,38 @@ abstract class abstractBucketTest extends base {
     $this->assertTrue($bucket->fileDelete('pushed_file.ext'));
   }
 
+
+  /**
+   * Tries to go up one dir (like cd ..)
+   * but in the 'allowed' space - anyways, this should not be possible.
+   */
+  public function testFilePushMaliciousDirUpFails(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage(\codename\core\bucket::BUCKET_EXCEPTION_BAD_PATH);
+    $bucket = $this->getBucket();
+    $this->assertFalse($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'nested1/../pushed_file.ext'));
+  }
+
+  /**
+   * [testFilePushMaliciousDirFails description]
+   */
+  public function testFilePushMaliciousDirTraversalFails(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage(\codename\core\bucket::BUCKET_EXCEPTION_BAD_PATH);
+    $bucket = $this->getBucket();
+    $this->assertFalse($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'nested1/../../pushed_file.ext'));
+  }
+
+  /**
+   * [testFilePushMaliciousMultipleDirTraversalFails description]
+   */
+  public function testFilePushMaliciousMultipleDirTraversalFails(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage(\codename\core\bucket::BUCKET_EXCEPTION_BAD_PATH);
+    $bucket = $this->getBucket();
+    $this->assertFalse($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'nested1/../../../pushed_file.ext'));
+  }
+
   /**
    * [testFilePushAlreadyExists description]
    */

@@ -95,6 +95,9 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
      * @see \codename\core\bucket_interface::filePush($localfile, $remotefile)
      */
     public function filePush(string $localfile, string $remotefile) : bool {
+        // Path sanitization
+        $remotefile = $this->normalizeRelativePath($remotefile);
+
         if(!app::getFilesystem()->fileAvailable($localfile)) {
             $this->errorstack->addError('FILE', 'LOCAL_FILE_NOT_FOUND', $localfile);
             return false;
@@ -129,6 +132,9 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
      * @see \codename\core\bucket_interface::filePull($remotefile, $localfile)
      */
     public function filePull(string $remotefile, string $localfile) : bool {
+        // Path sanitization
+        $remotefile = $this->normalizeRelativePath($remotefile);
+
         if(app::getFilesystem()->fileAvailable($localfile)) {
             $this->errorstack->addError('FILE', 'LOCAL_FILE_EXISTS', $localfile);
             return false;
@@ -155,6 +161,9 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
      * @see \codename\core\bucket_interface::dirAvailable($directory)
      */
     public function dirAvailable(string $directory) : bool {
+      // Path sanitization
+      $directory = $this->normalizeRelativePath($directory);
+
       return static::ftp_isdir($this->connection, $directory);
     }
 
@@ -182,6 +191,9 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
      * @see \codename\core\bucket_interface::dirList($directory)
      */
     public function dirList(string $directory) : array {
+        // Path sanitization
+        $directory = $this->normalizeRelativePath($directory);
+
         if(!$this->dirAvailable($directory)) {
             $this->errorstack->addError('DIRECTORY', 'REMOTE_DIRECTORY_NOT_FOUND', $directory);
             return array();
@@ -223,6 +235,9 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
      * @see \codename\core\bucket_interface::fileDelete($remotefile)
      */
     public function fileDelete(string $remotefile) : bool {
+        // Path sanitization
+        $remotefile = $this->normalizeRelativePath($remotefile);
+
         if(!$this->fileAvailable($remotefile)) {
             $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
             return true;
@@ -242,6 +257,10 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
      */
     public function fileMove(string $remotefile, string $newremotefile): bool
     {
+      // Path sanitization
+      $remotefile = $this->normalizeRelativePath($remotefile);
+      $newremotefile = $this->normalizeRelativePath($newremotefile);
+
       if(!$this->fileAvailable($remotefile)) {
           $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
           return false;
@@ -268,6 +287,7 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
      * @see \codename\core\bucket\bucketInterface::isFile()
      */
     public function isFile(string $remotefile) : bool {
+        $remotefile = $this->normalizeRelativePath($remotefile); // Path sanitization
         $list = $this->getRawlist($this->extractDirectory($remotefile));
         if(!is_array($list)) {
             return false;
@@ -302,6 +322,9 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
      * @return bool
      */
     public function dirCreate(string $directory) {
+        // Path sanitization
+        $directory = $this->normalizeRelativePath($directory);
+
         if($this->dirAvailable($directory)) {
             return true;
         }

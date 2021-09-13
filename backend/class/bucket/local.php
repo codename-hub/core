@@ -51,7 +51,13 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
      * @see \codename\core\bucket_interface::filePush($localfile, $remotefile)
      */
     public function filePush(string $localfile, string $remotefile) : bool {
-        $remotefile = $this->normalizePath($remotefile);
+
+        // Path sanitization
+        $remotefile = $this->normalizeRelativePath($remotefile);
+
+        // filename just for usage with FS functions
+        $normalizedRemotefile = $this->normalizePath($remotefile);
+
         if(!app::getFilesystem()->fileAvailable($localfile)) {
             $this->errorstack->addError('FILE', 'LOCAL_FILE_NOT_FOUND', $localfile);
             return false;
@@ -62,11 +68,9 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
             return false;
         }
 
-        app::getLog('debug')->debug('Pushing file ' . $localfile . ' to ' . $remotefile);
-
-        if(!app::getFilesystem()->fileCopy($localfile, $remotefile)) {
+        if(!app::getFilesystem()->fileCopy($localfile, $normalizedRemotefile)) {
           // If Copy not successful, check access rights:
-          if(!is_writable($remotefile)) {
+          if(!is_writable($normalizedRemotefile)) {
             // Access rights/permissions error. directory/file not writable
             throw new \codename\core\exception(self::EXCEPTION_FILEPUSH_FILENOTWRITABLE,\codename\core\exception::$ERRORLEVEL_ERROR, $remotefile);
           } else {
@@ -96,9 +100,10 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
      * @see \codename\core\bucket_interface::fileAvailable($remotefile)
      */
     public function fileAvailable (string $remotefile) : bool {
-        $remotefile = $this->normalizePath($remotefile);
-        app::getLog('debug')->debug('Searching file ' . $remotefile);
-        return app::getFilesystem()->fileAvailable($remotefile) && app::getFilesystem()->isFile($remotefile);
+        // Path sanitization
+        $remotefile = $this->normalizeRelativePath($remotefile);
+        $normalizedRemotefile = $this->normalizePath($remotefile);
+        return app::getFilesystem()->fileAvailable($normalizedRemotefile) && app::getFilesystem()->isFile($normalizedRemotefile);
     }
 
     /**
@@ -107,7 +112,9 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
      * @see \codename\core\bucket_interface::filePull($remotefile, $localfile)
      */
     public function filePull(string $remotefile, string $localfile) : bool {
-        $remotefile = $this->normalizePath($remotefile);
+        // Path sanitization
+        $remotefile = $this->normalizeRelativePath($remotefile);
+
         if(!$this->fileAvailable($remotefile)) {
             $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
             return false;
@@ -118,7 +125,8 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
             return false;
         }
 
-        if(!app::getFilesystem()->fileCopy($remotefile, $localfile)) {
+        $normalizedRemotefile = $this->normalizePath($remotefile);
+        if(!app::getFilesystem()->fileCopy($normalizedRemotefile, $localfile)) {
           return false;
         }
 
@@ -131,13 +139,16 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
      * @see \codename\core\bucket_interface::fileDelete($remotefile)
      */
     public function fileDelete(string $remotefile) : bool {
+        // Path sanitization
+        $remotefile = $this->normalizeRelativePath($remotefile);
+
         if(!$this->fileAvailable($remotefile)) {
             $this->errorstack->addError('FILE', 'REMOTE_FILE_NOT_FOUND', $remotefile);
             return true;
         }
 
-        $remotefile = $this->normalizePath($remotefile);
-        return app::getFilesystem()->fileDelete($remotefile);
+        $normalizedRemotefile = $this->normalizePath($remotefile);
+        return app::getFilesystem()->fileDelete($normalizedRemotefile);
     }
 
     /**
@@ -146,9 +157,13 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
      */
     public function fileMove(string $remotefile, string $newremotefile): bool
     {
-      $remotefile = $this->normalizePath($remotefile);
-      $newremotefile = $this->normalizePath($newremotefile);
-      return app::getFilesystem()->fileMove($remotefile, $newremotefile);
+      // Path sanitization
+      $remotefile = $this->normalizeRelativePath($remotefile);
+      $newremotefile = $this->normalizeRelativePath($newremotefile);
+
+      $normalizedRemotefile = $this->normalizePath($remotefile);
+      $normalizedNewremotefile = $this->normalizePath($newremotefile);
+      return app::getFilesystem()->fileMove($normalizedRemotefile, $normalizedNewremotefile);
     }
 
     /**
@@ -176,8 +191,10 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
      * @see \codename\core\bucket_interface::fileGetInfo($remotefile)
      */
     public function fileGetInfo(string $remotefile) : array {
-        $remotefile = $this->normalizePath($remotefile);
-        return app::getFilesystem()->getInfo($remotefile);
+        // Path sanitization
+        $remotefile = $this->normalizeRelativePath($remotefile);
+        $normalizedRemotefile = $this->normalizePath($remotefile);
+        return app::getFilesystem()->getInfo($normalizedRemotefile);
     }
 
     /**
@@ -186,8 +203,10 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
      * @see \codename\core\bucket_interface::dirAvailable($directory)
      */
     public function dirAvailable(string $directory) : bool {
-        $directory = $this->normalizePath($directory);
-        return app::getFilesystem()->dirAvailable($directory);
+        // Path sanitization
+        $directory = $this->normalizeRelativePath($directory);
+        $normalizedDirectory = $this->normalizePath($directory);
+        return app::getFilesystem()->dirAvailable($normalizedDirectory);
     }
 
     /**
@@ -196,11 +215,15 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
      * @see \codename\core\bucket_interface::dirList($directory)
      */
     public function dirList(string $directory) : array {
-        $normalizedDirectory = $this->normalizePath($directory);
-        if(!$this->dirAvailable($normalizedDirectory)) {
+        // Path sanitization
+        $directory = $this->normalizeRelativePath($directory);
+
+        if(!$this->dirAvailable($directory)) {
             $this->errorstack->addError('DIRECTORY', 'REMOTE_DIRECTORY_NOT_FOUND', $directory);
             return array();
         }
+
+        $normalizedDirectory = $this->normalizePath($directory);
 
         //
         // HACK:
@@ -209,6 +232,8 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
         //
         $list = app::getFilesystem()->dirList($normalizedDirectory);
 
+        // At this point, we use $directory from above as "helper"
+        // but internally rely on data the FS-client gave us.
         if($directory !== '' && substr($directory, strlen($directory)-1, 1) !== '/') {
           $directory .= '/';
         }
@@ -224,6 +249,8 @@ class local extends \codename\core\bucket implements \codename\core\bucket\bucke
      * @see \codename\core\bucket\bucketInterface::isFile()
      */
     public function isFile(string $remotefile) : bool {
+        // Path sanitization
+        $remotefile = $this->normalizeRelativePath($remotefile);
         return app::getFilesystem()->isFile($this->normalizePath($remotefile));
     }
 
