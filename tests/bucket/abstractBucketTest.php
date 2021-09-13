@@ -12,7 +12,7 @@ abstract class abstractBucketTest extends base {
   {
     $app = static::createApp();
     $app->getAppstack();
-    
+
 
     static::setEnvironmentConfig([
       'test' => [
@@ -144,6 +144,14 @@ abstract class abstractBucketTest extends base {
     $this->assertTrue($bucket->fileDelete('pushed_file.ext'));
   }
 
+  /**
+   * [testFilePushNestedSuccessful description]
+   */
+  public function testFilePushNestedSuccessful(): void {
+    $bucket = $this->getBucket();
+    $this->assertTrue($bucket->filePush(__DIR__.'/testdata/testfile.ext', 'nested1/nested2/pushed_file.ext'));
+    $this->assertTrue($bucket->fileDelete('nested1/nested2/pushed_file.ext'));
+  }
 
   /**
    * Tries to go up one dir (like cd ..)
@@ -326,6 +334,17 @@ abstract class abstractBucketTest extends base {
         // $this->addWarning('Unexpected extra file/dir: ' . $r);
       }
     }
+  }
+
+  /**
+   * [testIsFile description]
+   */
+  public function testIsFile(): void {
+    $bucket = $this->getBucket();
+    $bucket->filePush(__DIR__.'/testdata/testfile.ext', 'test-is-file/file.ext');
+    $this->assertFalse($bucket->isFile('test-is-file'));
+    $this->assertTrue($bucket->isFile('test-is-file/file.ext'));
+    $bucket->fileDelete('test-is-file/file.ext');
   }
 
   /**
