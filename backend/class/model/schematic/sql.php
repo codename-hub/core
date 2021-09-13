@@ -1920,6 +1920,29 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
     }
 
     /**
+     * returns an estimated core-framework datatype for a given value
+     * in case there's no definitive datatype specified
+     * @param  bool|int|string|null $value
+     * @return string|null
+     */
+    protected function getFallbackDatatype($value): ?string {
+      if($value === null) {
+        return null; // unspecified
+      } else {
+        if(is_int($value)) {
+          return 'number_natural';
+        } else if(is_float($value)) {
+          return 'number';
+        } else if(is_bool($value)) {
+          return 'boolean';
+        } else if(is_string($value)) {
+          return 'text';
+        }
+      }
+      throw new exception('INVALID_FALLBACK_PARAMETER_TYPE', exception::$ERRORLEVEL_ERROR);
+    }
+
+    /**
      * json_encode wrapper
      * for customizing the output sent to the database
      * Reason: pgsql is handling the encoding for itself
@@ -2248,7 +2271,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   foreach($filter->value as $thisval) {
                       $var = $this->getStatementVariable(\array_keys($appliedFilters), $filterFieldIdentifier, $i++);
                       $values[] = ':' . $var; // var = PDO Param
-                      $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field)); // values separated from query
+                      $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field) ?? $this->getFallbackDatatype($thisval)); // values separated from query
                   }
                   $string = implode(', ', $values);
                   $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
@@ -2374,7 +2397,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     foreach($filter->value as $thisval) {
                         $var = $this->getStatementVariable(\array_keys($appliedFilters), $filter->getFieldValue($currentAlias), $i++);
                         $values[] = ':' . $var; // var = PDO Param
-                        $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field));
+                        $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field) ?? $this->getFallbackDatatype($thisval));
                     }
                     $string = implode(', ', $values);
                     $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';

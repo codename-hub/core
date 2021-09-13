@@ -3081,12 +3081,9 @@ abstract class abstractModelTest extends base {
    * [testAggregateFilterValueArray description]
    */
   public function testAggregateFilterValueArray(): void {
-
-    $this->addWarning('Aggregate filters with IN() / array as filter value is not supported yet - field type determination pending!');
-    $this->expectException(\TypeError::class);
-
     // Aggregate Filter
     $testAggregateFilterMonthModel = $this->getModel('testdata');
+
     $testAggregateFilterMonthModel->addAggregateField('entries_month1', 'month', 'testdata_datetime');
     $testAggregateFilterMonthModel->addAggregateField('entries_month2', 'month', 'testdata_date');
     $testAggregateFilterMonthModel->addAggregateFilter('entries_month1', [1, 3]);
@@ -3096,8 +3093,102 @@ abstract class abstractModelTest extends base {
     $testAggregateFilterMonthModel->addGroup('testdata_id');
 
     $res = $testAggregateFilterMonthModel->search()->getResult();
-    $this->assertEquals([3, 3, 3], array_column($res, 'entries_month1'));
-    $this->assertEquals([3, 3, 3], array_column($res, 'entries_month2'));
+    $this->assertEquals([3, 3, 3, 1], array_column($res, 'entries_month1'));
+    $this->assertEquals([3, 3, 3, 1], array_column($res, 'entries_month2'));
+  }
+
+  /**
+   * [testAggregateFilterValueArraySimple description]
+   */
+  public function testAggregateFilterValueArraySimple(): void {
+    // Aggregate Filter
+    $model = $this->getModel('testdata');
+
+    // Actually, there's no real aggregate field for this test
+    // Instead, we just alias existing fields.
+    $model->addField('testdata_boolean', 'boolean_aliased');
+    $model->addField('testdata_integer', 'integer_aliased');
+    $model->addField('testdata_number', 'number_aliased');
+
+    // WARNING: sqlite doesn't support HAVING without GROUP BY
+    $model->addGroup('testdata_id');
+
+    $model->saveLastQuery = true;
+
+    $this->assertEquals([3.14, 4.25, 5.36, 0.99], array_column($model->search()->getResult(), 'testdata_number'));
+
+    //
+    // compacted serial tests
+    //
+    $filterTests = [
+      //
+      // Datatype estimation for booleans
+      //
+      [
+        'field'     => 'boolean_aliased',
+        'value'     => [ true ],
+        'expected'  => [ 3.14, 4.25 ]
+      ],
+      [
+        'field'     => 'boolean_aliased',
+        'value'     => [ true, false ],
+        'expected'  => [ 3.14, 4.25, 5.36, 0.99 ]
+      ],
+      [
+        'field'     => 'boolean_aliased',
+        'value'     => [ false ],
+        'expected'  => [ 5.36, 0.99 ]
+      ],
+
+      //
+      // Datatype estimation for integers
+      //
+      [
+        'field'     => 'integer_aliased',
+        'value'     => [ 1 ],
+        'expected'  => [ 5.36 ]
+      ],
+      [
+        'field'     => 'integer_aliased',
+        'value'     => [ 1, 2, 3, 42 ],
+        'expected'  => [ 3.14, 4.25, 5.36, 0.99 ]
+      ],
+      [
+        'field'     => 'integer_aliased',
+        'value'     => [ 3, 42 ],
+        'expected'  => [ 3.14, 0.99 ]
+      ],
+
+      //
+      // Datatype estimation for numbers (floats, doubles, decimals)
+      //
+      [
+        'field'     => 'number_aliased',
+        'value'     => [ 5.36 ],
+        'expected'  => [ 5.36 ]
+      ],
+      [
+        'field'     => 'number_aliased',
+        'value'     => [ 3.14, 4.25, 5.36, 0.99 ],
+        'expected'  => [ 3.14, 4.25, 5.36, 0.99 ]
+      ],
+      [
+        'field'     => 'number_aliased',
+        'value'     => [ 3.14, 0.99 ],
+        'expected'  => [ 3.14, 0.99 ]
+      ],
+    ];
+
+    foreach($filterTests as $i => $f) {
+      // use aggregate filter
+      $model->addAggregateFilter($f['field'], $f['value']);
+      $this->assertEquals($f['expected'], array_column($model->search()->getResult(), 'testdata_number'));
+
+      // the same, but using FCs - NOTE: does not exist yet (model::aggregateFiltercollection)
+      // this only works for SQLite due to its nature.
+      // $model->addFilterCollection([[ 'field' => $f['field'], 'operator' => '=', 'value' => $f['value'] ]]);
+      // $this->assertEquals($f['expected'], array_column($model->search()->getResult(), 'testdata_number'));
+    }
   }
 
   /**
