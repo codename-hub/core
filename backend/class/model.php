@@ -1144,6 +1144,7 @@ abstract class model implements \codename\core\model\modelInterface {
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
         if(\is_array($value)) {
             if(\count($value) === 0) {
+                trigger_error('Empty array filter values have no effect on resultset', E_USER_NOTICE);
                 return $this;
             }
             \array_push($this->filter, new $class($this->getModelfieldInstance($field), $value, $operator, $conjunction));
@@ -1217,6 +1218,7 @@ abstract class model implements \codename\core\model\modelInterface {
       $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
       if(is_array($value)) {
           if(count($value) == 0) {
+              trigger_error('Empty array filter values have no effect on resultset', E_USER_NOTICE);
               return $this;
           }
           array_push($this->aggregateFilter, new $class($this->getModelfieldInstance($field), $value, $operator, $conjunction));
@@ -1239,6 +1241,7 @@ abstract class model implements \codename\core\model\modelInterface {
       $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
       if(is_array($value)) {
           if(count($value) == 0) {
+              trigger_error('Empty array filter values have no effect on resultset', E_USER_NOTICE);
               return $this;
           }
           $instance = new $class($this->getModelfieldInstance($field), $value, $operator, $conjunction);
@@ -1312,6 +1315,7 @@ abstract class model implements \codename\core\model\modelInterface {
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
         if(is_array($value)) {
             if(count($value) == 0) {
+                trigger_error('Empty array filter values have no effect on resultset', E_USER_NOTICE);
                 continue;
             }
             array_push($filterCollection, new $class($this->getModelfieldInstance($field), $value, $operator, $filter_conjunction));
@@ -1348,6 +1352,7 @@ abstract class model implements \codename\core\model\modelInterface {
         $class = '\\codename\\core\\model\\plugin\\filter\\' . $this->getType();
         if(is_array($value)) {
             if(count($value) == 0) {
+                trigger_error('Empty array filter values have no effect on resultset', E_USER_NOTICE);
                 continue;
             }
             array_push($filterCollection, new $class($this->getModelfieldInstance($field), $value, $operator, $filter_conjunction));
@@ -1385,6 +1390,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
         if(is_array($value)) {
             if(count($value) == 0) {
+                trigger_error('Empty array filter values have no effect on resultset', E_USER_NOTICE);
                 return $this;
             }
             $instance = new $class($field, $value, $operator, $conjunction);
@@ -1412,6 +1418,7 @@ abstract class model implements \codename\core\model\modelInterface {
 
         if(is_array($value)) {
             if(count($value) == 0) {
+                trigger_error('Empty array filter values have no effect on resultset', E_USER_NOTICE);
                 return $this;
             }
             $instance = new $class($field, $value, $operator, $conjunction);

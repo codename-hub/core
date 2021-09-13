@@ -1509,6 +1509,26 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testDefaultFiltercollectionValueArray description]
+   */
+  public function testDefaultFiltercollectionValueArray(): void {
+    // Filtercollection with an array as filter value
+    // (e.g. IN-query)
+    $model = $this->getModel('testdata');
+
+    $model->addDefaultFilterCollection([
+      [ 'field' => 'testdata_text', 'operator' => '=', 'value' => [ 'foo' ] ],
+    ], 'OR');
+    $res = $model->search()->getResult();
+    $this->assertCount(2, $res);
+    $this->assertEquals([3.14, 5.36], array_column($res, 'testdata_number'));
+
+    // as we've added a default FC (and nothing else)
+    // searching second time should yield the same resultset
+    $this->assertEquals($res, $model->search()->getResult());
+  }
+
+  /**
    * Tests performing a regular left join
    * using forced virtual joining with no dataset available/set
    * to return a nulled/empty child dataset
@@ -3218,21 +3238,51 @@ abstract class abstractModelTest extends base {
   /**
    * Tests ->addFilter() with an empty array value as to-be-filtered-for value
    * This is an edge case which might change in the future.
+   * CHANGED 2021-09-13: we now trigger a E_USER_NOTICE when an empty array ([]) is provided as filter value
    */
   public function testAddFilterWithEmptyArrayValue(): void {
-    $this->addWarning('Empty array filter values are silently ignored.');
     $model = $this->getModel('testdata');
-    $model->addFilter('testdata_text', []); // this is discarded internally
+
+    // NOTE: we have to override the error handler for a short period of time
+    set_error_handler(null, E_USER_NOTICE);
+
+    //
+    // WARNING: to avoid any issue with error handlers
+    // we try to keep the amount of calls not covered by the generic handler
+    // at a minimum
+    //
+    try {
+      @$model->addFilter('testdata_text', []); // this is discarded internally/has no effect
+    } catch (\Throwable $t) {}
+
+    restore_error_handler();
+
+    $this->assertEquals(error_get_last()['message'], 'Empty array filter values have no effect on resultset');
     $this->assertEquals(4, $model->getCount());
   }
 
   /**
    * see above
+   * CHANGED 2021-09-13: we now trigger a E_USER_NOTICE when an empty array ([]) is provided as filter value
    */
   public function testAddDefaultfilterWithEmptyArrayValue(): void {
-    // $this->addWarning('Empty array filter values are silently ignored.'); // See above
     $model = $this->getModel('testdata');
-    $model->addDefaultfilter('testdata_text', []); // this is discarded internally
+
+    // NOTE: we have to override the error handler for a short period of time
+    set_error_handler(null, E_USER_NOTICE);
+
+    //
+    // WARNING: to avoid any issue with error handlers
+    // we try to keep the amount of calls not covered by the generic handler
+    // at a minimum
+    //
+    try {
+      @$model->addDefaultfilter('testdata_text', []); // this is discarded internally/has no effect
+    } catch (\Throwable $t) {}
+
+    restore_error_handler();
+
+    $this->assertEquals(error_get_last()['message'], 'Empty array filter values have no effect on resultset');
     $this->assertEquals(4, $model->getCount());
   }
 
