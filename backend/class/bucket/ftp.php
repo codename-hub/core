@@ -112,7 +112,10 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
         }
 
         try {
-          @ftp_put($this->connection, $this->basedir . $remotefile, $localfile, FTP_BINARY);
+          if(!@ftp_put($this->connection, $this->basedir . $remotefile, $localfile, FTP_BINARY)) {
+            $this->errorstack->addError('FILE', 'FTP_PUT_ERROR', $this->basedir . $remotefile);
+            return false;
+          }
         } catch (\Exception $e) {
           $this->errorstack->addError('FILE', 'FILE_PUSH_FAILED', $this->basedir . $remotefile);
         }
@@ -295,15 +298,33 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
 
     /**
      * Creates the given $directory on this instance's remote hostname
-     * @param string $dirname
-     * @return boolean
+     * @param string $directory
+     * @return bool
      */
     public function dirCreate(string $directory) {
         if($this->dirAvailable($directory)) {
             return true;
         }
 
-        @ftp_mkdir($this->connection, $directory);
+        //
+        // ftp_mkdir is not recursive
+        // therefore, we have to traverse each directory/component
+        // of the given path
+        //
+
+        // Store current directory for later restoration
+        $prevDir = @ftp_pwd($this->connection);
+
+        $parts = explode('/', $directory);
+        foreach ($parts as $part) {
+          if(!@ftp_chdir($ftpcon, $part)){
+            @ftp_mkdir($this->connection, $part);
+            @ftp_chdir($this->connection, $part);
+          }
+        }
+
+        // revert to starting directory.
+        @ftp_chdir($this->connection, $prevDir);
 
         return $this->dirAvailable($directory);
     }
