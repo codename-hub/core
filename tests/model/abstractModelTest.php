@@ -3314,6 +3314,33 @@ abstract class abstractModelTest extends base {
    * see above
    * CHANGED 2021-09-13: we now trigger a E_USER_NOTICE when an empty array ([]) is provided as filter value
    */
+  public function testAddFiltercollectionWithEmptyArrayValue(): void {
+    $model = $this->getModel('testdata');
+
+    // NOTE: we have to override the error handler for a short period of time
+    set_error_handler(null, E_USER_NOTICE);
+
+    //
+    // WARNING: to avoid any issue with error handlers
+    // we try to keep the amount of calls not covered by the generic handler
+    // at a minimum
+    //
+    try {
+      @$model->addFiltercollection([
+        [ 'field' => 'testdata_text', 'operator' => '=', 'value' => [] ]
+      ]); // this is discarded internally/has no effect
+    } catch (\Throwable $t) {}
+
+    restore_error_handler();
+
+    $this->assertEquals(error_get_last()['message'], 'Empty array filter values have no effect on resultset');
+    $this->assertEquals(4, $model->getCount());
+  }
+
+  /**
+   * see above
+   * CHANGED 2021-09-13: we now trigger a E_USER_NOTICE when an empty array ([]) is provided as filter value
+   */
   public function testAddDefaultfilterWithEmptyArrayValue(): void {
     $model = $this->getModel('testdata');
 
@@ -3327,6 +3354,33 @@ abstract class abstractModelTest extends base {
     //
     try {
       @$model->addDefaultfilter('testdata_text', []); // this is discarded internally/has no effect
+    } catch (\Throwable $t) {}
+
+    restore_error_handler();
+
+    $this->assertEquals(error_get_last()['message'], 'Empty array filter values have no effect on resultset');
+    $this->assertEquals(4, $model->getCount());
+  }
+
+  /**
+   * see above
+   * CHANGED 2021-09-13: we now trigger a E_USER_NOTICE when an empty array ([]) is provided as filter value
+   */
+  public function testAddDefaultFiltercollectionWithEmptyArrayValue(): void {
+    $model = $this->getModel('testdata');
+
+    // NOTE: we have to override the error handler for a short period of time
+    set_error_handler(null, E_USER_NOTICE);
+
+    //
+    // WARNING: to avoid any issue with error handlers
+    // we try to keep the amount of calls not covered by the generic handler
+    // at a minimum
+    //
+    try {
+      @$model->addDefaultFilterCollection([
+        [ 'field' => 'testdata_text', 'operator' => '=', 'value' => [] ]
+      ]); // this is discarded internally/has no effect
     } catch (\Throwable $t) {}
 
     restore_error_handler();
