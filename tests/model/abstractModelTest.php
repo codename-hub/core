@@ -2468,6 +2468,37 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests various cases of collection retrieval
+   */
+  public function testGetNestedCollections(): void {
+    // Model w/o any collection config
+    $this->assertEmpty($this->getModel('testdata')->getNestedCollections());
+
+    // Model with available, but unused collection
+    $this->assertEmpty(
+      $this->getModel('customer')
+        ->getNestedCollections()
+    );
+
+    // Model with available and _used_ collection
+    $collections = $this->getModel('customer')
+      ->addCollectionModel($this->getModel('contactentry'))
+      ->getNestedCollections();
+
+    $this->assertNotEmpty($collections);
+    $this->assertCount(1, $collections);
+
+    $collectionPlugin = $collections['customer_contactentries'];
+    $this->assertInstanceOf(\codename\core\model\plugin\collection::class, $collectionPlugin);
+
+    $this->assertEquals('customer', $collectionPlugin->baseModel->getIdentifier());
+    $this->assertEquals('customer_id', $collectionPlugin->getBaseField());
+    $this->assertEquals('customer_contactentries', $collectionPlugin->field->get());
+    $this->assertEquals('contactentry', $collectionPlugin->collectionModel->getIdentifier());
+    $this->assertEquals('contactentry_customer_id', $collectionPlugin->getCollectionModelBaseRefField());
+  }
+
+  /**
    * test saving (expect a crash) when having two models joined ambiguously
    * in virtual field result mode
    */
