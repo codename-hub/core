@@ -2418,6 +2418,55 @@ abstract class abstractModelTest extends base {
     $customerModel->delete($id);
   }
 
+
+  /**
+   * Tests trying ::addCollectionModel w/o having the respective config.
+   */
+  public function testAddCollectionModelMissingCollectionConfig(): void {
+    // Testdata model does not have a collection config
+    // (or, at least, it shouldn't have)
+    $model = $this->getModel('testdata');
+    $this->assertFalse($model->getConfig()->exists('collection'));
+
+    $this->expectExceptionMessage('EXCEPTION_NO_COLLECTION_KEY');
+    $model->addCollectionModel($this->getModel('details'));
+  }
+
+  /**
+   * Tests trying to ::addCollectionModel with an unsupported/unspecified model
+   */
+  public function testAddCollectionModelIncompatible(): void {
+    $model = $this->getModel('customer');
+    $this->expectExceptionMessage('EXCEPTION_UNKNOWN_COLLECTION_MODEL');
+    $model->addCollectionModel($this->getModel('person'));
+  }
+
+  /**
+   * Tests trying to ::addCollectionModel with a valid collection model
+   * but simply a wrong or nonexisting field
+   */
+  public function testAddCollectionModelInvalidModelField(): void {
+    $model = $this->getModel('customer');
+    $this->expectExceptionMessage('EXCEPTION_NO_COLLECTION_CONFIG');
+    $model->addCollectionModel(
+      $this->getModel('contactentry'), // Compatible
+      'nonexisting_collection_field'   // different field - or incompatible
+    );
+  }
+
+  /**
+   *  Tests trying to ::addCollectionModel with an incompatible model
+   *  but a valid/existing collection field key
+   */
+  public function testAddCollectionModelValidModelFieldIncompatibleModel(): void {
+    $model = $this->getModel('customer');
+    $this->expectExceptionMessage('EXCEPTION_MODEL_ADDCOLLECTIONMODEL_INCOMPATIBLE');
+    $model->addCollectionModel(
+      $this->getModel('person'), // Incompatible
+      'customer_contactentries'  // Existing/valid field, but irrelevant for the model to be joined
+    );
+  }
+
   /**
    * test saving (expect a crash) when having two models joined ambiguously
    * in virtual field result mode
