@@ -898,58 +898,6 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
-     * Autocombine models given in an array
-     * returns an automatically joined base model, if possible.
-     * @param string[] $modelNames [array of model names]
-     * @return \codename\core\model
-     */
-    public static function getAutocombinedModels($modelNames) : \codename\core\model {
-
-      $models = array();
-      foreach($modelNames as $modelName) {
-        $models[$modelName] = app::getModel($modelName);
-      }
-      $availableModels = $models;
-      if(sizeof($models) > 1) {
-        foreach($availableModels as $mName => &$m) {
-          if($m->config->exists('foreign')) {
-            foreach($m->config->get('foreign') as $foreign) {
-              if(array_key_exists($foreign['model'], $availableModels)) {
-                if($m !== $availableModels[$foreign['model']]) { // prevent self-add
-                  $m->addModel($availableModels[$foreign['model']]);
-                  unset($models[$foreign['model']]);
-                }
-              }
-            }
-          }
-        }
-      }
-
-      if(sizeof($models) == 1) {
-        // Model tree reduced to a single root model - finished.
-        $baseModel = $models[key($models)];
-      } else {
-        // Try to join the models as siblings
-        reset($models);
-        $firstKey = key($models);
-        $baseModel = $models[$firstKey];
-        unset($models[$firstKey]);
-
-        // try to join them as siblings:
-        foreach($models as $mName => &$m) {
-          $baseModel->addSiblingModel($m);
-          unset($models[$mName]);
-        }
-
-        if(sizeof($models) > 0) {
-          $unjoinable = array_keys($models);
-          throw new \codename\core\exception(self::EXCEPTION_AUTOCOMBINEMODELS_UNJOINABLE_MODELS, \codename\core\exception::$ERRORLEVEL_ERROR, $unjoinable);
-        }
-      }
-      return $baseModel;
-    }
-
-    /**
      * I load an entry of the given model identified by the $primarykey to the current instance.
      * @param string $primaryKey
      * @return \codename\core\model
