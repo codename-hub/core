@@ -3016,6 +3016,38 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testAddAggregateFieldDuplicateWillThrow description]
+   */
+  public function testAddAggregateFieldDuplicateFixedFieldWillThrow(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ADDAGGREGATEFIELD_FIELDALREADYEXISTS);
+    $model = $this->getModel('testdata');
+    // Try to add the aggregate field as a field that already exists
+    // as a defined model field - in this case, simply use the PKEY...
+    $model->addAggregateField('testdata_id', 'count_distinct', 'testdata_text');
+  }
+
+  /**
+   * Tests a rare edge case
+   * of using an aggregate field with the same name
+   * as a field of a nested model with enabled VFR
+   */
+  public function testAddAggregateFieldSameNamedWithVirtualFieldResult(): void {
+    $model = $this->getModel('testdata')->setVirtualFieldResult(true)
+      ->addModel($this->getModel('details'));
+
+    $model->getNestedJoins('details')[0]->virtualField = 'details';
+    // Try to add the aggregate field as a field that already exists
+    // in a _nested_ mode as a defined model field - in this case, simply use the PKEY...
+    $model->addAggregateField('details_id', 'count_distinct', 'testdata_text');
+
+    $res = $model->search()->getResult();
+    $this->assertCount(1, $res);
+    $this->assertEquals(2, $res[0]['details_id']); // this really is the aggregate field...
+    $this->assertEquals(null, $res[0]['details']['details_id']);
+  }
+
+
+  /**
    * [testAggregateSum description]
    */
   public function testAggregateSum(): void {
