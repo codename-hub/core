@@ -1954,7 +1954,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @return string   [json-encoded string]
      */
     protected function jsonEncode($data) : string {
-      return json_encode($data);
+      return $this->getServicingSqlInstance()->jsonEncode($data);
     }
 
     /**

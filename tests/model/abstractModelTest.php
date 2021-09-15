@@ -2881,6 +2881,103 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * tests internal handling during saving (create & update)
+   * and mass updates that might encode given object/array data
+   */
+  public function testStructureEncoding(): void {
+
+    $model = $this->getModel('testdata');
+
+    $model->save([
+      'testdata_text' => 'structure-object',
+      'testdata_structure' => $testObjectData = [
+        'umlautÄÜÖäüöß'   => '"and quotes"',
+        'and\\backlashes' => '\\some\\\"backslashes',
+        'and some more'   => 'with nul bytes'.chr(0),
+        "with special bytes \u00c2\u00ae" => "\xc3\xa9",
+      ]
+    ]);
+    $objectDataId = $model->lastInsertId();
+
+    $model->save([
+      'testdata_text' => 'structure-array',
+      'testdata_structure' => $testArrayData = [
+        'umlautÄÜÖäüöß',
+        '"and quotes"',
+        'and\\backlashes',
+        '\\some\\\"backslashes',
+        'and some more',
+        "with special bytes \u00c2\u00ae",
+        "\xc3\xa9",
+        'with nul bytes'.chr(0),
+        'more data',
+      ]
+    ]);
+    $arrayDataId = $model->lastInsertId();
+
+    $storedObjectData = $model->load($objectDataId)['testdata_structure'];
+    $storedArrayData = $model->load($arrayDataId)['testdata_structure'];
+
+    $this->assertEquals($testObjectData, $storedObjectData);
+    $this->assertEquals($testArrayData, $storedArrayData);
+
+    $model->save([
+      $model->getPrimaryKey() => $objectDataId,
+      'testdata_structure'    => $updatedObjectData = array_merge(
+        $storedObjectData,
+        [
+          'updated' => 1
+        ]
+      )
+    ]);
+
+    $model->save([
+      $model->getPrimaryKey() => $arrayDataId,
+      'testdata_structure'    => $updatedArrayData = array_merge(
+        $storedArrayData,
+        [
+          'updated'
+        ]
+      )
+    ]);
+
+    $storedObjectData = $model->load($objectDataId)['testdata_structure'];
+    $storedArrayData = $model->load($arrayDataId)['testdata_structure'];
+
+    $this->assertEquals($updatedObjectData, $storedObjectData);
+    $this->assertEquals($updatedArrayData, $storedArrayData);
+
+    $model->addFilter($model->getPrimaryKey(), $objectDataId);
+    $model->update([
+      'testdata_structure'    => $updatedObjectData = array_merge(
+        $storedObjectData,
+        [
+          'updated' => 2
+        ]
+      )
+    ]);
+
+    $model->addFilter($model->getPrimaryKey(), $arrayDataId);
+    $model->update([
+      'testdata_structure'    => $updatedArrayData = array_merge(
+        $storedArrayData,
+        [
+          'updated'
+        ]
+      )
+    ]);
+
+    $storedObjectData = $model->load($objectDataId)['testdata_structure'];
+    $storedArrayData = $model->load($arrayDataId)['testdata_structure'];
+
+    $this->assertEquals($updatedObjectData, $storedObjectData);
+    $this->assertEquals($updatedArrayData, $storedArrayData);
+
+    $model->delete($objectDataId);
+    $model->delete($arrayDataId);
+  }
+
+  /**
    * tests model::getCount() when having a grouped query
    * should return the final count of results
    */
@@ -3450,6 +3547,66 @@ abstract class abstractModelTest extends base {
 
     $this->assertEquals(error_get_last()['message'], 'Empty array filter values have no effect on resultset');
     $this->assertEquals(4, $model->getCount());
+  }
+
+  /**
+   * Tests ->addAggregateFilter() with an empty array value as to-be-filtered-for value
+   * This is an edge case which might change in the future.
+   * CHANGED 2021-09-13: we now trigger a E_USER_NOTICE when an empty array ([]) is provided as filter value
+   */
+  public function testAddAggregateFilterWithEmptyArrayValue(): void {
+    $model = $this->getModel('testdata');
+
+    // NOTE: we have to override the error handler for a short period of time
+    set_error_handler(null, E_USER_NOTICE);
+
+    //
+    // WARNING: to avoid any issue with error handlers
+    // we try to keep the amount of calls not covered by the generic handler
+    // at a minimum
+    //
+    try {
+      @$model->addAggregateFilter('nonexisting', []); // this is discarded internally/has no effect
+    } catch (\Throwable $t) {}
+
+    restore_error_handler();
+
+    $this->assertEquals(error_get_last()['message'], 'Empty array filter values have no effect on resultset');
+
+    //
+    // NOTE: we just test if the notice has been triggered
+    // as we're not using a field that's really available
+    //
+  }
+
+  /**
+   * Tests ->addDefaultAggregateFilter() with an empty array value as to-be-filtered-for value
+   * This is an edge case which might change in the future.
+   * CHANGED 2021-09-13: we now trigger a E_USER_NOTICE when an empty array ([]) is provided as filter value
+   */
+  public function testAddDefaultAggregateFilterWithEmptyArrayValue(): void {
+    $model = $this->getModel('testdata');
+
+    // NOTE: we have to override the error handler for a short period of time
+    set_error_handler(null, E_USER_NOTICE);
+
+    //
+    // WARNING: to avoid any issue with error handlers
+    // we try to keep the amount of calls not covered by the generic handler
+    // at a minimum
+    //
+    try {
+      @$model->addDefaultAggregateFilter('nonexisting', []); // this is discarded internally/has no effect
+    } catch (\Throwable $t) {}
+
+    restore_error_handler();
+
+    $this->assertEquals(error_get_last()['message'], 'Empty array filter values have no effect on resultset');
+
+    //
+    // NOTE: we just test if the notice has been triggered
+    // as we're not using a field that's really available
+    //
   }
 
   /**

@@ -15,12 +15,4 @@ abstract class mysql extends \codename\core\model\schematic\sql implements \code
      */
     CONST DB_TYPE = 'mysql';
 
-    /**
-     * @inheritDoc
-     */
-    protected function jsonEncode($data): string
-    {
-      // we need this option for mysql
-      return json_encode($data, JSON_UNESCAPED_UNICODE);
-    }
 }
