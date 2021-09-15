@@ -4014,6 +4014,20 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testValidateSimpleRequiredField description]
+   */
+  public function testValidateSimpleRequiredField(): void {
+    $model = $this->getModel('customer');
+    //
+    // NOTE: the customer model is explicitly loaded
+    // w/o the collection model (contactentry)
+    // to test for skipping those checks (for coverage)
+    //
+    $this->assertFalse($model->isValid([ 'customer_notes' => 'missing customer_no' ]));
+    $this->assertTrue($model->isValid([ 'customer_no' => 'ABC', 'customer_notes' => 'set customer_no' ]));
+  }
+
+  /**
    * [testValidateCollectionData description]
    */
   public function testValidateCollectionData(): void {
