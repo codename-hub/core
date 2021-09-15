@@ -283,6 +283,9 @@ abstract class abstractModelTest extends base {
       'primary' => [
         'contactentry_id'
       ],
+      'required' => [
+        'contactentry_name'
+      ],
       'foreign' => [
         'contactentry_customer_id' => [
           'schema'  => 'vfields',
@@ -4008,6 +4011,59 @@ abstract class abstractModelTest extends base {
 
     $validationErrors = $model->validate($dataset)->getErrors();
     $this->assertCount(2, $validationErrors); // actually, we should have 3
+  }
+
+  /**
+   * [testValidateCollectionData description]
+   */
+  public function testValidateCollectionData(): void {
+    $dataset = [
+      'customer_no' => 'example',
+      'customer_contactentries' => [
+        [
+          'contactentry_name'       => 'test-valid-phone',
+          'contactentry_telephone'  => '+4929292929292',
+        ],
+        [
+          'contactentry_name'       => 'test-invalid-phone',
+          'contactentry_telephone'  => 'xyz',
+        ]
+      ]
+    ];
+
+    $model = $this->getModel('customer')
+      ->addCollectionModel($this->getModel('contactentry'));
+
+    // Just a rough check for invalidity
+    $this->assertFalse($model->isValid($dataset));
+    $validationErrors = $model->validate($dataset)->getErrors();
+    $this->assertEquals('customer_contactentries', $validationErrors[0]['__IDENTIFIER']);
+
+    $dataset = [
+      'customer_no' => 'example2',
+      'customer_contactentries' => [
+        [
+          // no name specified
+          'contactentry_telephone'  => '+4934343455555',
+        ]
+      ]
+    ];
+    // Just a rough check for invalidity
+    $this->assertFalse($model->isValid($dataset));
+
+    $dataset = [
+      'customer_no' => 'example2',
+      'customer_contactentries' => [
+        [
+          // no name specified
+          'contactentry_name'       => 'some-name', // is required
+          'contactentry_telephone'  => '+4934343455555',
+        ]
+      ]
+    ];
+    // Just a rough check for invalidity
+    $this->assertTrue($model->isValid($dataset));
+
   }
 
   /**
