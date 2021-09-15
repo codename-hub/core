@@ -1143,9 +1143,9 @@ abstract class model implements \codename\core\model\modelInterface {
      * {@inheritDoc}
      * @see \codename\core\model_interface::addFilter($field, $value, $operator)
      */
-    public function addFieldFilter(string $field, string $otherField, string $operator = '=', string $conjuction = null) : model {
+    public function addFieldFilter(string $field, string $otherField, string $operator = '=', string $conjunction = null) : model {
         $class = '\\codename\\core\\model\\plugin\\fieldfilter\\' . $this->getType();
-        array_push($this->filter, new $class($this->getModelfieldInstance($field), $this->getModelfieldInstance($otherField), $operator, $conjuction));
+        array_push($this->filter, new $class($this->getModelfieldInstance($field), $this->getModelfieldInstance($otherField), $operator, $conjunction));
         return $this;
     }
 

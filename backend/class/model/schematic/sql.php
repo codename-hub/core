@@ -2264,7 +2264,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               // this is not something PDO needs separately transmitted variables for
               // value IS indeed a field name
               // TODO: provide getFieldValue($tableAlias) also for fieldfilters
-              $filterQuery['query'] = $filter->field->getValue() . ' = ' . $filter->value->getValue();
+              $filterQuery['query'] = $filter->getLeftFieldValue($currentAlias) . ' ' . $filter->operator . ' ' . $filter->getRightFieldValue($currentAlias);
             } else if($filter instanceof \codename\core\model\plugin\managedFilterInterface) {
               $variableNames = $filter->getFilterQueryParameters();
               $variableNameMap = [];

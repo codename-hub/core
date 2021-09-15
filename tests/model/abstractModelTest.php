@@ -3661,6 +3661,80 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testAddFieldFilter description]
+   */
+  public function testAddFieldFilter(): void {
+    $model = $this->getModel('testdata');
+
+    $model->addFieldFilter('testdata_integer', 'testdata_number', '<');
+    $res = $model->search()->getResult();
+    $this->assertCount(3, $res);
+    $this->assertEquals([ 3, 2, 1 ], array_column($res, 'testdata_integer'));
+
+    // vice-versa
+    $model->addFieldFilter('testdata_integer', 'testdata_number', '>');
+    $res = $model->search()->getResult();
+    $this->assertCount(1, $res);
+    $this->assertEquals([ 42 ], array_column($res, 'testdata_integer'));
+  }
+
+  /**
+   * [testAddFieldFilterNested description]
+   */
+  public function testAddFieldFilterNested(): void {
+    $model = $this->getModel('person')->setVirtualFieldResult(true);
+    $model->addModel($this->getModel('person'));
+
+    $model->saveWithChildren([
+      'person_firstname' => 'A',
+      'person_lastname' => 'A',
+      'person_parent' => [
+        'person_firstname' => 'C',
+        'person_lastname' => 'C',
+      ]
+    ]);
+    $model->saveWithChildren([
+      'person_firstname' => 'B',
+      'person_lastname' => 'B',
+      'person_parent' => [
+        'person_firstname' => 'X',
+        'person_lastname' => 'Y',
+      ]
+    ]);
+
+    // should be three: A, B, C
+    $res = $model->addFieldFilter('person_firstname', 'person_lastname')->search()->getResult();
+    $this->assertCount(3, $res);
+    $this->assertEqualsCanonicalizing(['A', 'B', 'C'], array_column($res, 'person_lastname'));
+
+    // should be one: X/Y
+    $res = $model->addFieldFilter('person_firstname', 'person_lastname', '!=')->search()->getResult();
+    $this->assertCount(1, $res);
+    $this->assertEqualsCanonicalizing(['Y'], array_column($res, 'person_lastname'));
+
+    // should be one, we only have one parent with same-names (C)
+    $model->getNestedJoins('person')[0]->model->addFieldFilter('person_firstname', 'person_lastname');
+    $res = $model->search()->getResult();
+    $this->assertCount(1, $res);
+    $this->assertEqualsCanonicalizing(['A'], array_column($res, 'person_lastname'));
+
+    // see above, non-same-named parents
+    $model->getNestedJoins('person')[0]->model->addFieldFilter('person_firstname', 'person_lastname', '!=');
+    $res = $model->search()->getResult();
+    $this->assertCount(1, $res);
+    $this->assertEqualsCanonicalizing(['B'], array_column($res, 'person_lastname'));
+  }
+
+  /**
+   * [testAddFieldFilterWithInvalidOperator description]
+   */
+  public function testAddFieldFilterWithInvalidOperator(): void {
+    $this->expectExceptionMessage('EXCEPTION_INVALID_OPERATOR');
+    $model = $this->getModel('testdata');
+    $model->addFieldFilter('testdata_integer', 'testdata_number', 'LIKE'); // like is unsupported
+  }
+
+  /**
    * [testDefaultfilterSimple description]
    */
   public function testDefaultfilterSimple(): void {

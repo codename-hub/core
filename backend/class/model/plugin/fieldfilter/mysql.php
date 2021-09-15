@@ -7,6 +7,6 @@ namespace codename\core\model\plugin\fieldfilter;
  * @author Kevin Dargel
  * @since 2017-03-01
  */
-class mysql extends \codename\core\model\plugin\fieldfilter implements \codename\core\model\plugin\filter\filterInterface {
+class mysql extends \codename\core\model\plugin\fieldfilter{
 
 }
