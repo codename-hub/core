@@ -3445,6 +3445,40 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests the internal datatype fallback
+   * executed internally when passing an array as filter value
+   */
+  public function testFieldAliasWithFilterArrayFallbackDataTypeSuccessful(): void  {
+    $model = $this->getModel('testdata');
+    $res = $model
+      ->hideAllFields()
+      ->addField('testdata_text', 'aliased_text')
+      ->addFilter('testdata_integer', 3)
+      ->addAggregateFilter('aliased_text', [ 'foo' ])
+      ->addGroup('testdata_id') // required due to technical limitations in some RDBMS
+      ->search()->getResult();
+
+    $this->assertCount(1, $res);
+    $this->assertEquals([ 'aliased_text' => 'foo'], $res[0]);
+  }
+
+  /**
+   * Try to pass an unsupported value in filter value array
+   * that is not covered by model::getFallbackDatatype()
+   */
+  public function testFieldAliasWithFilterArrayFallbackDataTypeFailsUnsupportedData(): void  {
+    $this->expectExceptionMessage('INVALID_FALLBACK_PARAMETER_TYPE');
+    $model = $this->getModel('testdata');
+    $res = $model
+      ->hideAllFields()
+      ->addField('testdata_text', 'aliased_text')
+      ->addFilter('testdata_integer', 3)
+      ->addAggregateFilter('aliased_text', [ new \stdClass() ]) // this must cause an exception
+      ->addGroup('testdata_id') // required due to technical limitations in some RDBMS
+      ->search()->getResult();
+  }
+
+  /**
    * Tests ->addFilter() with an empty array value as to-be-filtered-for value
    * This is an edge case which might change in the future.
    * CHANGED 2021-09-13: we now trigger a E_USER_NOTICE when an empty array ([]) is provided as filter value
