@@ -6,5 +6,9 @@
   "AT": {
     "country_name": "Austria",
     "country_local_name": "Österreich"
+  },
+  "CH": {
+    "country_name": "Suisse",
+    "country_local_name": "Schweiz"
   }
 }

@@ -68,21 +68,51 @@ class jsonModelTest extends base {
       ]
     ]);
 
+    static::createModel('json', 'country', [
+      'field' => [
+        'country_code',
+        'country_name',
+      ],
+      'primary' => [
+        'country_code'
+      ],
+      'datatype' => [
+        'country_code' => 'text',
+        'country_name' => 'text',
+      ],
+      // No connection, JSON datamodel
+    ], function($schema, $model, $config) {
+      return new \codename\core\tests\jsonModel(
+        'tests/model/data/json_country.json',
+        $schema,
+        $model,
+        $config
+      );
+    });
+
     static::createModel('json', 'example', [
       'field' => [
         'example_id',
         'example_text',
         'example_integer',
         'example_number',
+        'example_country',
       ],
       'primary' => [
         'example_id'
+      ],
+      'foreign' => [
+        'example_country' => [
+          'model' => 'country',
+          'key'   => 'country_code',
+        ]
       ],
       'datatype' => [
         'example_id'      => 'text',
         'example_text'    => 'text',
         'example_integer' => 'number_natural',
         'example_number'  => 'number',
+        'example_country' => 'text',
       ],
       // No connection, JSON datamodel
     ], function($schema, $model, $config) {
@@ -93,6 +123,7 @@ class jsonModelTest extends base {
         $config
       );
     });
+
   }
 
   /**
@@ -286,5 +317,42 @@ class jsonModelTest extends base {
 
     $this->assertCount(2, $res);
     $this->assertEqualsCanonicalizing([ 'FIRST', 'THIRD' ], array_column($res, $model->getPrimarykey()));
+  }
+
+  /**
+   * [testSimpleJoin description]
+   */
+  public function testSimpleJoin(): void {
+    $model = $this->getModel('example')
+      ->addModel($this->getModel('country'));
+    $res = $model->search()->getResult();
+    $this->assertEquals(['Germany', 'Austria', null], array_column($res, 'country_name'));
+  }
+
+  /**
+   * [testSimpleInnerJoin description]
+   */
+  public function testSimpleInnerJoin(): void {
+    $model = $this->getModel('example')
+      ->addModel(
+        $this->getModel('country'),
+        \codename\core\model\plugin\join::TYPE_INNER
+      );
+    $res = $model->search()->getResult();
+    $this->assertEquals(['Germany', 'Austria'], array_column($res, 'country_name'));
+  }
+
+  /**
+   * Right join with json/bare datamodels is explicitly unsupported
+   * Make sure the respective exception is thrown.
+   */
+  public function testRightJoinWillFail(): void {
+    $this->expectExceptionMessage('EXCEPTION_MODEL_PLUGIN_JOIN_INVALID_JOIN_TYPE');
+    $model = $this->getModel('example')
+      ->addModel(
+        $this->getModel('country'),
+        \codename\core\model\plugin\join::TYPE_RIGHT
+      );
+    $model->search()->getResult();
   }
 }

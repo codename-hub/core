@@ -2,12 +2,14 @@
   "FIRST": {
     "example_text": "foo",
     "example_integer": 123,
-    "example_number": 12.34
+    "example_number": 12.34,
+    "example_country": "DE"
   },
   "SECOND": {
     "example_text": "bar",
     "example_integer": 234,
-    "example_number": 23.45
+    "example_number": 23.45,
+    "example_country": "AT"
   },
   "THIRD": {
     "example_text": "baz",
