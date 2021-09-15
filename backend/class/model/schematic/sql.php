@@ -376,7 +376,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         //
         // //
         // // normalize
-        // // TODO: Sibling Joins?
         // //
         // foreach($this->getNestedJoins() as $join) {
         //   // normalize using nested model - BUT: only if it's NOT already actively used as a child virtual field
@@ -450,7 +449,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
       //
       // normalize
-      // TODO: Sibling Joins?
       //
       foreach($this->getNestedJoins() as $join) {
         // normalize using nested model - BUT: only if it's NOT already actively used as a child virtual field
@@ -1027,7 +1025,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
      * @return string                 [query part]
      */
     public function deepJoin(\codename\core\model $model, array &$tableUsage = array(), int &$aliasCounter = 0, string $parentAlias = null, array &$params = [], array &$cte = []) {
-        if(\count($model->getNestedJoins()) == 0 && \count($model->getSiblingJoins()) == 0) {
+        if(\count($model->getNestedJoins()) == 0) {
             return '';
         }
         $ret = '';
@@ -1331,56 +1329,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $ret .= $nest->deepJoin($nest, $tableUsage, $aliasCounter, $join->currentAlias, $params, $cte);
         }
 
-        // Loop through siblings
-        foreach($model->getSiblingJoins() as $join) {
-
-          // workaround
-          $sibling = $join->model;
-
-          // check model joining compatible
-          if(!$model->compatibleJoin($sibling)) {
-            continue;
-          }
-
-          if(array_key_exists("{$sibling->schema}.{$sibling->table}", $tableUsage)) {
-            $aliasCounter++;
-            $tableUsage["{$sibling->schema}.{$sibling->table}"]++;
-            $alias = "a".$aliasCounter;
-            $aliasAs = "AS ".$alias;
-          } else {
-            $tableUsage["{$sibling->schema}.{$sibling->table}"] = 1;
-            $aliasAs = '';
-            $alias = "{$sibling->schema}.{$sibling->table}";
-          }
-
-          // get join method from plugin
-          $joinMethod = $join->getJoinMethod();
-
-          // if $joinMethod == null == DEFAULT -> use current config.
-          // this should be deprecated or removed...
-          if($joinMethod == null) {
-            $joinMethod = "LEFT JOIN";
-            if($this->rightJoin) {
-              $joinMethod = "RIGHT JOIN";
-            }
-          }
-
-          $joinMethod = $join->getJoinMethod();
-
-          // $siblingConfig = $model->siblingJoins[$sibling->schema.'.'.$sibling->table];
-          // turned upside-down (see above)
-          $thisField = $join->modelField; // $siblingConfig['this_field'];
-          $siblingField = $join->referenceField; // $siblingConfig['sibling_field'];
-
-          // SQL USE INDEX implementation, limited to one index per table at a time
-          $useIndex = '';
-          if($sibling->useIndex ?? false && count($sibling->useIndex) > 0) {
-            $useIndex = ' USE INDEX('.$sibling->useIndex[0].') ';
-          }
-
-          $ret .= " {$joinMethod} {$sibling->schema}.{$sibling->table} {$aliasAs}{$useIndex} ON {$alias}.{$siblingField} = {$this->table}.{$thisField}";
-          $ret .= $sibling->deepJoin($sibling, $tableUsage, $aliasCounter, null, $params);
-        }
         return $ret;
     }
 
@@ -2468,13 +2416,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         //     $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
         //   }
         // }
-        //
-        // // get filters from sibling models recursively
-        // foreach($this->siblingModels as $join) {
-        //   if($this->compatibleJoin($join->model)) {
-        //     $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters));
-        //   }
-        // }
 
         // return a recursive array structure
         // that contains all collected
@@ -2594,13 +2535,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
         }
       }
 
-      // get filters from sibling models recursively
-      foreach($this->siblingModels as $join) {
-        if($this->compatibleJoin($join->model)) {
-          $where = array_merge($where, $join->model->getFilterQueryComponents($appliedFilters, $join->currentAlias));
-        }
-      }
-
       return $where;
     }
 
@@ -2614,13 +2548,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
       // get filters from nested models recursively
       foreach($this->nestedModels as $join) {
-        if($this->compatibleJoin($join->model)) {
-          $aggregate = array_merge($aggregate, $join->model->getAggregateQueryComponents($appliedFilters));
-        }
-      }
-
-      // get filters from sibling models recursively
-      foreach($this->siblingModels as $join) {
         if($this->compatibleJoin($join->model)) {
           $aggregate = array_merge($aggregate, $join->model->getAggregateQueryComponents($appliedFilters));
         }
@@ -2719,10 +2646,6 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             $groupArray = array_merge($groupArray, $join->model->getGroups($join->currentAlias));
           }
         }
-
-        //
-        // TODO: sibling joins?
-        //
 
         return $groupArray;
     }
@@ -2904,7 +2827,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
 
     /**
      * Returns the current fieldlist as an array of triples (schema, table, field)
-     * it contains the visible fields of all nested models (childs, siblings)
+     * it contains the visible fields of all nested models
      * retrieved in a recursive call
      * this also respects hiddenFields
      *
@@ -2924,11 +2847,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
           $result = array_merge($result, $join->model->getCurrentFieldlist($join->currentAlias, $params));
         }
       }
-      foreach($this->siblingModels as $join) {
-        if($this->compatibleJoin($join->model)) {
-          $result = array_merge($result, $join->model->getCurrentFieldlist($join->currentAlias, $params));
-        }
-      }
+
       return $result;
     }
 

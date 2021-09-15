@@ -145,12 +145,6 @@ abstract class model implements \codename\core\model\modelInterface {
     CONST EXCEPTION_AUTOCOMBINEMODELS_UNJOINABLE_MODELS = "EXCEPTION_AUTOCOMBINEMODELS_UNJOINABLE_MODELS";
 
     /**
-     * Incompatible models during addSibling
-     * @var string
-     */
-    CONST EXCEPTION_ADDSIBLING_CANNOTADDSIBLING = "EXCEPTION_ADDSIBLING_CANNOTADDSIBLING";
-
-    /**
      * Contains the driver to use for this model and the plugins
      * @var string $type
      */
@@ -340,14 +334,6 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
-     * [getSiblingJoins description]
-     * @return \codename\core\model\plugin\join[]
-     */
-    public function getSiblingJoins() : array {
-        return $this->siblingModels;
-    }
-
-    /**
      * determines if the model is joinable
      * in the same run (e.g. DB compatibility and stuff)
      * @param  \codename\core\model $model [the model to check direct join compatibility with]
@@ -374,15 +360,6 @@ abstract class model implements \codename\core\model\modelInterface {
     protected function isDiscreteModel() : bool {
       return false;
     }
-
-    /**
-     * @var array
-     */
-    // protected $siblingJoins = array();
-    /*
-    protected function getSiblingJoin(string $key) : array {
-        return $this->siblingJoins[$key];
-    }*/
 
     /**
      * I will set the given $field's value to $value of the previously loaded dataset / entry.
@@ -843,59 +820,6 @@ abstract class model implements \codename\core\model\modelInterface {
      * @var \codename\core\model\plugin\join[]
      */
     protected $nestedModels = array();
-
-    /**
-     * contains configured join plugin instances for sibling models
-     * @var \codename\core\model\plugin\join[]
-     */
-    protected $siblingModels = array();
-
-    /**
-     * Adds a model as a Sibling (and not as a nested model)
-     * to be used for joining two or more tables by foreign keys, without another model/table in-between
-     */
-    public function addSiblingModel(\codename\core\model $model, string $type = plugin\join::TYPE_LEFT, string $modelField = null, string $referenceField = null) : \codename\core\model {
-        /* $this->tables[] = array(
-                'schema' => $model->schema,
-                'table' => $model->table,
-                'primarykey' => $model->getPrimarykey()
-        );*/
-        if($this->config->exists("foreign")) {
-          foreach($this->config->get("foreign") as $thisForeignKey => $thisForeign) {
-            if($model->config->exists("foreign")) {
-              foreach($model->config->get("foreign") as $otherForeignKey => $otherForeign) {
-                if($thisForeign['model'] == $otherForeign['model']) {
-                  // we have a cross-like join
-                  //  $this->siblings[] = $model;
-
-
-                  // TODO: should we switch ?
-
-                  // if a specific model field is given, use it as requirement
-                  if($modelField != null && $modelField != $thisForeign['key']) {
-                    continue;
-                  }
-
-                  // if a specific reference field is given, use it as requirement
-                  if($referenceField != null && $referenceField != $otherForeign['key']) {
-                    continue;
-                  }
-
-                  $class = '\\codename\\core\\model\\plugin\\join\\' . $this->getType();
-                  array_push($this->siblingModels, new $class($model, $type, $thisForeignKey, $otherForeignKey));
-                  /*
-                  $this->siblingJoins[$model->schema.'.'.$model->table] = array(
-                    'this_field' => $thisForeignKey,
-                    'sibling_field' => $otherForeignKey
-                  );*/
-                  return $this;
-                }
-              }
-            }
-          }
-        }
-        throw new \codename\core\exception(self::EXCEPTION_ADDSIBLING_CANNOTADDSIBLING, \codename\core\exception::$ERRORLEVEL_ERROR, array($this->table, $model->table));
-    }
 
     /**
      * I load an entry of the given model identified by the $primarykey to the current instance.
@@ -1687,9 +1611,6 @@ abstract class model implements \codename\core\model\modelInterface {
     public function loadByUnique(string $field, string $value) : array {
         $data = $this->addFilter($field, $value, '=')->setLimit(1);
 
-        //
-        // TODO: we should also check for siblingJoins
-        //
         // the primary key based cache should ONLY be active, if we're querying only this model
         // without joins and only with a filter on the primary key
         //
@@ -1760,15 +1681,6 @@ abstract class model implements \codename\core\model\modelInterface {
             }
           }
 
-          // check sibling model configs
-          foreach($this->siblingModels as $joinPlugin) {
-            $fieldtype = $joinPlugin->model->getFieldtypeImproved($specifier);
-            if($fieldtype !== null) {
-              $this->cachedFieldtype[$specifier] = $fieldtype;
-              return $fieldtype;
-            }
-          }
-
           // cache error value, too
           $fieldtype = null;
 
@@ -1807,15 +1719,6 @@ abstract class model implements \codename\core\model\modelInterface {
 
           // check nested model configs
           foreach($this->nestedModels as $joinPlugin) {
-            $fieldtype = $joinPlugin->model->getFieldtype($field);
-            if($fieldtype !== null) {
-              $this->cachedFieldtype[$specifier] = $fieldtype;
-              return $fieldtype;
-            }
-          }
-
-          // check sibling model configs
-          foreach($this->siblingModels as $joinPlugin) {
             $fieldtype = $joinPlugin->model->getFieldtype($field);
             if($fieldtype !== null) {
               $this->cachedFieldtype[$specifier] = $fieldtype;
@@ -2378,11 +2281,6 @@ abstract class model implements \codename\core\model\modelInterface {
               return true;
             }
           }
-          foreach($this->getSiblingJoins() as $join) {
-            if($join->model->fieldExists($field)) {
-              return true;
-            }
-          }
         }
       }
       return in_array($field->get(), $this->getFields());
@@ -2407,9 +2305,6 @@ abstract class model implements \codename\core\model\modelInterface {
       $params['filtercollections'] = $this->filterCollections;
       foreach($this->getNestedJoins() as $join) {
         $params['nest'][$join->model->getIdentifier()] = $join->model->getCurrentCacheIdentifierParameters();
-      }
-      foreach($this->getSiblingJoins() as $join) {
-        $params['sibling'][$join->model->getIdentifier()] = $join->model->getCurrentCacheIdentifierParameters();
       }
       return $params;
     }
@@ -2490,16 +2385,14 @@ abstract class model implements \codename\core\model\modelInterface {
      * @return array
      */
     protected function performBareJoin(array $result) : array {
-      if(\count($this->getNestedJoins()) == 0 && \count($this->getSiblingJoins()) == 0) {
+      if(\count($this->getNestedJoins()) == 0) {
         return $result;
       }
 
       //
       // Loop through Joins
-      // nested first
-      // siblings second
       //
-      foreach(array_merge($this->getNestedJoins() /*, $this->getSiblingJoins()*/ ) as $join) {
+      foreach($this->getNestedJoins() as $join) {
         $nest = $join->model;
 
         $vKey = null;
@@ -2527,7 +2420,7 @@ abstract class model implements \codename\core\model\modelInterface {
           // Skip recursive performBareJoin
           // if we have none coming up next
           //
-          if(count($nest->getNestedJoins()) == 0 && count($nest->getSiblingJoins()) == 0) {
+          if(count($nest->getNestedJoins()) == 0) {
             continue;
           }
 
@@ -2885,9 +2778,6 @@ abstract class model implements \codename\core\model\modelInterface {
         $this->order = array();
         $this->errorstack->reset();
         foreach($this->nestedModels as $nest) {
-          $nest->model->reset();
-        }
-        foreach($this->siblingModels as $nest) {
           $nest->model->reset();
         }
         // TODO: reset collection models?
