@@ -1901,6 +1901,90 @@ abstract class abstractModelTest extends base {
     $parentPersonModel->delete($parentPersonId);
   }
 
+
+  /**
+   * Tests whether all identifiers and references behave as designed
+   * E.g. a child PKEY is authoritative over a given FKEY reference
+   * in the parent model's dataset
+   */
+  public function testSaveWithChildrenAuthoritativeDatasetsAndIdentifiers(): void {
+    $customerModel = $this->getModel('customer')->setVirtualFieldResult(true)
+      ->addModel($personModel = $this->getModel('person'));
+
+    $customerModel->saveWithChildren([
+      'customer_no'     => 'X000',
+      'customer_person' => [
+        'person_firstname' => 'XYZ',
+        'person_lastname' => 'ASD',
+      ]
+    ]);
+
+    $customerId = $customerModel->lastInsertId();
+    $personId = $personModel->lastInsertId();
+
+    $customerModel->saveWithChildren([
+      'customer_id'     => $customerId,
+      'customer_person' => [
+        'person_id' => $personId,
+        'person_firstname' => 'VVV',
+      ]
+    ]);
+
+    $dataset = $customerModel->load($customerId);
+    $this->assertEquals($personId, $dataset['customer_person_id']);
+
+    // create a secondary, unassociated person
+
+    $personModel->save([
+      'person_firstname' => 'otherX',
+      'person_lastname' => 'otherY',
+    ]);
+    $otherPersonId = $personModel->lastInsertId();
+    $customerModel->saveWithChildren([
+      'customer_id'     => $customerId,
+      'customer_person' => [
+        'person_id'         => $otherPersonId,
+        'person_firstname'  => 'changed',
+      ]
+    ]);
+
+    $dataset = $customerModel->load($customerId);
+    $this->assertEquals($otherPersonId, $dataset['customer_person_id']);
+
+    $customerModel->saveWithChildren([
+      'customer_id'     => $customerId,
+      'customer_person' => [
+        'person_firstname'  => 'another',
+      ]
+    ]);
+    $anotherPersonId = $personModel->lastInsertId();
+    $dataset = $customerModel->load($customerId);
+
+    //
+    // Make sure we have created another person (child dataset) implicitly
+    //
+    $this->assertNotEquals($otherPersonId, $dataset['customer_person_id']);
+
+    // make sure child PKEY (if given)
+    // overrides the parent's FKEY value
+    $customerModel->saveWithChildren([
+      'customer_id'         => $customerId,
+      'customer_person_id'  => $personId,
+      'customer_person' => [
+        'person_id'         => $otherPersonId,
+      ]
+    ]);
+
+    $dataset = $customerModel->load($customerId);
+    $this->assertEquals($otherPersonId, $dataset['customer_person_id']);
+
+    // Cleanup
+    $customerModel->delete($customerId);
+    $personModel->delete($personId);
+    $personModel->delete($otherPersonId);
+    $personModel->delete($anotherPersonId);
+  }
+
   /**
    * Tests a complex case of joining and model renormalization
    * (e.g. recursive models joined, but different fieldlists!)
