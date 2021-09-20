@@ -99,8 +99,6 @@ class contextTest extends base {
    * @return void
    */
   public function testRuntimeCycle(): void {
-
-    echo("testRuntimeCycle".chr(10));
     $this->appInstance->getRequest()->setData('template', '');
     $this->appInstance->getRequest();
     $data = $this->appInstance->getResponse()->getData();
@@ -129,9 +127,54 @@ class contextTest extends base {
     // Check if callback (see above) had been called successfully
     $this->assertTrue($appRunEnd);
   }
+
+  /**
+   * [testContextIsAllowedReturnsFalseAndAppRunForbidden description]
+   */
+  public function testContextIsAllowedReturnsFalseAndAppRunForbidden(): void {
+    $this->appInstance->getRequest()->setData('template', '');
+    $this->appInstance->getRequest()->setData('context', 'disallowedcontext');
+    $data = $this->appInstance->getResponse()->getData();
+
+    // Response instance is not stored in $_REQUEST, but instead bootstrap::$instances
+    // $_REQUEST['response'] = new cliExitPreventResponse($data);
+    $this->appInstance->__setInstance('response', new cliExitPreventResponse($data));
+
+    $contextInstance = new disallowedcontext();
+    $this->appInstance->__injectContextInstance('disallowedcontext', $contextInstance);
+    $this->appInstance->__injectClientInstance('templateengine', 'default', new dummyTemplateengine);
+
+    // Add a callback into app run end hook/event
+    $appRunForbidden = null;
+    $this->appInstance->getHook()->add(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN, function() use (&$appRunForbidden) {
+      $appRunForbidden = true;
+    });
+
+    $this->appInstance->run();
+
+    // Check if callback (see above) had been called successfully
+    $this->assertTrue($appRunForbidden);
+  }
 }
 
+/**
+ * dummy context, bare minimum
+ */
 class testcontext extends \codename\core\context {
-  public function view_default() {
+  public function view_default() {}
+}
+
+/**
+ * a context class that simply should not be accessible
+ */
+class disallowedcontext extends \codename\core\context {
+  /**
+   * @inheritDoc
+   */
+  public function isAllowed(): bool
+  {
+    return false;
   }
+
+  public function view_default() {}
 }

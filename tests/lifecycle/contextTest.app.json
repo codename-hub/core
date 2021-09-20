@@ -9,6 +9,14 @@
       "view": {
         "default": { "public": true }
       }
+    },
+    "disallowedcontext": {
+      "defaultview": "default",
+      "view": {
+        "default": {
+          "__comment": "by default, public is null/false"
+        }
+      }
     }
   }
 }

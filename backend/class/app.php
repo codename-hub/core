@@ -405,7 +405,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             return false;
           }
           return true;
-      } else if(!$this->getContext()->isAllowed() && !self::getConfig()->exists("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
+      } else if(!$this->getContext()->isAllowed() && !self::getConfig()->get("context>{$this->getRequest()->getData('context')}>view>{$this->getRequest()->getData('view')}>public")) {
           self::getHook()->fire(\codename\core\hook::EVENT_APP_RUN_FORBIDDEN);
           $this->getResponse()->setRedirect($this->getApp(), 'login');
           $this->getResponse()->doRedirect();

@@ -151,8 +151,8 @@ class bootstrap {
      * @return response
      */
     public static function getResponse() : \codename\core\response {
-        if(!array_key_exists('response', self::$instances)) {
-          if(array_key_exists('request', self::$instances)) {
+        if(!(static::$instances['response'] ?? false)) {
+          if((static::$instances['request'] ?? false)) {
             $classname = "\\codename\\core\\response\\" . self::getRequesttype();
             self::$instances['response'] = new $classname();
           } else {
