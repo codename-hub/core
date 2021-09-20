@@ -2217,56 +2217,6 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
-     * Returns true if there is a "complete" key in the given model configuration and the fields in this array are filled up
-     * @param array $data
-     * @return bool
-     */
-    public function isComplete(array $data) : bool {
-
-        // Continue when no complete key is available
-        if(!$this->config->exists('complete')) {
-            return true;
-        }
-
-        // Validate the fields
-        foreach($this->config->get('complete') as $field) {
-            // Field does not exist
-            if(!array_key_exists($field, $data)){
-                $this->errorstack->addError($field, 'FIELD_IS_EMPTY', null);
-                continue;
-            }
-
-            // Field is null
-            if(is_null($data[$field])) {
-                $this->errorstack->addError($field, 'FIELD_IS_EMPTY', null);
-                continue;
-            }
-
-            // Field is empty string
-            if(is_string($data[$field]) && strlen($data[$field]) == 0) {
-                $this->errorstack->addError($field, 'FIELD_IS_EMPTY', null);
-                continue;
-            }
-
-            // Validate arrays
-            if(is_array($data[$field])) {
-                foreach($data[$field] as $check) {
-                    if(strlen($check) == 0) {
-                        $this->errorstack->addError($field, 'FIELD_IS_EMPTY', null);
-                        continue;
-                    }
-                }
-            }
-        }
-
-        if(\count($this->getErrors()) > 0) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
      * Returns true if the given $field exists in this model's configuration
      * @param \codename\core\value\text\modelfield $field
      * @return bool
