@@ -4100,6 +4100,84 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testNormalizeDataComplex description]
+   */
+  public function testNormalizeDataComplex(): void {
+
+    $fieldComparisons = [
+      'testdata_boolean' => [
+        'nulled boolean' => [
+          'expectedValue' => null,
+          'variants' => [
+            null,
+            ''
+          ]
+        ],
+        'boolean true' => [
+          'expectedValue' => true,
+          'variants' => [
+            true,
+            1,
+            '1',
+            'true'
+          ]
+        ],
+        'boolean false' => [
+          'expectedValue' => false,
+          'variants' => [
+            false,
+            0,
+            '0',
+            'false'
+          ]
+        ],
+      ],
+      'testdata_integer' => [
+        'nulled integer' => [
+          'expectedValue' => null,
+          'variants' => [
+            null,
+            ''
+          ]
+        ]
+      ],
+      'testdata_date' => [
+        'nulled date' => [
+          'expectedValue' => null,
+          'variants' => [
+            null,
+          ]
+        ],
+        // throws!
+        // 'invalid date' => [
+        //   'expectedValue' => null,
+        //   'variants' => [
+        //     '',
+        //   ]
+        // ],
+      ],
+    ];
+
+    $model = $this->getModel('testdata');
+
+    foreach($fieldComparisons as $field => $tests) {
+      foreach($tests as $testName => $test) {
+        $expectedValue = $test['expectedValue'];
+        foreach($test['variants'] as $variant) {
+          $normalizeMe = [
+            $field => $variant
+          ];
+          $expectedDataset = [
+            $field => $expectedValue
+          ];
+          $normalized = $model->normalizeData($normalizeMe);
+          $this->assertEquals($expectedDataset, $normalized, $testName);
+        }
+      }
+    }
+  }
+
+  /**
    * [testValidate description]
    * @return [type] [description]
    */
