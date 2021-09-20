@@ -1488,6 +1488,26 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests whether addRecursiveModel throws an exception
+   * if an invalid/nonexisting field is provided in the configuration
+   */
+  public function testAddRecursiveModelNonexistingFieldWillThrow(): void {
+    $this->expectException(\codename\core\exception::class);
+    $this->expectExceptionMessage('INVALID_RECURSIVE_MODEL_JOIN');
+
+    $model = $this->getModel('person');
+    $model->addRecursiveModel(
+      $this->getModel('person'),
+      'person_nonexisting',
+      'person_id',
+      [
+        // Single anchor condition
+        [ 'field' => 'person_lastname', 'operator' => '=', 'value' => 'Sanders' ]
+      ]
+    );
+  }
+
+  /**
    * [testFiltercollectionValueArray description]
    */
   public function testFiltercollectionValueArray(): void {
