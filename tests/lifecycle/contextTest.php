@@ -155,6 +155,55 @@ class contextTest extends base {
     // Check if callback (see above) had been called successfully
     $this->assertTrue($appRunForbidden);
   }
+
+  /**
+   * Tests accessing an undefined view
+   */
+  public function testAppNonexistingView(): void {
+    $this->expectExceptionMessage(\codename\core\app::EXCEPTION_MAKEREQUEST_REQUESTEDVIEWNOTINCONTEXT);
+
+    $this->appInstance->getRequest()->setData('template', '');
+    $this->appInstance->getRequest()->setData('context', 'testcontext');
+    $this->appInstance->getRequest()->setData('view', 'nonexisting'); // Nonexisting view
+
+    $this->appInstance->__injectClientInstance('templateengine', 'default', new dummyTemplateengine);
+    $this->appInstance->__injectContextInstance('testcontext', new testcontext);
+    $this->appInstance->__setInstance('response', new cliThrowExceptionResponse);
+    $this->appInstance->run();
+  }
+
+  /**
+   * Tests case when the view function is defined in app.json
+   * but unavailable in class
+   */
+  public function testAppNonexistingViewFunction(): void {
+    $this->expectExceptionMessage(\codename\core\app::EXCEPTION_DOVIEW_VIEWFUNCTIONNOTFOUNDINCONTEXT);
+
+    $this->appInstance->getRequest()->setData('template', '');
+    $this->appInstance->getRequest()->setData('context', 'testcontext');
+    $this->appInstance->getRequest()->setData('view', 'nonexisting_function'); // Nonexisting view function
+
+    $this->appInstance->__injectClientInstance('templateengine', 'default', new dummyTemplateengine);
+    $this->appInstance->__injectContextInstance('testcontext', new testcontext);
+    $this->appInstance->__setInstance('response', new cliThrowExceptionResponse);
+
+    $this->appInstance->run();
+
+  }
+}
+
+/**
+ * helper class for really throw the exception
+ * that is usually displayed
+ */
+class cliThrowExceptionResponse extends cliExitPreventResponse {
+  /**
+   * @inheritDoc
+   */
+  public function displayException(\Exception $e)
+  {
+    throw $e;
+  }
 }
 
 /**
