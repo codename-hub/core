@@ -613,66 +613,6 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         return self::getTranslate()->translate($key);
     }
 
-
-    /**
-  	 * Gets the all models/definitions, also inherited
-     * returns a multidimensional assoc array like:
-     * models[schema][table][model] = array( 'fields' => ... )
-     * @author Kevin Dargel
-  	 * @return array
-  	 */
-  	public static function getAllModels(string $filterByApp = '', string $filterByVendor = '', array $useAppstack = null) : array {
-
-  		$result = array();
-
-      if($useAppstack == null) {
-        $useAppstack = self::getAppstack();
-      }
-
-      // Traverse Appstack
-  		foreach($useAppstack as $app) {
-
-        if($filterByApp !== '') {
-          if($filterByApp !== $app['app']) {
-            continue;
-          }
-        }
-
-        if($filterByVendor !== '') {
-          if($filterByVendor !== $app['vendor']) {
-            continue;
-          }
-        }
-
-  			// array of vendor,app
-  			$appdir = app::getHomedir($app['vendor'], $app['app']);
-  			$dir = $appdir . "config/model";
-
-  			// get all model json files, first:
-  			$files = app::getFilesystem()->dirList( $dir );
-
-  			foreach($files as $f) {
-  				$file = $dir . '/' . $f;
-
-  				// check for .json extension
-  				$fileInfo = new \SplFileInfo($file);
-  				if($fileInfo->getExtension() === 'json') {
-            // get the model filename w/o extension
-  					$modelName = $fileInfo->getBasename('.json');
-
-            // split: schema_table
-  					$comp = explode( '_' , $modelName);
-  					$schema = $comp[0];
-  					$table = $comp[1];
-
-  					$model = (new \codename\core\config\json("config/model/" . $fileInfo->getFilename(), true, true, $useAppstack))->get();
-  					$result[$schema][$table][] = $model;
-  				}
-  			}
-  		}
-  		return $result;
-  	}
-
     /**
      * Simple returns the app's name
      * @return string
