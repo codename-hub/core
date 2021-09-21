@@ -124,11 +124,11 @@ class bootstrap {
      * @return request
      */
     public static function getRequest() : \codename\core\request {
-        if(!array_key_exists('request', self::$instances)) {
+        if(!(static::$instances['request'] ?? false)) {
             $classname = "\\codename\\core\\request\\" . self::getRequesttype();
-            self::$instances['request'] = new $classname();
+            static::$instances['request'] = new $classname();
         }
-        return self::$instances['request'];
+        return static::$instances['request'];
     }
 
     /**
@@ -154,12 +154,12 @@ class bootstrap {
         if(!(static::$instances['response'] ?? false)) {
           if((static::$instances['request'] ?? false)) {
             $classname = "\\codename\\core\\response\\" . self::getRequesttype();
-            self::$instances['response'] = new $classname();
+            static::$instances['response'] = new $classname();
           } else {
             throw new exception(self::EXCEPTION_BOOTSTRAP_GETRESPONSE_REQUEST_INSTANCE_NOT_CREATED, exception::$ERRORLEVEL_FATAL);
           }
         }
-        return self::$instances['response'];
+        return static::$instances['response'];
     }
 
     /**

@@ -18,6 +18,24 @@
           "__comment": "by default, public is null/false"
         }
       }
+    },
+    "templatelevel": {
+      "defaultview": "default",
+      "template": "contextlevel",
+      "view": {
+        "viewlevel_template": {
+          "template": "viewlevel"
+        },
+        "contextlevel_template": {
+          "__comment": "leave empty."
+        }
+      }
+    },
+    "templatefallback": {
+      "defaultview": "default",
+      "view": {
+        "default": {}
+      }
     }
   }
 }

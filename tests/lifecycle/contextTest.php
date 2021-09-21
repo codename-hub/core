@@ -25,6 +25,7 @@ class contextTest extends base {
    */
   protected function tearDown(): void
   {
+    $this->appInstance->__setInstance('request', null);
     $this->appInstance->__setInstance('response', null);
     parent::tearDown();
     $this->appInstance->reset();
@@ -157,6 +158,20 @@ class contextTest extends base {
   }
 
   /**
+   * Tests accessing an undefined context
+   */
+  public function testAppNonexistingContext(): void {
+    $this->expectExceptionMessage(\codename\core\app::EXCEPTION_MAKEREQUEST_CONTEXT_CONFIGURATION_MISSING);
+
+    $this->appInstance->getRequest()->setData('template', '');
+    $this->appInstance->getRequest()->setData('context', 'nonexisting');
+
+    $this->appInstance->__injectClientInstance('templateengine', 'default', new dummyTemplateengine);
+    $this->appInstance->__setInstance('response', new cliThrowExceptionResponse);
+    $this->appInstance->run();
+  }
+
+  /**
    * Tests accessing an undefined view
    */
   public function testAppNonexistingView(): void {
@@ -188,7 +203,39 @@ class contextTest extends base {
     $this->appInstance->__setInstance('response', new cliThrowExceptionResponse);
 
     $this->appInstance->run();
+  }
 
+  /**
+   * [testViewLevelTemplate description]
+   */
+  public function testViewLevelTemplate(): void {
+    $this->appInstance->getRequest()->setData('context', 'templatelevel');
+    $this->appInstance->getRequest()->setData('view', 'viewlevel_template');
+    $this->appInstance->__injectContextInstance('templatelevel', new testcontext);
+    $this->appInstance->run();
+    $this->assertEquals('viewlevel', $this->appInstance->getRequest()->getData('template'));
+  }
+
+  /**
+   * [testContextLevelTemplate description]
+   */
+  public function testContextLevelTemplate(): void {
+    $this->appInstance->getRequest()->setData('context', 'templatelevel');
+    $this->appInstance->getRequest()->setData('view', 'contextlevel_template');
+    $this->appInstance->__injectContextInstance('templatelevel', new testcontext);
+    $this->appInstance->run();
+    $this->assertEquals('contextlevel', $this->appInstance->getRequest()->getData('template'));
+  }
+
+  /**
+   * [testAppLevelTemplate description]
+   */
+  public function testAppLevelTemplate(): void {
+    $this->appInstance->getRequest()->setData('context', 'templatefallback');
+    $this->appInstance->getRequest()->setData('view', 'default');
+    $this->appInstance->__injectContextInstance('templatefallback', new testcontext);
+    $this->appInstance->run();
+    $this->assertEquals('blank', $this->appInstance->getRequest()->getData('template'));
   }
 }
 
