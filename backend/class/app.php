@@ -273,7 +273,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
           }
           switch($err_severity)
           {
-              case E_ERROR:               throw new ErrorException            ($err_msg, 0, $err_severity, $err_file, $err_line);
+              case E_ERROR:               throw new \ErrorException            ($err_msg, 0, $err_severity, $err_file, $err_line);
               case E_WARNING:             throw new WarningException          ($err_msg, 0, $err_severity, $err_file, $err_line);
               case E_PARSE:               throw new ParseException            ($err_msg, 0, $err_severity, $err_file, $err_line);
               // case E_NOTICE:              throw new NoticeException           ($err_msg, 0, $err_severity, $err_file, $err_line);
