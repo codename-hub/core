@@ -965,12 +965,25 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
           $dir = $vendor . '/' . $app;
         }
 
-        if(realpath($dir) === $dir) {
+        //
+        // Path normalization for comparison
+        // for multi-platform usage
+        //
+        if(DIRECTORY_SEPARATOR == '\\') {
+          $dirNormalized = str_replace('/', DIRECTORY_SEPARATOR, $dir);
+          $realpathNormalized = realpath($dir);
+        } else {
+          // normalize vice-versa?
+          $dirNormalized = $dir;
+          $realpathNormalized = realpath($dir);
+        }
+
+        if($realpathNormalized === $dirNormalized) {
           // assume $dir is an absolute path
           // NOTE: this is a little bit hacky and should be improved somehow.
-          return $dir . '/';
+          return $dirNormalized . '/';
         } else {
-          return CORE_VENDORDIR . $dir . '/';
+          return CORE_VENDORDIR . $dirNormalized . '/';
         }
     }
 

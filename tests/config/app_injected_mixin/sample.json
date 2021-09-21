@@ -1,0 +1,5 @@
+{
+  "mixins": [
+    "mixin1.json"
+  ]
+}
