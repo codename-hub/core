@@ -183,7 +183,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     /**
      * This contains the actual instance of the app class for singleton usage
      * <br />Access it by app::getMyInstance()
-     * @var \codename\core\app $app
+     * @var \codename\core\app
      */
     protected static $instance = null;
 
@@ -236,8 +236,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * This is the entry point for an application call.
      * <br />Either pass $app, $context, $view and $action as arguments into the constructor or let these arguments be derived from the request container
      * <br />This method configures the application instance completely and creates all properties that are NULL by default
-     * @param string $app
-     * @return app
+     * @return \codename\core\app
      */
     public function __CONSTRUCT() {
 
@@ -573,7 +572,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     /**
      * Convert an array to an object. Updated the original (LINK) to work recursively
      * @see http://stackoverflow.com/questions/1869091/how-to-convert-an-array-to-object-in-php
-     * @param $array
+     * @param  mixed|object|null  $object
      * @return array
      */
     public static function object2array($object) : array {
@@ -593,7 +592,6 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
     /**
      * returns true if the current php process is being run from a command line interface.
-     * @param string $identifier
      * @return bool
      */
     public static function isCli() : bool {
@@ -817,7 +815,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * <br />This method relies on the constant CORE_VENDORDIR
      * @param string $vendor
      * @param string $app
-     * @return string|null
+     * @return string
      */
     final public static function getHomedir(string $vendor = '', string $app = '') : string {
         if(strlen($vendor) == 0) {$vendor = self::getVendor();}
@@ -905,10 +903,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
     /**
      * Get path of file (in APP dir OR in core dir) if it exists there - throws error if neither
-     * @param string $file
+     * @param string      $file
+     * @param array|null  $useAppstack [whether to use a specific appstack, defaults to the current one]
      * @return string
      */
-    final public static function getInheritedPath(string $file, array $useAppstack = null) : string {
+    final public static function getInheritedPath(string $file, ?array $useAppstack = null) : string {
         $filename = self::getHomedir() . $file;
         if(self::getInstance('filesystem_local')->fileAvailable($filename)) {
             return $filename;
@@ -933,6 +932,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
     /**
      * Returns the name of the parent app if it was specified in the app configuration. Returns core otherwise
+     * @param string $vendor
+     * @param string $app
      * @return string
      */
     final public static function getParentapp(string $vendor = '', string $app = '') : string {
@@ -1114,10 +1115,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
     /**
      * Returns an instance of $class. It will be cached to the current $_request scope to increase performance.
-     * @param string $class    name of the class to load
+     * @param string      $class    name of the class to load
+     * @param array|null  $config   config to be used [WARNING: if already initialized/used, config is not being overridden!]
      * @return object
      */
-    final public static function getInstance(string $class, array $config = null ) {
+    final public static function getInstance(string $class, ?array $config = null ) {
         $simplename = str_replace('\\', '', $class);
         if(array_key_exists($simplename, self::$instances)) {
             return self::$instances[$simplename];
@@ -1132,6 +1134,12 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         return self::$instances[$simplename] = new $class();
     }
 
+    /**
+     * Creates a value object of a specific type and using the given value
+     * @param  string     $type                [description]
+     * @param  mixed|null $value               [description]
+     * @return value         [description]
+     */
     final public static function getValueobject(string $type, $value) : value {
           $classname = self::getInheritedClass('value\\' . $type);
           return new $classname($value);
@@ -1200,12 +1208,13 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
     /**
      * Writes a log entry into the activitystream model.
-     * @param string $action
-     * @param string $model
-     * @param array $info
+     * @param string      $action
+     * @param string|null $model
+     * @param array|null  $info
+     * @param string      $level
      * @return void
      */
-    final public static function writeActivity(string $action, string $model = null, $info = null, string $level = 'INFO') {
+    final public static function writeActivity(string $action, ?string $model = null, $info = null, string $level = 'INFO') {
         /* self::getModel('activitystream')->save(array(
             'entry_app' => self::getInstance('request')->getData('app'),
             'entry_userid' => app::getSession()->getData('user_id'),
@@ -1248,7 +1257,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
     /**
      * Tries to call the function that belongs to the view
-     * @return null
+     * @return app
      */
     protected function doView() : \codename\core\app {
         $view = $this->getRequest()->getData('view');
@@ -1276,9 +1285,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
 
     /**
      * Returns an instance of the context that is in the request container
-     * @param string $context
-     * @return context
-     * @todo Work with app::getInstance() here?
+     * @return \codename\core\context
      */
     protected function getContext() : \codename\core\context {
         $context = self::getRequest()->getData('context');
@@ -1385,7 +1392,6 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @param string $identifier
      * @param bool   $store
      * @return object
-     * @todo refactor
      */
     final public static function getClient(string $type, string $identifier, bool $store = true) {
         $simplename = $type . $identifier;
@@ -1444,8 +1450,8 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * Returns the (maybe cached) client that is stored as "driver" in $identifier (app.json) for the given $type.
      * @param string $type
      * @param string $identifier
+     * @param bool   $store [whether to try to retrieve instance, if already initialized/cached]
      * @return object
-     * @todo refactor
      */
     final protected static function getSingletonClient(string $type, string $identifier, bool $store = true) {
 
