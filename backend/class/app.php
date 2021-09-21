@@ -707,9 +707,11 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         }
         $appdata = explode('\\', self::getApploader()->get());
         self::$app = new \codename\core\value\text\methodname($appdata[1]);
-        if (!self::getInstance('filesystem_local')->dirAvailable(self::getHomedir())) {
-            throw new \codename\core\exception(self::EXCEPTION_GETAPP_APPFOLDERNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, self::getHomedir());
-        }
+        // CHANGED 2021-09-21: disabled availability checking
+        // as it enforces a race condition when overrides exist
+        // if (!self::getInstance('filesystem_local')->dirAvailable(self::getHomedir())) {
+        //     throw new \codename\core\exception(self::EXCEPTION_GETAPP_APPFOLDERNOTFOUND, \codename\core\exception::$ERRORLEVEL_FATAL, self::getHomedir());
+        // }
         return self::$app->get();
     }
 
