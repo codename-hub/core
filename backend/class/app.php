@@ -613,30 +613,6 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
         return self::getTranslate()->translate($key);
     }
 
-    /**
-     * This method tries returning an entry from the model identied by the given $modelname
-     * <br />The entry shall be identified by the model's primary key existing in the request
-     * <br />The entry will be returned AND sent to the response in the $model name
-     * <br />Returns an empty array if the response does not contain the primary key
-     * <br />Returns an empty array if the given primary key cannot be found in the model
-     * <br />Event '<i>APP_GETMODELELEMENT_KEY_MISSING</i>' fires if the model's primary key is not in the request
-     * <br />Event '<i>APP_GETMODELELEMENT_ENTRY_NOT_FOUND</i>' fires if the given primary key cannot resolve to an entry
-     * @param string $modelname
-     * @return array
-     */
-    public static function getModelelement(string $modelname) : array {
-        if(!self::getRequest()->isDefined(self::getModel($modelname)->getPrimarykey())) {
-            self::getHook()->fire(\codename\core\hook::EVENT_APP_GETMODELOBJET_ARGUMENT_NOT_FOUND);
-            return array();
-        }
-        $entry = self::getModel($modelname)->load(self::getRequest()->getData(self::getModel($modelname)->getPrimarykey()));
-        if(count($entry) == 0) {
-            self::getHook()->fire(\codename\core\hook::EVENT_APP_GETMODELOBJET_ENTRY_NOT_FOUND);
-            return array();
-        }
-        self::getResponse()->setData($modelname, $entry);
-        return $entry;
-    }
 
     /**
   	 * Gets the all models/definitions, also inherited
