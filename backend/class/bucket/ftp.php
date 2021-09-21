@@ -18,6 +18,13 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
     protected $connection = null;
 
     /**
+     * Timeout for the FTP connection or followup operations
+     * Defaults to 2 seconds
+     * @var int|null
+     */
+    protected $timeout = null;
+
+    /**
      * Contains the public base URL to the webspace where files are located
      * @var string
      */
@@ -38,10 +45,13 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
 
         $this->basedir = $data['basedir'];
 
+        // Default timeout fallback for FTP network operations
+        $this->timeout = $data['timeout'] ?? 2;
+
         if($data['ftpserver']['ssl'] ?? false) {
-          $this->connection = @ftp_ssl_connect($data['ftpserver']['host'], $data['ftpserver']['port'], 2);
+          $this->connection = @ftp_ssl_connect($data['ftpserver']['host'], $data['ftpserver']['port'], $this->timeout);
         } else {
-          $this->connection = @ftp_connect($data['ftpserver']['host'], $data['ftpserver']['port'], 2);
+          $this->connection = @ftp_connect($data['ftpserver']['host'], $data['ftpserver']['port'], $this->timeout);
         }
 
         if(isset($data['public']) && $data['public']) {
