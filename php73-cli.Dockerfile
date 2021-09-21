@@ -1,4 +1,4 @@
-FROM php:7.3-cli
+FROM php:7.3-cli-buster
 
 # get apt-get lists for the first time
 RUN apt-get update
