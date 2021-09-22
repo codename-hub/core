@@ -3675,6 +3675,30 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testDefaultAggregateFilterValueArray description]
+   */
+  public function testDefaultAggregateFilterValueArray(): void {
+    // Aggregate Filter
+    $testAggregateFilterMonthModel = $this->getModel('testdata');
+
+    $testAggregateFilterMonthModel->addAggregateField('entries_month1', 'month', 'testdata_datetime');
+    $testAggregateFilterMonthModel->addAggregateField('entries_month2', 'month', 'testdata_date');
+    $testAggregateFilterMonthModel->addDefaultAggregateFilter('entries_month1', [1, 3]);
+    $testAggregateFilterMonthModel->addDefaultAggregateFilter('entries_month2', [1, 3]);
+
+    // WARNING: sqlite doesn't support HAVING without GROUP BY
+    $testAggregateFilterMonthModel->addGroup('testdata_id');
+
+    $res = $testAggregateFilterMonthModel->search()->getResult();
+    $this->assertEquals([3, 3, 3, 1], array_column($res, 'entries_month1'));
+    $this->assertEquals([3, 3, 3, 1], array_column($res, 'entries_month2'));
+
+    // make sure the second query returns the same result
+    $res2 = $testAggregateFilterMonthModel->search()->getResult();
+    $this->assertEquals($res, $res2);
+  }
+
+  /**
    * [testAggregateFilterValueArraySimple description]
    */
   public function testAggregateFilterValueArraySimple(): void {
