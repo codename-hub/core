@@ -88,9 +88,16 @@ abstract class abstractModelTest extends base {
         'testdata_boolean',
         'testdata_structure',
         'testdata_details_id',
+        'testdata_flag',
       ],
       'primary' => [
         'testdata_id'
+      ],
+      'flag' => [
+        'foo' => 1,
+        'bar' => 2,
+        'baz' => 4,
+        'qux' => 8,
       ],
       'foreign' => [
         'testdata_details_id' => [
@@ -117,6 +124,7 @@ abstract class abstractModelTest extends base {
         'testdata_integer'  => 'number_natural',
         'testdata_boolean'  => 'boolean',
         'testdata_structure'=> 'structure',
+        'testdata_flag'     => 'number_natural',
       ],
       'connection' => 'default'
     ]);
@@ -2326,6 +2334,184 @@ abstract class abstractModelTest extends base {
     // Explicit reset
     $model->reset();
     $this->assertEquals(4, $model->getCount());
+  }
+
+  /**
+   * [testFlags description]
+   */
+  public function testFlags(): void {
+
+    // $this->markTestIncomplete('TODO: test flags');
+
+    $model = $this->getModel('testdata');
+    $model->save([
+      'testdata_text' => 'flagtest'
+    ]);
+    $id = $model->lastInsertId();
+
+    $model->entryLoad($id);
+
+    $flags = $model->getConfig()->get('flag');
+    $this->assertCount(4, $flags);
+
+    foreach($flags as $flagName => $flagMask) {
+      $this->assertEquals($model->getFlag($flagName), $flagMask);
+      $this->assertFalse($model->isFlag($flagMask, $model->getData()));
+    }
+
+    // a little bit of fuzzing...
+    // $combos = [ 0 ];
+    // for ($i=0; $i < count($flags); $i++) {
+    //   $mask = pow(2, $i);
+    //   $combos[] = $mask;
+    //   for ($j=0; $j < count($flags); $j++) {
+    //     $mask2 = pow(2, $j);
+    //     if($mask != $mask2) {
+    //       $combos[] = $mask + $mask2;
+    //     }
+    //   }
+    // }
+
+    // $combos = [];
+    // $combos[] = 0;
+    // foreach(range(0,count($flags)) as $v1) {
+    //   $combos[] = pow(2, $v1);
+    //   $iterationV = $v1;
+    //   foreach(range(0,count($flags)) as $v2) {
+    //     if($v1 != $v2) {
+    //       $iterationV += pow(2, $v2);
+    //       $combos[] = $iterationV;
+    //     }
+    //   }
+    // }
+    // // print_r(array_unique($combos));
+    // // foreach($combos as $c) {
+    // //   $model->flagfieldValue();
+    // // }
+
+    $model->save($model->normalizeData([
+      $model->getPrimaryKey() => $id,
+      'testdata_flag' => [
+        'foo' => true,
+        'baz' => true,
+      ]
+    ]));
+
+    //
+    // we should only have one.
+    // see above.
+    //
+    $res = $model->withFlag($model->getFlag('foo'))->search()->getResult();
+    $this->assertCount(1, $res);
+
+    // We assume the base testdata entries have a null value
+    // and therefore, are not to be included in the results at all.
+    $res = $model->withoutFlag($model->getFlag('baz'))->search()->getResult();
+    $this->assertCount(0, $res);
+
+    // combined flags filters
+    $res = $model
+      ->withFlag($model->getFlag('foo'))
+      ->withoutFlag($model->getFlag('qux'))
+      ->search()->getResult();
+    $this->assertCount(1, $res);
+
+    $withDefaultFlagModel = $this->getModel('testdata')->withDefaultFlag($model->getFlag('foo'));
+    $res1 = $withDefaultFlagModel->search()->getResult();
+    $res2 = $withDefaultFlagModel->search()->getResult(); // default filters are re-applied.
+    $this->assertCount(1, $res1);
+    $this->assertEquals($res1, $res2);
+
+    $withoutDefaultFlagModel = $this->getModel('testdata')->withoutDefaultFlag($model->getFlag('baz'));
+    $res1 = $withoutDefaultFlagModel->search()->getResult();
+    $res2 = $withoutDefaultFlagModel->search()->getResult(); // default filters are re-applied.
+    $this->assertCount(0, $res1);
+    $this->assertEquals($res1, $res2);
+
+    $model->delete($id);
+  }
+
+  /**
+   * [testGetFlagNonexisting description]
+   */
+  public function testGetFlagNonexisting(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_GETFLAG_FLAGNOTFOUND);
+    $this->getModel('testdata')->getFlag('nonexisting');
+  }
+
+  /**
+   * [testIsFlagNoFlagField description]
+   */
+  public function testIsFlagNoFlagField(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ISFLAG_NOFLAGFIELD);
+    $this->getModel('testdata')->isFlag(3, [ 'testdata_text' => 'abc' ]);
+  }
+
+  /**
+   * [testFlagNormalization description]
+   */
+  public function testFlagNormalization(): void {
+    $model = $this->getModel('testdata');
+
+    //
+    // no normalization, if value provided
+    //
+    $normalized = $model->normalizeData([
+      'testdata_flag' => 1
+    ]);
+    $this->assertEquals(1, $normalized['testdata_flag']);
+
+    //
+    // retain value, if flag values present
+    // that are not defined
+    //
+    $normalized = $model->normalizeData([
+      'testdata_flag' => 123
+    ]);
+    $this->assertEquals(123, $normalized['testdata_flag']);
+
+    //
+    // no flag (array-technique)
+    //
+    $normalized = $model->normalizeData([
+      'testdata_flag' => []
+    ]);
+    $this->assertEquals(0, $normalized['testdata_flag']);
+
+    //
+    // single flag
+    //
+    $normalized = $model->normalizeData([
+      'testdata_flag' => [
+        'foo' => true
+      ]
+    ]);
+    $this->assertEquals(1, $normalized['testdata_flag']);
+
+    //
+    // multiple flags
+    //
+    $normalized = $model->normalizeData([
+      'testdata_flag' => [
+        'foo' => true,
+        'baz' => true,
+        'qux' => false,
+      ]
+    ]);
+    $this->assertEquals(5, $normalized['testdata_flag']);
+
+    //
+    // nonexisting flag
+    //
+    $normalized = $model->normalizeData([
+      'testdata_flag' => [
+        'nonexisting' => true,
+        'foo' => true,
+        'baz' => true,
+        'qux' => false,
+      ]
+    ]);
+    $this->assertEquals(5, $normalized['testdata_flag']);
   }
 
   /**

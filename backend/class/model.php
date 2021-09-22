@@ -2131,6 +2131,12 @@ abstract class model implements \codename\core\model\modelInterface {
             if($field == $flagFieldName) {
                 if(array_key_exists($flagFieldName, $data)) {
                     if(!is_array($data[$flagFieldName])) {
+                        //
+                        // CHANGED 2021-09-21: flag field values may be passed-through
+                        // if not in array-format
+                        // TODO: validate flags?
+                        //
+                        $myData[$field] = $data[$flagFieldName];
                         continue;
                     }
 
