@@ -1531,7 +1531,18 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
      * @return array
      */
     final protected static function makeAppstack(string $vendor, string $app) : array {
-        $stack = array(array('vendor' => $vendor, 'app' => $app));
+        $initialApp = [
+          'vendor' => $vendor,
+          'app'    => $app,
+        ];
+        if($vendor == static::getVendor() && $app == static::getApp()) {
+          // set namespace override, if we're in the current app
+          // may be null.
+          $initialApp['namespace'] = static::getNamespace();
+        }
+
+        // add initial app as starting point for stack
+        $stack = [ $initialApp ];
         $parentfile = self::getHomedir($vendor, $app) . 'config/parent.app';
 
         $current_vendor = '';
