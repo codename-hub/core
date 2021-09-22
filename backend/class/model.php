@@ -3016,44 +3016,12 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
-     * I remove all special SQL characters from a string.
-     * @deprecated
-     * @param string $string
-     * @return string
-     */
-    protected function cleanString(string $string) : string {
-        foreach(explode(',', '*,%,--') as $char) {
-            $string = str_replace($char, '', $string);
-        }
-        $string = str_replace($this->delimiter, $this->delimiter.$this->delimiter, $string);
-        return $string;
-    }
-
-    /**
      * Returns the cachegroup identifier for this model
      * @return string
      * @todo prevent collision by using the PSR-4 namespace from ReflectionClass::
      */
     protected function getCacheGroup() : string {
         return get_class($this);
-    }
-
-    /**
-     * Tries loading the given $cacheKey from the cache
-     * @param string $cacheKey
-     * @return array | multitype
-     */
-    protected function getFromCache(string $cacheKey) {
-        return $this->getCache()->get($this->getCacheGroup(), $cacheKey);
-    }
-
-    /**
-     * Writes the given $data to the given $cacheKey
-     * @param string $cacheKey
-     * @param unknown $data
-     */
-    protected function writeToCache(string $cacheKey, array $data) {
-        return $this->getCache()->set($this->getCacheGroup(), $cacheKey, $data);
     }
 
     /**
