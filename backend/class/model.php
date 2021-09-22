@@ -53,6 +53,12 @@ abstract class model implements \codename\core\model\modelInterface {
     CONST EXCEPTION_ENTRYSAVE_NOOBJECTLOADED = 'EXCEPTION_ENTRYSAVE_NOOBJECTLOADED';
 
     /**
+     * Entry load failed (wrong ID or inaccessible)
+     * @var string
+     */
+    CONST EXCEPTION_ENTRYLOAD_FAILED = 'EXCEPTION_ENTRYLOAD_FAILED';
+
+    /**
      * You want to update an element, but it seems that the current element is empty
      * @var string
      */
@@ -68,7 +74,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * You want to set the flag of an entry, but you did not load an entry
      * @var string
      */
-    CONST EXCEPTION_ENTRYSETFLAG_UPDATEELEMENTEMPTY = 'EXCEPTION_ENTRYSETFLAG_UPDATEELEMENTEMPTY';
+    CONST EXCEPTION_ENTRYSETFLAG_NOOBJECTLOADED = 'EXCEPTION_ENTRYSETFLAG_NOOBJECTLOADED';
 
     /**
      * The loaded entry does not contain flags
@@ -80,13 +86,19 @@ abstract class model implements \codename\core\model\modelInterface {
      * You want to unset a flag but the element is empty
      * @var string
      */
-    CONST EXCEPTION_ENTRYUNSETFLAG_UPDATEELEMENTEMPTY = 'EXCEPTION_ENTRYUNSETFLAG_UPDATEELEMENTEMPTY';
+    CONST EXCEPTION_ENTRYUNSETFLAG_NOOBJECTLOADED = 'EXCEPTION_ENTRYUNSETFLAG_NOOBJECTLOADED';
 
     /**
      * You want to unset a flag but there are no flags in this model
      * @var string
      */
     CONST EXCEPTION_ENTRYUNSETFLAG_NOFLAGSINMODEL = 'EXCEPTION_ENTRYUNSETFLAG_NOFLAGSINMODEL';
+
+    /**
+     * Exception thrown if an invalid flag value is provided
+     * @var string
+     */
+    CONST EXCEPTION_INVALID_FLAG_VALUE = 'EXCEPTION_INVALID_FLAG_VALUE';
 
     /**
      * You want to get a flag field value, but there are no flags in this model
@@ -372,8 +384,8 @@ abstract class model implements \codename\core\model\modelInterface {
         if(!$this->fieldExists($field)) {
             throw new \codename\core\exception(self::EXCEPTION_FIELDSET_FIELDNOTFOUNDINMODEL, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
         }
-        if(is_null($this->data)) {
-            throw new \codename\core\exception(self::EXCEPTION_FIELDSET_NOOBJETLOADED, \codename\core\exception::$ERRORLEVEL_FATAL);
+        if($this->data === null || empty($this->data->getData())) {
+            throw new \codename\core\exception(self::EXCEPTION_FIELDSET_NOOBJECTLOADED, \codename\core\exception::$ERRORLEVEL_FATAL);
         }
         $this->data->setData($field->get(), $value);
         return $this;
@@ -389,7 +401,7 @@ abstract class model implements \codename\core\model\modelInterface {
         if(!$this->fieldExists($field)) {
             throw new \codename\core\exception(self::EXCEPTION_FIELDGET_FIELDNOTFOUNDINMODEL, \codename\core\exception::$ERRORLEVEL_FATAL, $field);
         }
-        if(is_null($this->data)) {
+        if($this->data === null || empty($this->data->getData())) {
             throw new \codename\core\exception(self::EXCEPTION_FIELDGET_NOOBJECTLOADED, \codename\core\exception::$ERRORLEVEL_FATAL);
         }
         return $this->data->getData($field->get());
@@ -419,10 +431,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * @return \codename\core\model
      */
     public function entryDelete() : \codename\core\model {
-        if(is_null($this->data)) {
-            return $this;
-        }
-        if(is_null($this->data)) {
+        if($this->data === null || empty($this->data->getData())) {
             throw new \codename\core\exception(self::EXCEPTION_ENTRYDELETE_NOOBJECTLOADED, \codename\core\exception::$ERRORLEVEL_FATAL);
         }
         $this->delete($this->data->getData($this->getPrimarykey()));
@@ -828,8 +837,8 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     public function entryLoad(string $primaryKey) : \codename\core\model {
         $entry = $this->loadByUnique($this->getPrimarykey(), $primaryKey);
-        if(count($entry) == 0) {
-            return $this;
+        if(empty($entry)) {
+            throw new \codename\core\exception(self::EXCEPTION_ENTRYLOAD_FAILED, \codename\core\exception::$ERRORLEVEL_FATAL);
         }
         $this->entryMake($entry);
         return $this;
@@ -841,13 +850,9 @@ abstract class model implements \codename\core\model\modelInterface {
      * @return \codename\core\model
      */
     public function entrySave() : \codename\core\model {
-        if(is_null($this->data)) {
-            return $this;
-        }
-        if(is_null($this->data)) {
+        if($this->data === null || empty($this->data->getData())) {
             throw new \codename\core\exception(self::EXCEPTION_ENTRYSAVE_NOOBJECTLOADED, \codename\core\exception::$ERRORLEVEL_FATAL);
         }
-
         $this->saveWithChildren($this->data->getData());
         return $this;
     }
@@ -862,7 +867,7 @@ abstract class model implements \codename\core\model\modelInterface {
         if(count($data) == 0) {
             throw new \codename\core\exception(self::EXCEPTION_ENTRYUPDATE_UPDATEELEMENTEMPTY, \codename\core\exception::$ERRORLEVEL_FATAL, null);
         }
-        if(is_null($this->data)) {
+        if($this->data === null || empty($this->data->getData())) {
             throw new \codename\core\exception(self::EXCEPTION_ENTRYUPDATE_NOOBJECTLOADED, \codename\core\exception::$ERRORLEVEL_FATAL, null);
         }
         foreach($this->getFields() as $field) {
@@ -880,11 +885,15 @@ abstract class model implements \codename\core\model\modelInterface {
      * @return \codename\core\model
      */
     public function entrySetflag(int $flagval) : \codename\core\model {
-        if(is_null($this->data)) {
-            throw new \codename\core\exception(self::EXCEPTION_ENTRYSETFLAG_UPDATEELEMENTEMPTY, \codename\core\exception::$ERRORLEVEL_FATAL, null);
+        if($this->data === null || empty($this->data->getData())) {
+            throw new \codename\core\exception(self::EXCEPTION_ENTRYSETFLAG_NOOBJECTLOADED, \codename\core\exception::$ERRORLEVEL_FATAL, null);
         }
         if(!$this->config->exists('flag')) {
             throw new \codename\core\exception(self::EXCEPTION_ENTRYSETFLAG_NOFLAGSINMODEL, \codename\core\exception::$ERRORLEVEL_FATAL, null);
+        }
+        if($flagval < 0) {
+          // Only allow >= 0
+          throw new \codename\core\exception(self::EXCEPTION_INVALID_FLAG_VALUE, \codename\core\exception::$ERRORLEVEL_ERROR, $flagval);
         }
 
         $flag = $this->fieldGet($this->getModelfieldInstance($this->table . '_flag'));
@@ -900,11 +909,15 @@ abstract class model implements \codename\core\model\modelInterface {
      * @return \codename\core\model
      */
     public function entryUnsetflag(int $flagval) : \codename\core\model {
-        if(is_null($this->data)) {
-            throw new \codename\core\exception(self::EXCEPTION_ENTRYUNSETFLAG_UPDATEELEMENTEMPTY, \codename\core\exception::$ERRORLEVEL_FATAL, null);
+        if($this->data === null || empty($this->data->getData())) {
+            throw new \codename\core\exception(self::EXCEPTION_ENTRYUNSETFLAG_NOOBJECTLOADED, \codename\core\exception::$ERRORLEVEL_FATAL, null);
         }
         if(!$this->config->exists('flag')) {
             throw new \codename\core\exception(self::EXCEPTION_ENTRYUNSETFLAG_NOFLAGSINMODEL, \codename\core\exception::$ERRORLEVEL_FATAL, null);
+        }
+        if($flagval < 0) {
+          // Only allow >= 0
+          throw new \codename\core\exception(self::EXCEPTION_INVALID_FLAG_VALUE, \codename\core\exception::$ERRORLEVEL_ERROR, $flagval);
         }
         $flag = $this->fieldGet($this->getModelfieldInstance($this->table . '_flag'));
         $flag &= ~$flagval;

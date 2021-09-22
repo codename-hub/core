@@ -2432,6 +2432,61 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testFlagfieldValueNoFlagsInModel description]
+   */
+  public function testFlagfieldValueNoFlagsInModel(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_MODEL_FUNCTION_FLAGFIELDVALUE_NOFLAGSINMODEL);
+    $this->getModel('person')->flagfieldValue(1, []);
+  }
+
+  /**
+   * [testFlagfieldValu description]
+   */
+  public function testFlagfieldValu(): void {
+    $model = $this->getModel('testdata');
+
+    $this->assertEquals(0, $model->flagfieldValue(0, []), 'No flags provided');
+    $this->assertEquals(1, $model->flagfieldValue(1, []), 'Do not change anything');
+    $this->assertEquals(128, $model->flagfieldValue(128, []), 'Do not change anything, nonexisting given');
+
+    $this->assertEquals(1 + 8, $model->flagfieldValue(
+      1,
+      [
+        8 => true,
+      ]
+    ), 'Change a single flag');
+
+    $this->assertEquals(1 + 4 + 8, $model->flagfieldValue(
+      1 + 2 + 8,
+      [
+        4 => true,
+        2 => false,
+      ]
+    ), 'Change flags');
+
+    $this->assertEquals(1, $model->flagfieldValue(
+      1,
+      [
+        128 => true,
+      ]
+    ), 'Setting invalid flag does not change anything');
+
+    $this->assertEquals(1, $model->flagfieldValue(
+      1,
+      [
+        (1 + 2) => true,
+      ]
+    ), 'Setting combined flag has no effect');
+
+    $this->assertEquals(1, $model->flagfieldValue(
+      1,
+      [
+        -2 => true,
+      ]
+    ), 'Setting invalid/negative flag has no effect');
+  }
+
+  /**
    * [testGetFlagNonexisting description]
    */
   public function testGetFlagNonexisting(): void {
@@ -4483,6 +4538,11 @@ abstract class abstractModelTest extends base {
     $this->assertEquals($dataset, $queriedDataset);
 
     $entryModel->entryLoad($id);
+
+    foreach($dataset as $key => $value) {
+      $this->assertEquals($value, $entryModel->fieldGet(\codename\core\value\text\modelfield::getInstance($key)));
+    }
+
     $entryModel->entryUpdate([
       'testdata_text' => 'updated',
     ]);
@@ -4491,8 +4551,228 @@ abstract class abstractModelTest extends base {
     $modifiedDataset = $model->load($id);
     $this->assertEquals('updated', $modifiedDataset['testdata_text']);
 
+    $entryModel->entryLoad($id);
+    $entryModel->fieldSet(\codename\core\value\text\modelfield::getInstance('testdata_integer'), 333);
+    $entryModel->entrySave();
+
+    $this->assertEquals(333, $model->load($id)['testdata_integer']);
+
     $entryModel->entryDelete();
     $this->assertEmpty($model->load($id));
+  }
+
+  /**
+   * [testEntryFlags description]
+   */
+  public function testEntryFlags(): void {
+    $verificationModel = $this->getModel('testdata');
+    $model = $this->getModel('testdata');
+    $model->entryMake([
+      'testdata_text' => 'testEntryFlags'
+    ]);
+    $this->assertEmpty($model->entryValidate());
+    $model->entrySave();
+
+    $id = $model->lastInsertId();
+    $model->entryLoad($id);
+
+    $model->entrySetflag($model->getFlag('foo'));
+    $model->entrySave();
+    $this->assertEquals(1, $verificationModel->load($id)['testdata_flag']);
+
+    $model->entrySetflag($model->getFlag('qux'));
+    $model->entrySave();
+    $this->assertEquals(1 + 8, $verificationModel->load($id)['testdata_flag']);
+
+    $model->entryUnsetflag($model->getFlag('foo'));
+    $model->entryUnsetflag($model->getFlag('baz')); // unset not-set
+    $model->entrySave();
+    $this->assertEquals(8, $verificationModel->load($id)['testdata_flag']);
+
+    $model->entryDelete();
+  }
+
+  /**
+   * [testEntrySetFlagNonexisting description]
+   */
+  public function testEntrySetFlagNonexisting(): void {
+    $verificationModel = $this->getModel('testdata');
+    $model = $this->getModel('testdata');
+    $model->entryMake([
+      'testdata_text' => 'testEntrySetFlagNonexisting'
+    ]);
+    $model->entrySave();
+
+    $id = $model->lastInsertId();
+    $model->entryLoad($id);
+
+    // WARNING/NOTE: you can set nonexisting flags
+    $model->entrySetflag(64);
+    $model->entrySave();
+    $this->assertEquals(64, $verificationModel->load($id)['testdata_flag']);
+
+    // WARNING/NOTE: you may set combined flag values
+    $model->entrySetflag(64 + 2 + 8 + 16);
+    $model->entryUnsetflag(8);
+    $model->entrySave();
+    $this->assertEquals(64 + 2 + 16, $verificationModel->load($id)['testdata_flag']);
+
+    $model->entrySave();
+
+    $model->entryDelete();
+  }
+
+  /**
+   * [testEntrySetFlagInvalidFlagValueThrows description]
+   */
+  public function testEntrySetFlagInvalidFlagValueThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_INVALID_FLAG_VALUE);
+    $model = $this->getModel('testdata');
+    $model->entryMake([
+      'testdata_text' => 'test'
+    ]);
+    $model->entrySetflag(-8);
+  }
+
+  /**
+   * [testEntryUnsetFlagInvalidFlagValueThrows description]
+   */
+  public function testEntryUnsetFlagInvalidFlagValueThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_INVALID_FLAG_VALUE);
+    $model = $this->getModel('testdata');
+    $model->entryMake([
+      'testdata_text' => 'test'
+    ]);
+    $model->entryUnsetflag(-8);
+  }
+
+  /**
+   * [testEntrySetFlagNoDatasetLoadedThrows description]
+   */
+  public function testEntrySetFlagNoDatasetLoadedThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ENTRYSETFLAG_NOOBJECTLOADED);
+    $model = $this->getModel('testdata');
+    $model->entrySetFlag($model->getFlag('foo'));
+  }
+
+  /**
+   * [testEntryUnsetFlagNoDatasetLoadedThrows description]
+   */
+  public function testEntryUnsetFlagNoDatasetLoadedThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ENTRYUNSETFLAG_NOOBJECTLOADED);
+    $model = $this->getModel('testdata');
+    $model->entryUnsetflag($model->getFlag('foo'));
+  }
+
+  /**
+   * [testEntrySetFlagNoFlagsInModelThrows description]
+   */
+  public function testEntrySetFlagNoFlagsInModelThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ENTRYSETFLAG_NOFLAGSINMODEL);
+    $model = $this->getModel('person');
+    $model->entryMake([ 'person_firstname' => 'test' ]);
+    $model->entrySetFlag(1);
+  }
+
+  /**
+   * [testEntryUnsetFlagNoFlagsInModelThrows description]
+   */
+  public function testEntryUnsetFlagNoFlagsInModelThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ENTRYUNSETFLAG_NOFLAGSINMODEL);
+    $model = $this->getModel('person');
+    $model->entryMake([ 'person_firstname' => 'test' ]);
+    $model->entryUnsetFlag(1);
+  }
+
+  /**
+   * [testEntrySaveNoDataThrows description]
+   */
+  public function testEntrySaveNoDataThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ENTRYSAVE_NOOBJECTLOADED);
+    $model = $this->getModel('testdata');
+    $model->entrySave(); // we have not defined anything (e.g. internal data store is NULL/does not exist)
+  }
+
+  /**
+   * [testEntrySaveEmptyDataThrows description]
+   */
+  public function testEntrySaveEmptyDataThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ENTRYSAVE_NOOBJECTLOADED);
+    $model = $this->getModel('testdata');
+    $model->entryMake([]); // define an empty dataset
+    $model->entrySave();
+  }
+
+  /**
+   * [testEntryUpdateEmptyDataThrows description]
+   */
+  public function testEntryUpdateEmptyDataThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ENTRYUPDATE_UPDATEELEMENTEMPTY);
+    $model = $this->getModel('testdata');
+    $model->entryUpdate([]); // we've not loaded anything, but this should crash first.
+  }
+
+  /**
+   * [testEntryUpdateNoDatasetLoaded description]
+   */
+  public function testEntryUpdateNoDatasetLoaded(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ENTRYUPDATE_NOOBJECTLOADED);
+    $model = $this->getModel('testdata');
+    $model->entryUpdate([ 'testdata_integer' => 555 ]);
+  }
+
+  /**
+   * [testEntryLoadNonexistingId description]
+   */
+  public function testEntryLoadNonexistingId(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ENTRYLOAD_FAILED);
+    $model = $this->getModel('testdata');
+    $model->entryLoad(-123);
+  }
+
+  /**
+   * [testEntryDeleteNoDatasetLoadedThrows description]
+   */
+  public function testEntryDeleteNoDatasetLoadedThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_ENTRYDELETE_NOOBJECTLOADED);
+    $model = $this->getModel('testdata');
+    $model->entryDelete();
+  }
+
+  /**
+   * [testFieldGetNonexistingThrows description]
+   */
+  public function testFieldGetNonexistingThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_FIELDGET_FIELDNOTFOUNDINMODEL);
+    $model = $this->getModel('testdata');
+    $model->fieldGet(\codename\core\value\text\modelfield::getInstance('nonexisting'));
+  }
+
+  /**
+   * [testFieldGetNoDatasetLoadedThrows description]
+   */
+  public function testFieldGetNoDatasetLoadedThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_FIELDGET_NOOBJECTLOADED);
+    $model = $this->getModel('testdata');
+    $model->fieldGet(\codename\core\value\text\modelfield::getInstance('testdata_integer'));
+  }
+
+  /**
+   * [testFieldSetNonexistingThrows description]
+   */
+  public function testFieldSetNonexistingThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_FIELDSET_FIELDNOTFOUNDINMODEL);
+    $model = $this->getModel('testdata');
+    $model->fieldSet(\codename\core\value\text\modelfield::getInstance('nonexisting'), 'xyz');
+  }
+
+  /**
+   * [testFieldSetNoDatasetLoadedThrows description]
+   */
+  public function testFieldSetNoDatasetLoadedThrows(): void {
+    $this->expectExceptionMessage(\codename\core\model::EXCEPTION_FIELDSET_NOOBJECTLOADED);
+    $model = $this->getModel('testdata');
+    $model->fieldSet(\codename\core\value\text\modelfield::getInstance('testdata_integer'), 999);
   }
 
   /**
