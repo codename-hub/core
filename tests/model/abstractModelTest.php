@@ -40,6 +40,12 @@ abstract class abstractModelTest extends base {
   protected function setUp(): void
   {
     $app = static::createApp();
+
+    $app->__setApp('modeltest');
+    $app->__setVendor('codename');
+    $app->__setNamespace('\\codename\\core\\tests\\model');
+    $app->__setHomedir(__DIR__);
+
     $app->getAppstack();
 
     // avoid re-init
@@ -76,6 +82,9 @@ abstract class abstractModelTest extends base {
     ]);
 
     static::createModel('testschema', 'testdata', [
+      'validators' => [
+        'model_testdata',
+      ],
       'field' => [
         'testdata_id',
         'testdata_created',
@@ -4461,6 +4470,39 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * Tests validation fail with a model-validator
+   */
+  public function testModelValidator(): void {
+    $dataset = [
+      'testdata_text' => 'disallowed_value'
+    ];
+    $model = $this->getModel('testdata');
+    $this->assertFalse($model->isValid($dataset));
+    $validationErrors = $model->validate($dataset)->getErrors();
+    $this->assertCount(1, $validationErrors);
+    $this->assertEquals('VALIDATION.FIELD_INVALID', $validationErrors[0]['__CODE']);
+    $this->assertEquals('testdata_text', $validationErrors[0]['__IDENTIFIER']);
+  }
+
+  /**
+   * Tests a model-validator that has a non-field-specific validation
+   * that affects the whole dataset (e.g. field value combinations that are invalid)
+   */
+  public function testModelValidatorSpecial(): void {
+    $dataset = [
+      'testdata_text' => 'disallowed_condition',
+      'testdata_date' => '2021-01-01',
+    ];
+    $model = $this->getModel('testdata');
+    $this->assertFalse($model->isValid($dataset));
+    $validationErrors = $model->validate($dataset)->getErrors();
+    $this->assertCount(1, $validationErrors);
+    $this->assertEquals('DATA', $validationErrors[0]['__IDENTIFIER']);
+    $this->assertEquals('VALIDATION.INVALID', $validationErrors[0]['__CODE']);
+    $this->assertEquals('VALIDATION.DISALLOWED_CONDITION', $validationErrors[0]['__DETAILS'][0]['__CODE']);
+  }
+
+  /**
    * [testValidateSimpleRequiredField description]
    */
   public function testValidateSimpleRequiredField(): void {
@@ -4472,6 +4514,25 @@ abstract class abstractModelTest extends base {
     //
     $this->assertFalse($model->isValid([ 'customer_notes' => 'missing customer_no' ]));
     $this->assertTrue($model->isValid([ 'customer_no' => 'ABC', 'customer_notes' => 'set customer_no' ]));
+  }
+
+  /**
+   * [testValidateCollectionNotUsed description]
+   */
+  public function testValidateCollectionNotUsed(): void {
+    $model = $this->getModel('customer');
+    //
+    // NOTE: the customer model is explicitly loaded
+    // w/o the collection model (contactentry)
+    // to test for skipping those checks (for coverage)
+    // but we use the field in the dataset
+    //
+    $this->assertTrue($model->isValid([
+      'customer_no' => 'ABC',
+      'customer_contactentries' => [
+        [ 'some_value ']
+      ]
+    ]));
   }
 
   /**
