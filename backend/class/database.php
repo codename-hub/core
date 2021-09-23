@@ -311,7 +311,7 @@ class database extends \codename\core\observable {
       if(!isset($this->virtualTransactions[$transactionName])) {
         $this->virtualTransactions[$transactionName] = 0;
       }
-      if($this->virtualTransactions[$transactionName] === 0 && $this->aggregatedVirtualTransactions === 0) {
+      if(($this->virtualTransactions[$transactionName] === 0) && ($this->aggregatedVirtualTransactions === 0)) {
         // this may cause errors when using multiple transaction names...
         if($this->connection->inTransaction()) {
           throw new exception('EXCEPTION_DATABASE_VIRTUALTRANSACTION_UNTRACKED_TRANSACTION_RUNNING', exception::$ERRORLEVEL_FATAL);
@@ -330,7 +330,7 @@ class database extends \codename\core\observable {
      * @return [type]                  [description]
      */
     public function endVirtualTransaction(string $transactionName = 'default') {
-      if(!isset($this->virtualTransactions[$transactionName]) || $this->virtualTransactions[$transactionName] === 0) {
+      if(!isset($this->virtualTransactions[$transactionName]) || ($this->virtualTransactions[$transactionName] === 0)) {
         throw new exception('EXCEPTION_DATABASE_VIRTUALTRANSACTION_END_DOESNOTEXIST', exception::$ERRORLEVEL_FATAL, $transactionName);
       }
       if(!$this->connection->inTransaction()) {
@@ -340,8 +340,21 @@ class database extends \codename\core\observable {
       $this->virtualTransactions[$transactionName]--;
       $this->aggregatedVirtualTransactions--;
 
-      if($this->virtualTransactions[$transactionName] === 0 && $this->aggregatedVirtualTransactions === 0) {
+      if(($this->virtualTransactions[$transactionName] === 0) && ($this->aggregatedVirtualTransactions === 0)) {
         $this->connection->commit();
+      }
+    }
+
+    /**
+     * performs a full rollback of currently pending transactions
+     * NOTE: this kills _all_ applicable transactions.
+     * @return void
+     */
+    public function rollback() {
+      $this->virtualTransactions = [];
+      $this->aggregatedVirtualTransactions = 0;
+      if($this->connection->inTransaction()) {
+        $this->connection->rollBack();
       }
     }
 

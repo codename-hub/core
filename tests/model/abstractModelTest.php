@@ -32,6 +32,33 @@ abstract class abstractModelTest extends base {
     static::deleteTestData();
     parent::tearDownAfterClass();
     static::$initialized = false;
+    \codename\core\test\overrideableApp::reset();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected function tearDown(): void
+  {
+    //
+    // make sure data is cleaned in the test...
+    //
+    $models = ['customer', 'person'];
+    foreach($models as $model) {
+      if(!$this->modelDataEmpty($model)) {
+        $this->fail('Model data not empty: '.$model);
+      }
+    }
+    // rollback any existing transactions
+    // to allow transaction testing
+    try {
+      $db = \codename\core\app::getDb('default');
+      $db->rollback();
+    } catch (\Exception $e) {
+    }
+
+    // perform teardown steps
+    parent::tearDown();
   }
 
   /**
@@ -445,6 +472,15 @@ abstract class abstractModelTest extends base {
     static::architect('modeltest', 'codename', 'test');
 
     static::createTestData();
+  }
+
+  /**
+   * [modelDataEmpty description]
+   * @param  string $model               [description]
+   * @return bool          [description]
+   */
+  public function modelDataEmpty(string $model): bool {
+    return $this->getModel($model)->getCount() === 0;
   }
 
   /**
@@ -3096,6 +3132,54 @@ abstract class abstractModelTest extends base {
 
     // Make sure it hasn't changed
     $this->assertEquals(4, $testTransactionModel->getCount());
+  }
+
+  /**
+   * [testTransactionUntrackedRunning description]
+   */
+  public function testTransactionUntrackedRunning(): void {
+    $model = $this->getModel('testdata');
+    if($model instanceof \codename\core\model\schematic\sql) {
+      // Make sure there's no open transaction
+      // and start an untracked, new one.
+      $this->assertFalse($model->getConnection()->getConnection()->inTransaction());
+      $this->assertTrue($model->getConnection()->getConnection()->beginTransaction());
+
+      $this->expectExceptionMessage('EXCEPTION_DATABASE_VIRTUALTRANSACTION_UNTRACKED_TRANSACTION_RUNNING');
+
+      $transaction = new \codename\core\transaction('untracked_transaction_test', [ $model ]);
+      $transaction->start();
+    } else {
+      $this->markTestSkipped('Not applicable.');
+    }
+  }
+
+  /**
+   * [testTransactionRolledBackPrematurely description]
+   */
+  public function testTransactionRolledBackPrematurely(): void {
+    $model = $this->getModel('testdata');
+    if($model instanceof \codename\core\model\schematic\sql) {
+      // Make sure there's no open transaction
+      $this->assertFalse($model->getConnection()->getConnection()->inTransaction());
+
+      $this->expectExceptionMessage('EXCEPTION_DATABASE_VIRTUALTRANSACTION_UNTRACKED_TRANSACTION_RUNNING');
+
+      $transaction = new \codename\core\transaction('untracked_transaction_test', [ $model ]);
+      $transaction->start();
+
+      // Make sure transaction has begun
+      $this->assertTrue($model->getConnection()->getConnection()->inTransaction());
+
+      // End transaction/rollback right away
+      $this->assertTrue($model->getConnection()->getConnection()->rollBack());
+
+      // try to end transaction normally. But it was canceled before
+      $this->expectExceptionMessage('EXCEPTION_DATABASE_VIRTUALTRANSACTION_END_TRANSACTION_INTERRUPTED');
+      $transaction->end();
+    } else {
+      $this->markTestSkipped('Not applicable.');
+    }
   }
 
   /**
