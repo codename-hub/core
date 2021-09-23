@@ -4064,7 +4064,9 @@ abstract class abstractModelTest extends base {
    */
   public function testAddFieldFilterNested(): void {
     $model = $this->getModel('person')->setVirtualFieldResult(true);
-    $model->addModel($this->getModel('person'));
+    $model->addModel($innerModel = $this->getModel('person'));
+
+    $ids = [];
 
     $model->saveWithChildren([
       'person_firstname' => 'A',
@@ -4074,6 +4076,11 @@ abstract class abstractModelTest extends base {
         'person_lastname' => 'C',
       ]
     ]);
+
+    // NOTE: take care of order!
+    $ids[] = $model->lastInsertId();
+    $ids[] = $innerModel->lastInsertId();
+
     $model->saveWithChildren([
       'person_firstname' => 'B',
       'person_lastname' => 'B',
@@ -4082,6 +4089,10 @@ abstract class abstractModelTest extends base {
         'person_lastname' => 'Y',
       ]
     ]);
+
+    // NOTE: take care of order!
+    $ids[] = $model->lastInsertId();
+    $ids[] = $innerModel->lastInsertId();
 
     // should be three: A, B, C
     $res = $model->addFieldFilter('person_firstname', 'person_lastname')->search()->getResult();
@@ -4104,6 +4115,11 @@ abstract class abstractModelTest extends base {
     $res = $model->search()->getResult();
     $this->assertCount(1, $res);
     $this->assertEqualsCanonicalizing(['B'], array_column($res, 'person_lastname'));
+
+    $personModel = $this->getModel('person');
+    foreach($ids as $id) {
+      $personModel->delete($id);
+    }
   }
 
   /**
