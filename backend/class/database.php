@@ -100,7 +100,11 @@ class database extends \codename\core\observable {
             $this->connection->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
             // if using NON-PERSISTENT connections, we override the statement class with one of our own
-            $this->connection->setAttribute(\PDO::ATTR_STATEMENT_CLASS, [\codename\core\extendedPdoStatement::class, [ $this->connection ] ]);
+            // WARNING/CHANGED 2021-09-23: added ctor arg as reference (&)
+            // as it prevents PHP's GC from collecting this properly
+            // and this may cause connection keepalive trouble, when re-connecting to the same server
+            // in the same process.
+            $this->connection->setAttribute(\PDO::ATTR_STATEMENT_CLASS, [\codename\core\extendedPdoStatement::class, [ &$this->connection ] ]);
         }
         catch (\PDOException $e) {
             throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_CONNECTIONERROR, \codename\core\exception::$ERRORLEVEL_FATAL, $e);
@@ -108,6 +112,25 @@ class database extends \codename\core\observable {
 
         $this->attach(new \codename\core\observer\database());
         return $this;
+    }
+
+    /**
+     * [__destruct description]
+     */
+    public function __destruct() {
+      //
+      // NOTE: if experiencing problems with the GC/refcounting
+      // you might optionally clear out any leftover references to the PDO instance:
+      //
+      // $this->connection->setAttribute(\PDO::ATTR_STATEMENT_CLASS, [ \PDOStatement::class ]);
+      // $this->statement = null;
+      // $this->statements = [];
+
+      //
+      // WARNING/CHANGED 2021-09-23: added destructor removing PDO object ref
+      // see note in this classes' constructor.
+      //
+      $this->connection = null;
     }
 
     /**
