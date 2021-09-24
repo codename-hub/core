@@ -21,9 +21,13 @@ class mysql extends \codename\core\database {
     public function __construct(array $config)
     {
       parent::__construct($config);
-      if(isset($config['charset'])) {
-        $exec = $this->connection->exec('SET NAMES ' . $config['charset'] . '; CHARACTER SET '.$config['charset'].';');
-      }
+      //
+      // We don't need to set this explicitly as of PHP8
+      // errors seem to have been gobbled up in the past.
+      //
+      // if(isset($config['charset'])) {
+      //   $exec = $this->connection->exec('SET NAMES ' . $config['charset'] . '; CHARACTER SET '.$config['charset'].';');
+      // }
       return $this;
     }
 

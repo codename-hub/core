@@ -2331,7 +2331,7 @@ abstract class abstractModelTest extends base {
       $diveDataset = $deeperDataset;
       for ($i=0; $i < $savedExceeded; $i++) {
         $this->assertEquals('DE', $diveDataset['person_country']);
-        $diveDataset = $diveDataset['person_parent'];
+        $diveDataset = $diveDataset['person_parent'] ?? null;
       }
     }
 
@@ -5078,7 +5078,7 @@ class timemachineModel extends \codename\core\tests\sqlModel
    */
   public function save(array $data) : \codename\core\model
   {
-    if($data[$this->getPrimarykey()]) {
+    if($data[$this->getPrimarykey()] ?? null) {
       throw new exception('TIMEMACHINE_UPDATE_DENIED', exception::$ERRORLEVEL_FATAL);
     } else {
       $data = array_replace($data, $this->getIdentity());

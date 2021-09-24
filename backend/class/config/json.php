@@ -68,7 +68,7 @@ class json extends \codename\core\config {
         }
 
         if($inherit && !$appstack) {
-            throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_INVALIDBEHAVIOR, \codename\core\exception::$ERRORLEVEL_FATAL, array('file' => $fullpath, 'info' => 'Need Appstack to inherit config!'));
+            throw new \codename\core\exception(self::EXCEPTION_CONSTRUCT_INVALIDBEHAVIOR, \codename\core\exception::$ERRORLEVEL_FATAL, array('file' => $file, 'info' => 'Need Appstack to inherit config!'));
         }
 
         if($useAppstack == null) {

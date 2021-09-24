@@ -1,4 +1,4 @@
-FROM php:7.3-cli-bullseye
+FROM php:7.4-cli
 
 # get apt-get lists for the first time
 RUN apt-get update
@@ -7,7 +7,7 @@ RUN apt-get update
 ## we need zip-1.14 or higher and libzip 1.2 or higher for ZIP encryption support
 RUN apt-get update && apt-get install -y zlib1g-dev libzip-dev \
     && pecl install zip \
-    && docker-php-ext-configure zip --with-libzip \
+    # && docker-php-ext-configure zip --with-libzip \ # not required for PHP 7.4+
     && docker-php-ext-install zip
 
 ## configure and install php-intl extension (and dependencies)

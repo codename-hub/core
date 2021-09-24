@@ -144,7 +144,7 @@ class databaseTest extends abstractSessionTest {
       unset($_COOKIE['core-session']);
     }
   }
-  
+
   /**
    * @inheritDoc
    */
@@ -162,7 +162,7 @@ class sessionDatabaseOverridden extends \codename\core\session\database {
   /**
    * @inheritDoc
    */
-  public function __construct(array $data = array(), \codename\core\model $sessionModelInstance)
+  public function __construct(array $data, \codename\core\model $sessionModelInstance)
   {
     // $this->staticSessionModel = $sessionModelInstance;
     // parent::__construct($data);

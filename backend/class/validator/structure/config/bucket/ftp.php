@@ -35,7 +35,7 @@ class ftp extends \codename\core\validator\structure\config\bucket implements \c
             return $this->errorstack->getErrors();
         }
 
-        if(count($errors = app::getValidator('structure_config_ftp')->reset()->validate($value['ftpserver'])) > 0) {
+        if(count($errors = app::getValidator('structure_config_ftp')->reset()->validate($value['ftpserver'] ?? null)) > 0) {
             $this->errorstack->addError('VALUE', 'FTP_CONTAINER_INVALID', $errors);
             return $this->errorstack->getErrors();
         }

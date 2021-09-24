@@ -157,6 +157,12 @@ class database extends \codename\core\session implements \codename\core\session\
      * @see \codename\core\session_interface::destroy()
      */
     public function destroy() {
+        // CHANGED 2021-09-24: PHP8 warning exception lead to this possible bug:
+        // unset cookie and trying to destroy a session may lead to destroying NULL-session ids
+        if(!($_COOKIE[$this->cookieName] ?? false)) {
+          return;
+        }
+
         $sess = $this->myModel()
           ->addFilter('session_sessionid', $_COOKIE[$this->cookieName])
           ->addFilter('session_valid', true)

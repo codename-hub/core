@@ -4,6 +4,7 @@ services:
 
   # PHP 7.3 CLI
   unittest-php73:
+    profiles: ["php73"]
     build:
       context: .
       dockerfile: php73-cli.Dockerfile
@@ -32,6 +33,66 @@ services:
       - '.:/usr/var/workspace:delegated'
       # include self for self-testing, but readonly, emulate a 'core-app' like structure
       # - './.:/usr/var/workspace/vendor/codename/core:ro'
+
+  # PHP 7.4 CLI
+  unittest-php74:
+    profiles: ["php74"]
+    build:
+      context: .
+      dockerfile: php74-cli.Dockerfile
+    environment:
+      unittest_core_db_mysql_host: unittest-mysql
+      unittest_core_db_mysql_user: root
+      unittest_core_db_mysql_pass: root
+      unittest_core_db_mysql_database: database
+      unittest_core_cache_memcached_host: unittest-memcached
+      unittest_core_cache_memcached_port: 11211
+    command: vendor/bin/phpunit
+    working_dir: /usr/var/workspace
+    depends_on:
+      - unittest-mysql
+      - unittest-memcached
+    links:
+      - unittest-mysql
+      - unittest-memcached
+      - unittest-smtp
+      - unittest-ftp
+      - unittest-sftp
+      - unittest-s3
+    volumes:
+      # performance optimization, use 'delegated' for authoritative container view
+      # improves performance when writing coverage reports and reduces IO load on host
+      - '.:/usr/var/workspace:delegated'
+
+  # PHP 8.0 CLI
+  unittest-php80:
+    profiles: ["php80"]
+    build:
+      context: .
+      dockerfile: php80-cli.Dockerfile
+    environment:
+      unittest_core_db_mysql_host: unittest-mysql
+      unittest_core_db_mysql_user: root
+      unittest_core_db_mysql_pass: root
+      unittest_core_db_mysql_database: database
+      unittest_core_cache_memcached_host: unittest-memcached
+      unittest_core_cache_memcached_port: 11211
+    command: vendor/bin/phpunit
+    working_dir: /usr/var/workspace
+    depends_on:
+      - unittest-mysql
+      - unittest-memcached
+    links:
+      - unittest-mysql
+      - unittest-memcached
+      - unittest-smtp
+      - unittest-ftp
+      - unittest-sftp
+      - unittest-s3
+    volumes:
+      # performance optimization, use 'delegated' for authoritative container view
+      # improves performance when writing coverage reports and reduces IO load on host
+      - '.:/usr/var/workspace:delegated'
 
   # Memcached
   unittest-memcached:

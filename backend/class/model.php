@@ -932,7 +932,17 @@ abstract class model implements \codename\core\model\modelInterface {
      * as a combination of several flags given (with states)
      * this DOES NOT change existing flags, unless they're explicitly specified in another state
      */
-    public function flagfieldValue(int $flag = 0, array $flagSettings) : int {
+    /**
+     * outputs a singular and final flag field value
+     * based on a given starting point - which may also be 0 (no flag)
+     * as a combination of several flags given (with states)
+     * this DOES NOT change existing flags, unless they're explicitly specified in another state
+     *
+     * @param  int   $flag
+     * @param  array $flagSettings
+     * @return int
+     */
+    public function flagfieldValue(int $flag, array $flagSettings) : int {
         if(!$this->config->exists('flag')) {
             throw new \codename\core\exception(self::EXCEPTION_MODEL_FUNCTION_FLAGFIELDVALUE_NOFLAGSINMODEL, \codename\core\exception::$ERRORLEVEL_FATAL, null);
         }

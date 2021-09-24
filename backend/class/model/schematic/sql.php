@@ -1210,16 +1210,14 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             // at least when using explicit values as condition parts
             // NOTE/CHANGED 2020-09-15: for custom joins, this is wrong
             // as the 'opposite site' also doesn't have an fkey reference.
-            $cAlias = $nest->getConfig()->get('foreign>'.$joinKey.'>key') == $thisKey ? $alias : $useAlias;
-
             $cAlias = null;
-            if($nest->getConfig()->get('foreign>'.$joinKey.'>key') == $thisKey) {
+            if(!is_array($joinKey) && ($nest->getConfig()->get('foreign>'.$joinKey.'>key') == $thisKey)) {
               //
               // Back-reference, validated by checking the existance
               // of an FKEY config in the nested ref back to THIS model
               //
               $cAlias = $alias;
-            } else if($this->getConfig()->get('foreign>'.$thisKey.'>key') == $joinKey) {
+            } else if(!is_array($thisKey) && ($this->getConfig()->get('foreign>'.$thisKey.'>key') == $joinKey)) {
               //
               // Forward reference, validated by checking the existance
               // of an FKEY config in THIS model to the nested one

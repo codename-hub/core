@@ -266,9 +266,10 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
           // This function simply exits, if we've got a suppressed error reporting
           // (via @). This is more 'natural', as we also suppress exceptions
           // when we suppress warnings, notices, errors or else.
+          // CHANGED 2021-09-24: as of PHP8, error suppression in this function has changed
           //
-          if(error_reporting() === 0) {
-            return;
+          if (!(error_reporting() & $err_severity)) {
+              return false; //
           }
           switch($err_severity)
           {

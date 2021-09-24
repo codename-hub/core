@@ -131,7 +131,7 @@ abstract class log implements \codename\core\log\logInterface {
      * @see \codename\core\log_interface::debug($text)
      */
     public function debug(string $text) {
-        $text = round((microtime(true) - $_REQUEST['start']) * 1000, 4) . 'ms ' . $text;
+        $text = round((microtime(true) - ($_REQUEST['start'] ?? $_SERVER['REQUEST_TIME_FLOAT'])) * 1000, 4) . 'ms ' . $text;
         return $this->maskwrite($text, static::DEBUG);
     }
 

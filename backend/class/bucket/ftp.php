@@ -69,7 +69,6 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
             $this->errorstack->addError('FILE', 'LOGIN_FAILED', null);
             app::getLog('errormessage')->warning('CORE_BACKEND_CLASS_BUCKET_FTP_CONSTRUCT::LOGIN_FAILED ($user = ' . $data['ftpserver']['user'] .')');
             throw new exception('EXCEPTION_BUCKET_FTP_LOGIN_FAILED', exception::$ERRORLEVEL_ERROR, [ 'user' => $data['ftpserver']['user'] ]);
-            return $this;
         }
 
         //

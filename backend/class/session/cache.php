@@ -133,7 +133,7 @@ class cache extends \codename\core\session {
      * @return string
      */
     protected function getCacheKey() : string{
-        return "SESSION_" . app::getApp() . "_" . $_COOKIE['PHPSESSID'];
+        return "SESSION_" . app::getApp() . "_" . session_id();
     }
 
     /**

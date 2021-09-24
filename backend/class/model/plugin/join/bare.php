@@ -46,11 +46,13 @@ class bare extends \codename\core\model\plugin\join implements \codename\core\mo
       $rightField = $userDict[2];
 
       $found = false;
-      foreach($right as $rightValue) {
-        if($leftValue[$leftField] == $rightValue[$rightField]) {
-          $leftValue = array_merge($leftValue, $rightValue);
-          $found = true;
-          break;
+      if(isset($leftValue[$leftField])) {
+        foreach($right as $rightValue) {
+          if(($leftValue[$leftField] ?? null) == ($rightValue[$rightField] ?? null)) {
+            $leftValue = array_merge($leftValue, $rightValue);
+            $found = true;
+            break;
+          }
         }
       }
       if(!$found) {

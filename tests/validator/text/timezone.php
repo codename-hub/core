@@ -15,6 +15,10 @@ class timezone extends \codename\core\tests\validator\text {
     public function testAllValidTimezoneIdentifiers() {
         $identifiers = \DateTimeZone::listIdentifiers(\DateTimeZone::ALL);
         $validator = $this->getValidator();
+
+        //
+        // NOTE: Different PHP versions may differ regarding their available timezones
+        //
         foreach($identifiers as $idx => $id) {
           $validator->reset();
           $this->assertEmpty($res = $validator->validate($id), $id . print_r($res, true));
