@@ -35,6 +35,9 @@
     <testsuite name="database">
       <directory suffix=".php">tests/database</directory>
     </testsuite>
+    <testsuite name="extension">
+      <directory suffix=".php">tests/extension</directory>
+    </testsuite>
     <testsuite name="mail">
       <directory suffix=".php">tests/mail</directory>
     </testsuite>

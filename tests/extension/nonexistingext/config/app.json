@@ -1,0 +1,9 @@
+{
+  "extensions" : [
+    "nonexisting"
+  ],
+  "defaultcontext": "testcontext",
+  "defaulttemplate": "blank",
+  "context": {
+  }
+}
