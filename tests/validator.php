@@ -9,6 +9,21 @@ namespace codename\core\tests;
 abstract class validator extends \PHPUnit\Framework\TestCase {
 
   /**
+   * @inheritDoc
+   */
+  public static function tearDownAfterClass(): void
+  {
+    parent::tearDownAfterClass();
+
+    // WARNING: you _HAVE_ to reset this right here
+    // as far as you use app::getValidator() somewhere in your tests
+    // as it may have side-effects on other tests
+    // that rely on a 'fresh' validator (e.g. lifecycle)
+    // (due to the fact validators keep their latest state until ->reset())
+    \codename\core\tests\overrideableApp::reset();
+  }
+
+  /**
    * [getValidator description]
    * @return \codename\core\validator [description]
    */
