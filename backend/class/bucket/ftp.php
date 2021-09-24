@@ -349,7 +349,7 @@ class ftp extends \codename\core\bucket implements \codename\core\bucket\bucketI
 
         $parts = explode('/', $directory);
         foreach ($parts as $part) {
-          if(!@ftp_chdir($ftpcon, $part)){
+          if(!@ftp_chdir($this->connection, $part)){
             @ftp_mkdir($this->connection, $part);
             @ftp_chdir($this->connection, $part);
           }
