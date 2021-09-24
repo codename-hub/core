@@ -212,6 +212,8 @@ class contextTest extends base {
     $this->appInstance->getRequest()->setData('context', 'templatelevel');
     $this->appInstance->getRequest()->setData('view', 'viewlevel_template');
     $this->appInstance->__injectContextInstance('templatelevel', new testcontext);
+    $this->appInstance->__setInstance('response', new cliThrowExceptionResponse);
+
     $this->appInstance->run();
     $this->assertEquals('viewlevel', $this->appInstance->getRequest()->getData('template'));
   }
@@ -223,6 +225,8 @@ class contextTest extends base {
     $this->appInstance->getRequest()->setData('context', 'templatelevel');
     $this->appInstance->getRequest()->setData('view', 'contextlevel_template');
     $this->appInstance->__injectContextInstance('templatelevel', new testcontext);
+    $this->appInstance->__setInstance('response', new cliThrowExceptionResponse);
+
     $this->appInstance->run();
     $this->assertEquals('contextlevel', $this->appInstance->getRequest()->getData('template'));
   }
@@ -234,6 +238,8 @@ class contextTest extends base {
     $this->appInstance->getRequest()->setData('context', 'templatefallback');
     $this->appInstance->getRequest()->setData('view', 'default');
     $this->appInstance->__injectContextInstance('templatefallback', new testcontext);
+    $this->appInstance->__setInstance('response', new cliThrowExceptionResponse);
+    
     $this->appInstance->run();
     $this->assertEquals('blank', $this->appInstance->getRequest()->getData('template'));
   }
