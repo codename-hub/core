@@ -2269,11 +2269,17 @@ abstract class model implements \codename\core\model\modelInterface {
      */
     protected function getCurrentCacheIdentifierParameters() : array {
       $params = [];
-      // $params[$this->getIdentifier()] = array_merge($this->filter, $this->filterCollections);
       $params['filter'] = $this->filter;
       $params['filtercollections'] = $this->filterCollections;
       foreach($this->getNestedJoins() as $join) {
-        $params['nest'][$join->model->getIdentifier()] = $join->model->getCurrentCacheIdentifierParameters();
+        //
+        // CHANGED 2021-09-24: nested model's join plugin parameters were not correctly incorporated into cache key
+        //
+        $params['nest'][] = [
+          'cacheIdentifier' => $join->model->getCurrentCacheIdentifierParameters(),
+          'model'           => $join->model->getIdentifier(),
+          'cacheParamters'  => $join->getCurrentCacheIdentifierParameters(),
+        ];
       }
       return $params;
     }
@@ -2291,6 +2297,7 @@ abstract class model implements \codename\core\model\modelInterface {
             $cacheKey = "manualcache" . md5(serialize(
               array(
                 get_class($this),
+                $this->getIdentifier(),
                 $query,
                 $this->getCurrentCacheIdentifierParameters(),
                 $params

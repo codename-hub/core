@@ -102,4 +102,19 @@ abstract class join extends \codename\core\model\plugin {
    */
   public abstract function getJoinMethod() : string;
 
+  /**
+   * provides information about this join plugin's parameters
+   * to be used for model caching features
+   * @return array
+   */
+  public function getCurrentCacheIdentifierParameters(): array {
+    return [
+      'method'          => $this->getJoinMethod(),
+      'modelField'      => $this->modelField,
+      'referenceField'  => $this->referenceField,
+      'conditions'      => $this->conditions,
+      'vfield'          => $this->virtualField,
+    ];
+  }
+
 }
