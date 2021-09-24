@@ -6,4 +6,13 @@ namespace codename\core\tests;
  */
 abstract class base extends \codename\core\test\base {
 
+  /**
+   * @inheritDoc
+   */
+  public static function tearDownAfterClass(): void
+  {
+    parent::tearDownAfterClass();
+    \codename\core\tests\overrideableApp::reset();
+  }
+
 }
