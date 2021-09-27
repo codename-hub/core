@@ -31,6 +31,12 @@ class mysql extends \codename\core\model\plugin\aggregate implements \codename\c
       case 'avg':
         $sql = 'AVG('.$tableAlias.$this->fieldBase->get().')';
         break;
+      case 'max':
+        $sql = 'MAX('.$tableAlias.$this->fieldBase->get().')';
+        break;
+      case 'min':
+        $sql = 'MIN('.$tableAlias.$this->fieldBase->get().')';
+        break;
       case 'year':
         $sql = 'YEAR('.$tableAlias.$this->fieldBase->get().')';
         break;

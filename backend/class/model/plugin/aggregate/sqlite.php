@@ -31,6 +31,12 @@ class sqlite extends \codename\core\model\plugin\aggregate implements \codename\
       case 'avg':
         $sql = 'AVG('.$tableAlias.$this->fieldBase->get().')';
         break;
+      case 'max':
+        $sql = 'MAX('.$tableAlias.$this->fieldBase->get().')';
+        break;
+      case 'min':
+        $sql = 'MIN('.$tableAlias.$this->fieldBase->get().')';
+        break;
       case 'year':
         $sql = 'CAST(strftime(\'%Y\','.$tableAlias.$this->fieldBase->get().') as integer)';
         break;
