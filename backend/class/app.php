@@ -269,7 +269,9 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
           // CHANGED 2021-09-24: as of PHP8, error suppression in this function has changed
           //
           if (!(error_reporting() & $err_severity)) {
-              return false; //
+              // NOTE: returning FALSE here enforces regular error handling afterwards.
+              // We do not return a value to ensure core-specific behaviours stay the same.
+              return;
           }
           switch($err_severity)
           {
