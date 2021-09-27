@@ -3630,6 +3630,70 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * [testAggregateMax description]
+   */
+  public function testAggregateMax(): void {
+    //
+    // Aggregate: max plugin
+    //
+    $model = $this->getModel('testdata');
+    $model->addAggregateField('entries_max', 'max', 'testdata_number');
+
+    // count w/o filters
+    $this->assertEquals(5.36, $model->search()->getResult()[0]['entries_max']);
+
+    // w/ simple filter added
+    $model->addFilter('testdata_datetime', '2021-03-22', '>=');
+    $this->assertEquals(5.36, $model->search()->getResult()[0]['entries_max']);
+
+    // w/ simple filter added
+    $model->addFilter('testdata_datetime', '2021-03-22 23:59:59', '<=');
+    $this->assertEquals(4.25, $model->search()->getResult()[0]['entries_max']);
+
+    // no entries matching filter
+    $model->addFilter('testdata_datetime', '2019-01-01', '<=');
+    $this->assertEquals(0, $model->search()->getResult()[0]['entries_max']);
+
+    // w/ added grouping
+    $model->addGroup('testdata_date');
+    $model->addOrder('testdata_date', 'ASC');
+    // max per day
+    $this->assertEquals([ 0.99, 4.25, 5.36 ], array_column($model->search()->getResult(), 'entries_max'));
+  }
+
+  /**
+   * [testAggregateMin description]
+   */
+  public function testAggregateMin(): void {
+    //
+    // Aggregate: min plugin
+    //
+    $model = $this->getModel('testdata');
+    $model->addAggregateField('entries_min', 'min', 'testdata_number');
+
+    // count w/o filters
+    $this->assertEquals(0.99, $model->search()->getResult()[0]['entries_min']);
+
+    // w/ simple filter added
+    $model->addFilter('testdata_datetime', '2021-03-22', '>=');
+    $this->assertEquals(3.14, $model->search()->getResult()[0]['entries_min']);
+
+    // w/ simple filter added
+    $model->addFilter('testdata_datetime', '2021-03-22 23:59:59', '<=');
+    $this->assertEquals(0.99, $model->search()->getResult()[0]['entries_min']);
+
+    // no entries matching filter
+    $model->addFilter('testdata_datetime', '2019-01-01', '<=');
+    $this->assertEquals(0, $model->search()->getResult()[0]['entries_min']);
+
+    // w/ added grouping
+    $model->addGroup('testdata_date');
+    $model->addOrder('testdata_date', 'ASC');
+    // min per day
+    $this->assertEquals([ 0.99, 3.14, 5.36 ], array_column($model->search()->getResult(), 'entries_min'));
+  }
+
+  /**
    * [testAggregateDatetimeYear description]
    */
   public function testAggregateDatetimeYear(): void {
