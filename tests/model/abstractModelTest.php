@@ -124,6 +124,7 @@ abstract class abstractModelTest extends base {
         'testdata_boolean',
         'testdata_structure',
         'testdata_details_id',
+        'testdata_moredetails_id',
         'testdata_flag',
       ],
       'primary' => [
@@ -140,7 +141,12 @@ abstract class abstractModelTest extends base {
           'schema'  => 'testschema',
           'model'   => 'details',
           'key'     => 'details_id'
-        ]
+        ],
+        'testdata_moredetails_id' => [
+          'schema'  => 'testschema',
+          'model'   => 'moredetails',
+          'key'     => 'moredetails_id'
+        ],
       ],
       'options' => [
         'testdata_number' => [
@@ -154,6 +160,7 @@ abstract class abstractModelTest extends base {
         'testdata_modified' => 'text_timestamp',
         'testdata_datetime' => 'text_timestamp',
         'testdata_details_id' => 'number_natural',
+        'testdata_moredetails_id' => 'number_natural',
         'testdata_text'     => 'text',
         'testdata_date'     => 'text_date',
         'testdata_number'   => 'number',
@@ -182,6 +189,25 @@ abstract class abstractModelTest extends base {
         'details_modified' => 'text_timestamp',
         'details_data'     => 'structure',
         'details_virtual'  => 'virtual',
+      ],
+      'connection' => 'default'
+    ]);
+
+    static::createModel('testschema', 'moredetails', [
+      'field' => [
+        'moredetails_id',
+        'moredetails_created',
+        'moredetails_modified',
+        'moredetails_data',
+      ],
+      'primary' => [
+        'moredetails_id'
+      ],
+      'datatype' => [
+        'moredetails_id'       => 'number_natural',
+        'moredetails_created'  => 'text_timestamp',
+        'moredetails_modified' => 'text_timestamp',
+        'moredetails_data'     => 'structure',
       ],
       'connection' => 'default'
     ]);
@@ -490,6 +516,7 @@ abstract class abstractModelTest extends base {
     $cleanupModels = [
       'testdata',
       'details',
+      'moredetails',
       'timemachine',
       'table1',
       'table2',
@@ -769,6 +796,172 @@ abstract class abstractModelTest extends base {
       $this->assertArrayHasKey('testdata_number', $r);
       $this->assertEquals([ 'testdata_integer', 'testdata_text', 'testdata_number' ], array_keys($r));
     }
+  }
+
+  /**
+   * WARNING: this tests a special edge case - which is almost not the desired state
+   * but there's not better defined solution right now
+   * so we test for stability/behaviour
+   */
+  public function testAddFieldComplexEdgeCaseNoVfr(): void {
+    $model = $this->getModel('testdata')
+      ->addModel($detailsModel = $this->getModel('details'))
+      ->addModel($moreDetailsModel = $this->getModel('moredetails'));
+
+    $model->hideAllFields();
+    $detailsModel->hideAllFields();
+    $moreDetailsModel->hideAllFields();
+
+    $model->addVirtualField('test', function($dataset) {
+      return 'value';
+    });
+
+    $res = $model->search()->getResult();
+
+    $dataset = $res[0];
+
+    // we expect all pkeys to exist
+    $this->assertArrayHasKey($model->getPrimaryKey(), $dataset);
+    $this->assertArrayHasKey($detailsModel->getPrimaryKey(), $dataset);
+    $this->assertArrayHasKey($moreDetailsModel->getPrimaryKey(), $dataset);
+
+    // virtual field should not be there
+    // as we have no VFR set
+    $this->assertArrayNotHasKey('test', $dataset);
+  }
+
+  /**
+   * WARNING: this tests a special edge case - which is almost not the desired state
+   * but there's not better defined solution right now
+   * so we test for stability/behaviour
+   */
+  public function testAddFieldComplexEdgeCasePartialVfr(): void {
+    $model = $this->getModel('testdata')->setVirtualFieldResult(true)
+      ->addModel($detailsModel = $this->getModel('details'))
+      ->addModel($moreDetailsModel = $this->getModel('moredetails'));
+
+    $model->hideAllFields();
+    $detailsModel->hideAllFields();
+    $moreDetailsModel->hideAllFields();
+
+    $model->addVirtualField('test', function($dataset) {
+      return 'value';
+    });
+
+    $res = $model->search()->getResult();
+
+    $dataset = $res[0];
+
+    // WARNING: edge case - ->hideAllFields on all models have been called
+    // but only a virtual field on root model has been added
+    // this gives us a strange situation/result - root model will 'disappear'
+    // but the joins are kept, fully.
+    $this->assertArrayNotHasKey($model->getPrimaryKey(), $dataset);
+
+    // those will be available
+    $this->assertArrayHasKey($detailsModel->getPrimaryKey(), $dataset);
+    $this->assertArrayHasKey($moreDetailsModel->getPrimaryKey(), $dataset);
+
+    // this virtual field on root model should persist
+    $this->assertArrayHasKey('test', $dataset);
+  }
+
+  /**
+   * WARNING: this tests a special edge case - which is almost not the desired state
+   * but there's not better defined solution right now
+   * so we test for stability/behaviour
+   */
+  public function testAddFieldComplexEdgeCaseFullVfr(): void {
+    $model = $this->getModel('testdata')->setVirtualFieldResult(true)
+      ->addModel($detailsModel = $this->getModel('details')->setVirtualFieldResult(true))
+      ->addModel($moreDetailsModel = $this->getModel('moredetails')->setVirtualFieldResult(true));
+
+    $model->hideAllFields();
+    $detailsModel->hideAllFields();
+    $moreDetailsModel->hideAllFields();
+
+    $model->addVirtualField('test', function($dataset) {
+      return 'value';
+    });
+
+    $res = $model->search()->getResult();
+
+    $dataset = $res[0];
+
+    // WARNING: edge case - ->hideAllFields on all models have been called
+    // but only a virtual field on root model has been added
+    // this gives us a strange situation/result - root model will 'disappear'
+    // but the joins are kept, fully.
+    $this->assertArrayNotHasKey($model->getPrimaryKey(), $dataset);
+
+    // those will be available
+    $this->assertArrayHasKey($detailsModel->getPrimaryKey(), $dataset);
+    $this->assertArrayHasKey($moreDetailsModel->getPrimaryKey(), $dataset);
+
+    // this virtual field on root model should persist
+    $this->assertArrayHasKey('test', $dataset);
+  }
+
+  /**
+   * WARNING: this tests a special edge case - which is almost not the desired state
+   * but there's not better defined solution right now
+   * so we test for stability/behaviour
+   */
+  public function testAddFieldComplexEdgeCaseRegularFieldFullVfr(): void {
+    $model = $this->getModel('testdata')->setVirtualFieldResult(true)
+      ->addModel($detailsModel = $this->getModel('details')->setVirtualFieldResult(true))
+      ->addModel($moreDetailsModel = $this->getModel('moredetails')->setVirtualFieldResult(true));
+
+    $model->hideAllFields();
+    $detailsModel->hideAllFields();
+    $moreDetailsModel->hideAllFields();
+
+    // only add one field, in this case: the PKEY of the root model
+    $model->addField($model->getPrimaryKey());
+
+    $res = $model->search()->getResult();
+
+    $dataset = $res[0];
+
+    // WARNING: edge case - ->hideAllFields on all models have been called
+    // and we only add a (regular) field on the root model
+    // all fields, except the root model's field will disappear
+    $this->assertArrayHasKey($model->getPrimaryKey(), $dataset);
+
+    // those will be available
+    $this->assertArrayNotHasKey($detailsModel->getPrimaryKey(), $dataset);
+    $this->assertArrayNotHasKey($moreDetailsModel->getPrimaryKey(), $dataset);
+  }
+
+  /**
+   * WARNING: this tests a special edge case - which is almost not the desired state
+   * but there's not better defined solution right now
+   * so we test for stability/behaviour
+   */
+  public function testAddFieldComplexEdgeCaseNestedRegularFieldFullVfr(): void {
+    $model = $this->getModel('testdata')->setVirtualFieldResult(true)
+      ->addModel($detailsModel = $this->getModel('details')->setVirtualFieldResult(true))
+      ->addModel($moreDetailsModel = $this->getModel('moredetails')->setVirtualFieldResult(true));
+
+    $model->hideAllFields();
+    $detailsModel->hideAllFields();
+    $moreDetailsModel->hideAllFields();
+
+    // only add one field, in this case: the PKEY of the root model
+    $detailsModel->addField($detailsModel->getPrimaryKey());
+
+    $res = $model->search()->getResult();
+
+    $dataset = $res[0];
+
+    // WARNING: edge case - ->hideAllFields on all models have been called
+    // and we only add a (regular) field on a *NESTED* model
+    // all fields, except the joined model's field will disappear
+    $this->assertArrayHasKey($detailsModel->getPrimaryKey(), $dataset);
+
+    // those will be available
+    $this->assertArrayNotHasKey($model->getPrimaryKey(), $dataset);
+    $this->assertArrayNotHasKey($moreDetailsModel->getPrimaryKey(), $dataset);
   }
 
   /**
