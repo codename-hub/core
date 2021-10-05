@@ -4383,6 +4383,18 @@ abstract class abstractModelTest extends base {
   }
 
   /**
+   * test filter with fully qualified field name
+   * of _nested_ model's field on root level
+   */
+  public function testAddFilterRootLevelNested(): void {
+    $model = $this->getModel('testdata')
+      ->addModel($this->getModel('details'));
+    $model->addFilter('testschema.details.details_id', null);
+    $res = $model->search()->getResult();
+    $this->assertCount(4, $res);
+  }
+
+  /**
    * [testAddFieldFilter description]
    */
   public function testAddFieldFilter(): void {

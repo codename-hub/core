@@ -2209,11 +2209,23 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
             if($filter instanceof \codename\core\model\plugin\filter\filterInterface) {
               // handle regular filters
 
+              $filterFieldIdentifier = null;
+              if($filter instanceof \codename\core\model\plugin\filter) {
+                if(($schema = $filter->field->getSchema()) && ($table = $filter->field->getTable())) {
+                  // explicit, fully qualified schema & table
+                  $fullQualifier = $this->getTableIdentifier($schema, $table);
+                  $filterFieldIdentifier = $filter->getFieldValue($fullQualifier);
+                } else {
+                  $filterFieldIdentifier = $filter->getFieldValue($currentAlias);
+                }
+              } else {
+                $filterFieldIdentifier = $filter->getFieldValue($currentAlias);
+              }
+
               if(\is_array($filter->value)) {
                   // filter value is an array (e.g. IN() match)
                   $values = array();
                   $i = 0;
-                  $filterFieldIdentifier = $filter->getFieldValue($currentAlias);
                   foreach($filter->value as $thisval) {
                       $var = $this->getStatementVariable(\array_keys($appliedFilters), $filterFieldIdentifier, $i++);
                       $values[] = ':' . $var; // var = PDO Param
@@ -2235,10 +2247,9 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                   // Which converted '' or 'null' to NULL - which is simply wrong or legacy code.
                   if($filter->value === null) {
                       // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                      $filterQuery['query'] = $filter->getFieldValue($currentAlias) . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // no param!
+                      $filterQuery['query'] = $filterFieldIdentifier . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // no param!
                       // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                   } else {
-                      $filterFieldIdentifier = $filter->getFieldValue($currentAlias);
                       $var = $this->getStatementVariable(\array_keys($appliedFilters), $filterFieldIdentifier);
                       $filterQuery['query'] = $filterFieldIdentifier . ' ' . $filter->operator . ' ' . ':'.$var.' '; // var = PDO Param
                       $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field) ?? 'text'); // values separated from query
