@@ -4392,6 +4392,30 @@ abstract class abstractModelTest extends base {
     $model->addFilter('testschema.details.details_id', null);
     $res = $model->search()->getResult();
     $this->assertCount(4, $res);
+
+    $model->addFilter('testschema.details.details_id', 1, '>');
+    $res = $model->search()->getResult();
+    $this->assertCount(0, $res);
+  }
+
+  /**
+   * test filtercollection with fully qualified field name
+   * of _nested_ model's field on root level
+   */
+  public function testAddFiltercollectionRootLevelNested(): void {
+    $model = $this->getModel('testdata')
+      ->addModel($this->getModel('details'));
+    $model->addFiltercollection([
+      [ 'field' => 'testschema.details.details_id', 'operator' => '=', 'value' => null ]
+    ], 'OR');
+    $res = $model->search()->getResult();
+    $this->assertCount(4, $res);
+
+    $model->addFiltercollection([
+      [ 'field' => 'testschema.details.details_id', 'operator' => '>', 'value' => 1 ]
+    ], 'OR');
+    $res = $model->search()->getResult();
+    $this->assertCount(0, $res);
   }
 
   /**

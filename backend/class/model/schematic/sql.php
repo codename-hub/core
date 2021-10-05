@@ -2347,18 +2347,32 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
               ];
 
               if($filter instanceof \codename\core\model\plugin\filter\filterInterface) {
+
+                $filterFieldIdentifier = null;
+                if($filter instanceof \codename\core\model\plugin\filter) {
+                  if(($schema = $filter->field->getSchema()) && ($table = $filter->field->getTable())) {
+                    // explicit, fully qualified schema & table
+                    $fullQualifier = $this->getTableIdentifier($schema, $table);
+                    $filterFieldIdentifier = $filter->getFieldValue($fullQualifier);
+                  } else {
+                    $filterFieldIdentifier = $filter->getFieldValue($currentAlias);
+                  }
+                } else {
+                  $filterFieldIdentifier = $filter->getFieldValue($currentAlias);
+                }
+
                 if(\is_array($filter->value)) {
                     // value is an array
                     $values = array();
                     $i = 0;
                     foreach($filter->value as $thisval) {
-                        $var = $this->getStatementVariable(\array_keys($appliedFilters), $filter->getFieldValue($currentAlias), $i++);
+                        $var = $this->getStatementVariable(\array_keys($appliedFilters), $filterFieldIdentifier, $i++);
                         $values[] = ':' . $var; // var = PDO Param
                         $appliedFilters[$var] = $this->getParametrizedValue($this->delimit($filter->field, $thisval), $this->getFieldtype($filter->field) ?? $this->getFallbackDatatype($thisval));
                     }
                     $string = implode(', ', $values);
                     $operator = $filter->operator == '=' ? 'IN' : 'NOT IN';
-                    $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . $operator . ' ( ' . $string . ') ';
+                    $t_filter['query'] = $filterFieldIdentifier . ' ' . $operator . ' ( ' . $string . ') ';
                 } else {
                     // value is a singular value
                     // NOTE: see other $filter->value == null (equality or identity operator) note and others
@@ -2366,11 +2380,11 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     // Which converted '' or 'null' to NULL - which is simply wrong or legacy code.
                     if($filter->value === null) {
                         // $var = $this->getStatementVariable(array_keys($appliedFilters), $filter->field->getValue());
-                        $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // var = PDO Param
+                        $t_filter['query'] = $filterFieldIdentifier . ' ' . ($filter->operator == '!=' ? 'IS NOT' : 'IS') . ' NULL'; // var = PDO Param
                         // $appliedFilters[$var] = $this->getParametrizedValue(null, $this->getFieldtype($filter->field));
                     } else {
-                        $var = $this->getStatementVariable(\array_keys($appliedFilters), $filter->getFieldValue($currentAlias));
-                        $t_filter['query'] = $filter->getFieldValue($currentAlias) . ' ' . $filter->operator . ' ' . ':'.$var.' ';
+                        $var = $this->getStatementVariable(\array_keys($appliedFilters), $filterFieldIdentifier);
+                        $t_filter['query'] = $filterFieldIdentifier . ' ' . $filter->operator . ' ' . ':'.$var.' ';
                         $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field));
                     }
                 }
