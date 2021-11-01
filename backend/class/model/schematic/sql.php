@@ -2385,7 +2385,7 @@ abstract class sql extends \codename\core\model\schematic implements \codename\c
                     } else {
                         $var = $this->getStatementVariable(\array_keys($appliedFilters), $filterFieldIdentifier);
                         $t_filter['query'] = $filterFieldIdentifier . ' ' . $filter->operator . ' ' . ':'.$var.' ';
-                        $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field));
+                        $appliedFilters[$var] = $this->getParametrizedValue($filter->value, $this->getFieldtype($filter->field) ?? 'text');
                     }
                 }
               } else if($filter instanceof \codename\core\model\plugin\managedFilterInterface) {
