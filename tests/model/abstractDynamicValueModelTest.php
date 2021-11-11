@@ -111,6 +111,11 @@ class abstractDynamicValueModelTest extends base {
         'advm_data_name',
         'advm_data_datatype'
       ],
+      'options' => [
+        'advm_data_name' => [
+          'length' => 128
+        ],
+      ],
       'datatype' => [
         'advm_data_id'       => 'number_natural',
         'advm_data_created'  => 'text_timestamp',
@@ -144,6 +149,11 @@ class abstractDynamicValueModelTest extends base {
       'required' => [
         'advm_domain_data_name',
         'advm_domain_data_datatype'
+      ],
+      'options' => [
+        'advm_domain_data_name' => [
+          'length' => 128
+        ],
       ],
       'datatype' => [
         'advm_domain_data_id'       => 'number_natural',
