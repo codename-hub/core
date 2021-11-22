@@ -79,6 +79,9 @@ Additionally, they may define:
 
 The type of additional inheritance the core framework leverages enables you to perform additional modularizations and organisational improvement in your code. For example, you might want to define a base library that defines all models and tools that could ever be needed in your application. On top of that, you **stack** two more applications separately, one for your backoffice and another one just for your customers.
 
+[![](https://mermaid.ink/img/eyJjb2RlIjoiZ3JhcGggVERcbiAgICBjb3JlLS0-bGlicmFyeVxuICAgIGxpYnJhcnktLT5hcHAxXG4gICAgbGlicmFyeS0tPmFwcDIiLCJtZXJtYWlkIjp7InRoZW1lIjoiZGVmYXVsdCJ9LCJ1cGRhdGVFZGl0b3IiOmZhbHNlLCJhdXRvU3luYyI6dHJ1ZSwidXBkYXRlRGlhZ3JhbSI6ZmFsc2V9)](https://mermaid.live/edit#eyJjb2RlIjoiZ3JhcGggVERcbiAgICBjb3JlLS0-bGlicmFyeVxuICAgIGxpYnJhcnktLT5hcHAxXG4gICAgbGlicmFyeS0tPmFwcDIiLCJtZXJtYWlkIjoie1xuICBcInRoZW1lXCI6IFwiZGVmYXVsdFwiXG59IiwidXBkYXRlRWRpdG9yIjpmYWxzZSwiYXV0b1N5bmMiOnRydWUsInVwZGF0ZURpYWdyYW0iOmZhbHNlfQ)
+
+(Mermaid source:)
 ```mermaid
 graph TD
     core-->library
