@@ -144,4 +144,4 @@ By default, all fields defined in the model are retrieved for the output results
 ## Further reading
 Please continue to
 - [Model filters](model/model_filters.md) for defining your data searches.
-- [Complex models](model/complex_model.md) for adding/joining models and building more complex models.
+- [Complex models](model/complex_models.md) for adding/joining models and building more complex models.
