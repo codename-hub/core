@@ -9,12 +9,6 @@ namespace codename\core;
 class validator implements \codename\core\validator\validatorInterface {
 
     /**
-     * Contains the value
-     * @var unknown $value
-     */
-    protected $value = null;
-
-    /**
      * Holds true if the value can be null
      * @var bool $nullAllowed
      */

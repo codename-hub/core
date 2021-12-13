@@ -20,20 +20,4 @@ abstract class schematic extends \codename\core\model {
      */
     public $table = null;
 
-    /**
-     * Contains more models
-     * @var unknown $tables
-     */
-    protected $tables = array();
-
-    /**
-     * resets all the parameters of the instance for another query
-     * @return void
-     */
-    public function reset() {
-        parent::reset();
-        $this->tables = array();
-        return;
-    }
-
 }
