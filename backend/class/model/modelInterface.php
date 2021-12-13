@@ -52,12 +52,12 @@ interface modelInterface {
     /**
      * Loads one single entry by using a unique-like $field to identify it by the given $value
      * @param  string $field      [description]
-     * @param  string $primaryKey [description]
+     * @param  string $value      [description]
      * @return array              [description]
      *
      * @todo if name of key is NOT $primaryKey!
      */
-    public function loadByUnique(string $field, string $primaryKey) : array;
+    public function loadByUnique(string $field, string $value) : array;
 
     /**
      * [addFilter description]

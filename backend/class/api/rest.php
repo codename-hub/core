@@ -43,7 +43,7 @@ class rest extends \codename\core\api\codename {
       curl_setopt($this->curlHandler, CURLOPT_POST, 0);
       if($method != 'GET') {
         // custom method, either 'PUT', 'POST', 'PATCH', 'DELETE', 'OPTIONS' ... ?
-        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($this->curlHandler, CURLOPT_CUSTOMREQUEST, $method);
       } else {
         //
         // HTTP Method GET
