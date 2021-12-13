@@ -1575,6 +1575,12 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
+     * [EXCEPTION_ADDFULLTEXTFIELD_NO_FIELDS_FOUND description]
+     * @var string
+     */
+    const EXCEPTION_ADDFULLTEXTFIELD_NO_FIELDS_FOUND = 'EXCEPTION_ADDFULLTEXTFIELD_NO_FIELDS_FOUND';
+
+    /**
      * exception thrown on duplicate field existance (during addition of an aggregated field)
      * @var string
      */
