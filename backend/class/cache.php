@@ -10,7 +10,7 @@ abstract class cache extends \codename\core\observable implements \codename\core
 
     /**
      * Compresses data into a JSON object, making it possible to cache objects and arrays
-     * @param multitype $data
+     * @param mixed|null $data
      * @return string
      */
     protected function compress($data) : string {
@@ -20,7 +20,7 @@ abstract class cache extends \codename\core\observable implements \codename\core
     /**
      * Uncompressing the JSON data object from the cache, maybe back into an array or object
      * @param string $data
-     * @return multitype
+     * @return mixed|null
      */
     protected function uncompress(string $data) {
         return unserialize($data);

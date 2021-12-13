@@ -7,27 +7,27 @@ namespace codename\core\model\plugin;
  * @since 2016-06-08
  */
 class entry {
-    
+
     /**
      * You are trying to set a field of the current modelEntry instance.
      * <br />The field passed to the method is not a component of this model. So it cannot be set.
      * @var string
      */
     CONST EXCEPTION_FIELDSET_FIELDNOTFOUNDINMODEL = 'EXCEPTION_FIELDSET_FIELDNOTFOUNDINMODEL';
-    
+
     /**
      * You are trying to get the contents of a field inside the current modelEntry instance.
      * <br />The field passed to the method is not a component of this model. So it cannot be returned.
      * @var string
      */
     CONST EXCEPTION_FIELDGET_FIELDNOTFOUNDINMODEL = 'EXCEPTION_FIELDGET_FIELDNOTFOUNDINMODEL';
-    
+
     /**
      * Contaions the datacontainer object
      * @var \codename\core\datacontainer
      */
     protected $data = null;
-    
+
     /**
      * Returns true if the given $field exists in the current model
      * @param string $field
@@ -36,11 +36,11 @@ class entry {
     public function fieldExists(string $field) : bool {
         return in_array($field, $this->config->get('field'));
     }
-    
+
     /**
      * Sets the given $field's to $value
      * @param string $field
-     * @param multitype $value
+     * @param mixed|null $value
      * @return \codename\core\model
      */
     public function fieldSet(string $field, $value) : \codename\core\model {
@@ -50,12 +50,12 @@ class entry {
         $this->data->setData($field, $value);
         return $this;
     }
-    
+
     /**
      * Gets the value from the given $field
      * @param string $field
      * @throws \codename\core\exception
-     * @return multitype
+     * @return mixed|null
      */
     public function fieldGet(string $field) {
         if(!$this->fieldExists($field)) {
@@ -63,7 +63,7 @@ class entry {
         }
         return $this->data->getData($field);
     }
-    
+
     /**
      * @todo DOCUMENTATION
      */
@@ -71,23 +71,23 @@ class entry {
         $this->data = new \codename\core\datacontainer($data);
         return $this;
     }
-    
+
     /**
      * @todo DOCUMENTATION
      */
     public function entryValidate() : array {
         return $this->validate($this->data->getData());
     }
-    
+
     /**
      * @todo DOCUMENTATION
      */
     public function entryUpdate(array $data) : \codename\core\model {
         foreach($this->getFields() as $field) {
-            
+
         }
     }
-    
+
     /**
      * @todo DOCUMENTATION
      */
@@ -98,7 +98,7 @@ class entry {
         $this->delete($this->data->getData($this->getPrimarykey()));
         return $this;
     }
-    
+
     /**
      * @todo DOCUMENTATION
      */
@@ -110,7 +110,7 @@ class entry {
         $this->entryMake($entry);
         return $this;
     }
-    
+
     /**
      * @todo DOCUMENTATION
      */
@@ -118,9 +118,9 @@ class entry {
         if(is_null($this->data)) {
             return $this;
         }
-        
+
         $this->save($this->data->getData());
         return $this;
     }
-    
+
 }

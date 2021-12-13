@@ -49,10 +49,10 @@ class json extends \codename\core\config {
      * Creates a config instance and loads the given JSON configuration file as content
      * <br />If $appstack is true, I will try loading the configuration from a parent app, if it does not exist in the curreent app
      * <br />If $inherit is true, I will load all the configurations from parents, and the lower children will always overwrite the parents
-     * @param string $file    [relative path to file]
-     * @param bool $appstack  [traverse appstack, if needed]
-     * @param bool $inherit   [use inheritance]
-     * @param array $appstack [optional: custom appstack]
+     * @param string      $file         [relative path to file]
+     * @param bool        $appstack     [traverse appstack, if needed]
+     * @param bool        $inherit      [use inheritance]
+     * @param array|null  $useAppstack  [optional: custom appstack]
      * @return \codename\core\config
      */
     public function __CONSTRUCT(string $file, bool $appstack = false, bool $inherit = false, ?array $useAppstack = null) {
@@ -140,7 +140,7 @@ class json extends \codename\core\config {
      * <br />I will throw an exception, if neither in the app nor the appstack I can find the file
      * @param string $file
      * @param bool $appstack
-     * @throws exception
+     * @throws \codename\core\exception
      * @todo REFACTOR simplify
      */
     protected function getFullpath(string $file, bool $appstack) : string {
@@ -164,7 +164,7 @@ class json extends \codename\core\config {
     /**
      * I will decode the given file and return the array of configuration it holds.
      * @param string $fullpath
-     * @throws exception
+     * @throws \codename\core\exception
      */
     protected function decodeFile(string $fullpath) : array {
         $text = app::getInstance('filesystem_local')->fileRead($fullpath);

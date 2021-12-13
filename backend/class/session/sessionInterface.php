@@ -17,7 +17,6 @@ interface sessionInterface {
 
     /**
      * Ends the session the current user is in
-     * @return multitype
      */
     public function destroy();
 

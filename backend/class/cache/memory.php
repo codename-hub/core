@@ -185,7 +185,7 @@ class memory extends \codename\core\cache {
 
     /**
      * I will return all cache keys from the cacheserver
-     * @return unknown
+     * @return array
      */
     public function getAllKeys() {
       //

@@ -51,7 +51,6 @@ class text extends \codename\core\validator {
      * @param int $maxlength
      * @param string $allowedchars
      * @param string $forbiddenchars
-     * @return validator
      */
     public function __CONSTRUCT(bool $nullAllowed = false, int $minlength = 0, int $maxlength = 0, string $allowedchars = '', string $forbiddenchars = '') {
         parent::__CONSTRUCT($nullAllowed);
@@ -127,7 +126,7 @@ class text extends \codename\core\validator {
 
     /**
      * Returns the minimum length property
-     * @return Ambigous int
+     * @return int
      */
     protected function getMinlength() : int {
         return (int) $this->minlength;
@@ -135,7 +134,7 @@ class text extends \codename\core\validator {
 
     /**
      * Returns the max length property
-     * @return Ambigous int
+     * @return int
      */
     protected function getMaxlength() : int {
         return $this->maxlength;

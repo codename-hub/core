@@ -11,7 +11,7 @@ interface errorstackInterface {
     /**
      * Adds a new error to the array of errors in the instance
      * @param string $code
-     * @param multitype $detail
+     * @param mixed|null $detail
      * @return \codename\core\errorstack
      * @access public
      */

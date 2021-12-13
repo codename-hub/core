@@ -9,8 +9,8 @@ use codename\core\exception;
 class mysql implements \codename\core\model\plugin\managedFilterInterface
 {
   /**
-   * $field that is used to filter data from the model
-   * @var \codename\core\value\text\modelfield[] $field
+   * $fields that are used to filter data from the model
+   * @var \codename\core\value\text\modelfield[]
    */
   public $fields = null;
 

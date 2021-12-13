@@ -10,15 +10,15 @@ interface validatorInterface {
 
     /**
      * Sends the $value to the instance and performs validation by calling the validateValue function. Returns the array of erros.
-     * @param multitype $value
+     * @param mixed|null $value
      * @return array
      */
     public function validate($value) : array;
 
     /**
      * Sends the $value to the validate function and returns true, if the array of errors is empty.
-     * @param multitype $value
-     * @return boolean
+     * @param mixed|null $value
+     * @return bool
      */
     public function isValid($value) : bool;
 

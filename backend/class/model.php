@@ -242,13 +242,13 @@ abstract class model implements \codename\core\model\modelInterface {
 
     /**
      * Contains the instance of the limitation data for the model request
-     * @var model_plugin_limit $limit
+     * @var model\plugin\limit
      */
     protected $limit = null;
 
     /**
      * Contains the instance of the offset data for the model request
-     * @var model_plugin_offset
+     * @var model\plugin\offset
      */
     protected $offset = null;
 
@@ -376,7 +376,7 @@ abstract class model implements \codename\core\model\modelInterface {
     /**
      * I will set the given $field's value to $value of the previously loaded dataset / entry.
      * @param \codename\core\value\text\modelfield $field
-     * @param multitype $value
+     * @param mixed|null $value
      * @throws \codename\core\exception
      * @return \codename\core\model
      */
@@ -395,7 +395,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * I will return the given $field's value of the previously loaded dataset.
      * @param \codename\core\value\text\modelfield $field
      * @throws \codename\core\exception
-     * @return \codename\core\multitype
+     * @return mixed|null
      */
     public function fieldGet(\codename\core\value\text\modelfield $field) {
         if(!$this->fieldExists($field)) {
@@ -1627,9 +1627,7 @@ abstract class model implements \codename\core\model\modelInterface {
     }
 
     /**
-     *
-     * {@inheritDoc}
-     * @see \codename\core\model_interface::loadByUnique($field, $primaryKey)
+     * @inheritDoc
      */
     public function loadByUnique(string $field, string $value) : array {
         $data = $this->addFilter($field, $value, '=')->setLimit(1);
@@ -2192,7 +2190,7 @@ abstract class model implements \codename\core\model\modelInterface {
      * Returns the given $flagname's flag integer value
      * @param string $flagname
      * @throws \codename\core\exception
-     * @return NULL|\codename\core\multitype
+     * @return mixed|null
      * @deprecated
      */
     public function getFlag(string $flagname) {
@@ -2222,8 +2220,8 @@ abstract class model implements \codename\core\model\modelInterface {
     /**
      * Converts the storage format into a human readible format
      * @param \codename\core\value\text\modelfield $field
-     * @param unknown $value
-     * @return multitype
+     * @param mixed|null $value
+     * @return mixed|null
      */
     public function exportField(\codename\core\value\text\modelfield $field, $value = null) {
         if(is_null($value)) {
@@ -2845,8 +2843,8 @@ abstract class model implements \codename\core\model\modelInterface {
     /**
      * Converts the given field and it's value from a human readible format into a storage format
      * @param \codename\core\value\text\modelfield $field
-     * @param unknown $value
-     * @return multitype
+     * @param mixed|null $value
+     * @return mixed|null
      */
     protected function importField(\codename\core\value\text\modelfield $field, $value = null) {
         $fieldType = $this->importFieldTypeCache[$field->get()] ?? $this->importFieldTypeCache[$field->get()] = $this->getFieldtype($field);

@@ -50,7 +50,7 @@ class date extends \codename\core\helper {
     /**
      * This method will return the given $timestamp's last day of month as a timestamp.
      * @param int $timestamp
-     * @return string 
+     * @return int
      */
     public static function getLastDayOfMonthByTimestampAsTimestamp(int $timestamp) : int {
         return strtotime(date('Y-m-t', $timestamp));
@@ -60,7 +60,7 @@ class date extends \codename\core\helper {
      * This method will return the given $timestamp's month's last day as timestamp
      * @param int $year
      * @param int $month
-     * @return string
+     * @return int
      */
     public static function getLastDayOfMonthByYearAndMonthAsTimestamp(int $year, int $month) : int {
         return self::getLastDayOfMonthByTimestampAsTimestamp(strtotime("{$year}-{$month}-01"));

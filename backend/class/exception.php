@@ -26,7 +26,7 @@ class exception extends \Exception {
      * Create an errormessage that will stop execution of this request.
      * @param string $code
      * @param int $level
-     * @param multitype $info
+     * @param mixed $info
      */
     public function __CONSTRUCT(string $code, int $level, $info = null) {
 

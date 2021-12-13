@@ -11,7 +11,7 @@ class catchableException extends \codename\core\exception {
      * Create an errormessage
      * @param string $code
      * @param int $levels
-     * @param multitype $info
+     * @param mixed|null $info
      */
     public function __CONSTRUCT(string $code, int $level, $info = null) {
       $this->message = $this->translateExceptionCode($code);

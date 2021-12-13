@@ -21,11 +21,6 @@ class email extends \codename\core\validator\text implements \codename\core\vali
 
     /**
      * @param bool $nullAllowed
-     * @param int $minlength
-     * @param int $maxlength
-     * @param string $allowedchars
-     * @param string $forbiddenchars
-     * @return validator
      */
     public function __CONSTRUCT(bool $nullAllowed = false) {
         return parent::__CONSTRUCT($nullAllowed, 0,64, '', '*');

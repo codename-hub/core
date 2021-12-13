@@ -8,13 +8,13 @@ namespace codename\core;
  * @since 2016-04-13
  */
 class config {
-    
+
     /**
      * That's where I save all my data in
      * @var array $data
      */
     protected $data = array();
-    
+
     /**
      * Create your instance and pass the first key collection as an array.
      * @param array $data
@@ -29,14 +29,15 @@ class config {
      * Return the value of the given key. Either pass a direct name, or use a tree to navigate through the data array
      * <br /> ->get('my>config>key')
      * @param string $key
-     * @return multitype
+     * @param mixed|null $default
+     * @return mixed|null
      */
     public function get(string $key = '', $default = null) {
         // Try returning the desired key
         if(strlen($key) == 0) {
             return $this->data;
         }
-    
+
         // straight text key
         if(strpos($key, '>') === false) {
             if(array_key_exists($key, $this->data)) {
@@ -44,7 +45,7 @@ class config {
             }
             return $default;
         }
-    
+
         // tree key
         $myConfig = $this->data;
         foreach(explode('>', $key) as $myKey) {
@@ -53,10 +54,10 @@ class config {
             }
             $myConfig = $myConfig[$myKey];
         }
-    
+
         return $myConfig;
     }
-    
+
     /**
      * Returns true if the $key (or tree) exists in this instance's data property
      * @param string $key
@@ -65,5 +66,5 @@ class config {
     public function exists(string $key) : bool {
         return !is_null($this->get($key));
     }
-    
+
 }

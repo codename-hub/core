@@ -10,49 +10,49 @@ abstract class log implements \codename\core\log\logInterface {
 
     /**
      * Contains the emergency log level number
-     * @var number
+     * @var int
      */
     CONST EMERGENCY = 5;
 
     /**
      * Contains the alert log level number
-     * @var number
+     * @var int
      */
     CONST ALERT = 4;
 
     /**
      * Contains the critical log level number
-     * @var number
+     * @var int
      */
     CONST CRITICAL = 3;
 
     /**
      * Contains the error log level number
-     * @var number
+     * @var int
      */
     CONST ERROR = 2;
 
     /**
      * Contains the warning log level number
-     * @var number
+     * @var int
      */
     CONST WARNING = 1;
 
     /**
      * Contains the notice log level number
-     * @var number
+     * @var int
      */
     CONST NOTICE = 0;
 
     /**
      * Contains the info log level number
-     * @var number
+     * @var int
      */
     CONST INFO = -1;
 
     /**
      * Contains the debug log level number
-     * @var number
+     * @var int
      */
     CONST DEBUG = -2;
 

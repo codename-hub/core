@@ -5,8 +5,8 @@ interface valueInterface {
 
     /**
      * This method will releive the contents of the instance
-     * @return multitype
+     * @return
      */
     public function get();
-    
+
 }

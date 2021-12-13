@@ -40,7 +40,7 @@ class xml2array {
      * Convert an XML to Array
      * @param string $node_name - name of the root node to be converted
      * @param array $arr - aray to be converterd
-     * @return DOMDocument
+     * @return \DOMDocument
      */
     public static function &createArray($input_xml) {
         $xml = self::getXMLRoot();

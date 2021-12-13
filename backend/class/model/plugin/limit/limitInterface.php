@@ -10,9 +10,8 @@ interface limitInterface {
 
     /**
      * Creates the limit plugin and sets the important data ($limit)
-     * @param integer $limit
-     * @return \codename\core\model_plugin_offset
+     * @param int $limit
      */
     public function __CONSTRUCT(int $limit);
-    
+
 }

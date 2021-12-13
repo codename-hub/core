@@ -249,7 +249,7 @@ class hook {
     /**
      * Fires all the callbacks that are stored under the given $name
      * @param string $name
-     * @return multitype
+     * @return mixed|null
      */
     public function fire(string $name, $arguments = null) {
         $ret = null;

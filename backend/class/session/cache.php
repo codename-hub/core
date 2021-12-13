@@ -53,7 +53,7 @@ class cache extends \codename\core\session {
      * Return the value of the given key. Either pass a direct name, or use a tree to navigate through the data set
      * <br /> ->get('my>config>key')
      * @param string $key
-     * @return multitype
+     * @return mixed|null
      */
     public function getData(string $key = '') {
         $this->makeData();

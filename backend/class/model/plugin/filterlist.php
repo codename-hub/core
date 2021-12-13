@@ -22,14 +22,14 @@ class filterlist extends \codename\core\model\plugin implements \codename\core\m
 
     /**
      * Contains the $operator for the $field
-     * @var unknown $operator
+     * @var string
      */
     public $operator = "=";
 
     /**
      * the conjunction to be used (AND, OR, XOR, ...)
      * may be null
-     * @var string $conjunction
+     * @var string
      */
     public $conjunction = null;
 

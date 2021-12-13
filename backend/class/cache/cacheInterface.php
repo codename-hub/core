@@ -12,7 +12,7 @@ interface cacheInterface {
      * Returns the value of the cache element identified by $group and $key. Returns null if the key cannot be found.
      * @param string $group
      * @param string $key
-     * @return multitype
+     * @return mixed|null
      * @access public
      */
     public function get(string $group, string $key) ;
@@ -21,7 +21,7 @@ interface cacheInterface {
      * Stores the given $value in the cache. It is identified by it's $key and the $group. You can clear whole groups or only the $key
      * @param string $group
      * @param string $key
-     * @param unknown $value
+     * @param mixed|null $value
      * @return void
      * @access public
      */
@@ -40,7 +40,7 @@ interface cacheInterface {
      * Clears the cache element identified by $key in $group.
      * @param string $group
      * @param string $key
-     * @return boolean
+     * @return bool
      * @access public
      */
     public function clearKey(string $group, string $key) ;

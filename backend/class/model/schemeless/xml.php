@@ -27,7 +27,6 @@ abstract class xml extends \codename\core\model\schemeless implements \codename\
     /**
      * Creates an instance
      * @param array $modeldata
-     * @return model
      * @todo refactor the constructor for no method args
      */
     public function __CONSTRUCT(array $modeldata) {

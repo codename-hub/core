@@ -15,7 +15,6 @@ interface filterInterface {
      * @param \codename\core\value\text\modelfield $field
      * @param string $value
      * @param string $operator
-     * @return \codename\core\model_plugin_filter
      */
     public function __CONSTRUCT(\codename\core\value\text\modelfield $field, $value = null, string $operator);
 

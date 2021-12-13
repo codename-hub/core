@@ -15,8 +15,8 @@ class value implements \codename\core\value\valueInterface {
     CONST EXCEPTION_CONSTRUCT_INVALIDDATATYPE = 'EXCEPTION_CONSTRUCT_INVALIDDATATYPE';
 
     /**
-     * I containt the precise value
-     * @var multitype
+     * I contain the precise value
+     * @var mixed|null
      */
     protected $value = null;
 
@@ -28,8 +28,7 @@ class value implements \codename\core\value\valueInterface {
 
     /**
      * I will set in the value
-     * @param multitype $value
-     * @return \codename\core\type
+     * @param mixed|null $value
      */
     public function __construct($value) {
         if(count($errors = \codename\core\app::getValidator($this->validator)->reset()->validate($value)) > 0) {

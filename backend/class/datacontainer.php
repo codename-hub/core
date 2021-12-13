@@ -27,7 +27,7 @@ class datacontainer {
     /**
      * Stores the given $data value under the given $key in this instance's data property
      * @param string $key
-     * @param unknown $data
+     * @param mixed|null $data
      */
     public function setData(string $key, $data) {
         if(strlen($key) == 0) {
@@ -68,7 +68,7 @@ class datacontainer {
      * Return the value of the given key. Either pass a direct name, or use a tree to navigate through the data set
      * <br /> ->get('my>config>key')
      * @param string $key
-     * @return multitype
+     * @return mixed|null
      */
     public function getData(string $key = '') {
         if(\strlen($key) == 0) {
@@ -96,6 +96,7 @@ class datacontainer {
     /**
      * Returns true if there is a value with name $key in this instance's data set
      * @param string $key
+     * @return bool
      */
     public function isDefined(string $key) : bool {
         if(\strpos($key, '>') === false) {

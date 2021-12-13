@@ -35,7 +35,7 @@ class api {
     /**
      * Return the version string
      * NOTE: this relies on URI-based API-Versioning!
-     * 
+     *
      * @example "v1"
      * @return string
      */
@@ -61,7 +61,7 @@ class api {
 
     /**
      * Is a helper for the printAnswer function that fills the data
-     * @param unknown $data
+     * @param mixed $data
      * @return void
      */
     protected function printSuccess($data) {

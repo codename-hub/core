@@ -10,9 +10,8 @@ interface offsetInterface {
 
     /**
      * Creates the offset plugin and sets the important data ($offset)
-     * @param integer $offset
-     * @return \codename\core\model_plugin_offset
+     * @param int $offset
      */
     public function __CONSTRUCT(int $offset);
-    
+
 }

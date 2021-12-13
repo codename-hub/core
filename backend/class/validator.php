@@ -28,7 +28,6 @@ class validator implements \codename\core\validator\validatorInterface {
 
     /**
      * @param bool $nullAllowed
-     * @return validator
      */
     public function __CONSTRUCT(bool $nullAllowed = true) {
         $this->errorstack = new \codename\core\errorstack('VALIDATION');
@@ -58,7 +57,7 @@ class validator implements \codename\core\validator\validatorInterface {
 
     /**
      * Performs validation and directly returns the state of validation (true/false)
-     * @param unknown $value
+     * @param mixed|null $value
      * @return bool
      */
     final public function isValid($value) : bool {

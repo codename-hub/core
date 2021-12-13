@@ -22,11 +22,7 @@ class eventHandler
   }
 
   /**
-   * invoke the stored function in this eventhandler
-   * @return multitype
-   */
-  /**
-   * [invoke description]
+  *  invoke the stored function in this eventhandler
    * @param  mixed|null  $sender    [description]
    * @param  mixed|null  $arguments [description]
    * @return mixed|null             [description]

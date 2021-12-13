@@ -10,7 +10,7 @@ class filter extends \codename\core\model\plugin implements \codename\core\model
 
     /**
      * $field that is used to filter data from the model
-     * @var \codename\core\value\text\modelfield $field
+     * @var \codename\core\value\text\modelfield
      */
     public $field = null;
 
@@ -22,14 +22,14 @@ class filter extends \codename\core\model\plugin implements \codename\core\model
 
     /**
      * Contains the $operator for the $field
-     * @var unknown $operator
+     * @var string
      */
     public $operator = "=";
 
     /**
      * the conjunction to be used (AND, OR, XOR, ...)
      * may be null
-     * @var string $conjunction
+     * @var string
      */
     public $conjunction = null;
 

@@ -32,7 +32,8 @@ class codename extends \codename\core\api {
     /**
      * Contains the CURL Handler for the next request
      * <br />Is used to handle HTTP(s) requests for retrieving and sending data from the foreign service
-     * @var \curl
+     * @todo: as of PHP8 \CurlHandle instead of regular resource
+     * @var resource
      */
     protected $curlHandler;
 
@@ -80,7 +81,6 @@ class codename extends \codename\core\api {
     /**
      * Create instance
      * @param array $data
-     * @return \codename\core\api_codename
      */
     public function __CONSTRUCT(array $data) {
         $this->errorstack = new \codename\core\errorstack($this->type);
@@ -144,7 +144,7 @@ class codename extends \codename\core\api {
      * Adds another key to the data array of this instance.
      * <br />Will check for the forbiddenpostfields here and do nothing if the field's $name is forbidden
      * @param string $name
-     * @param multitype $value
+     * @param mixed|null $value
      * @return void
      */
     public function addData(string $name, $value) {

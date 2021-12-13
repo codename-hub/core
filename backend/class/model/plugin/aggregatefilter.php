@@ -22,7 +22,7 @@ class aggregatefilter extends \codename\core\model\plugin implements \codename\c
 
     /**
      * Contains the $operator for the $field
-     * @var unknown $operator
+     * @var string $operator
      */
     public $operator = "=";
 

@@ -11,19 +11,19 @@ class errorstack implements \codename\core\errorstack\errorstackInterface, \Json
 
     /**
      * Contains all the errors in this stack
-     * @var array $client
+     * @var array
      */
     protected $errors = array();
 
     /**
      * Contains the type of the errors in this stack
-     * @var unknown $type
+     * @var string $type
      */
     protected $type = 'error';
 
     /**
      * Contains an action that will be executed when an error is added
-     * @var function
+     * @var callable|null
      */
     protected $callback = null;
 
