@@ -47,11 +47,11 @@ class xml2array {
         if(is_string($input_xml)) {
             $parsed = $xml->loadXML($input_xml);
             if(!$parsed) {
-                throw new Exception('[xml2array] Error parsing the XML string.');
+                throw new \Exception('[xml2array] Error parsing the XML string.');
             }
         } else {
             if(get_class($input_xml) != 'DOMDocument') {
-                throw new Exception('[xml2array] The input XML object should be of type: DOMDocument.');
+                throw new \Exception('[xml2array] The input XML object should be of type: DOMDocument.');
             }
             $xml = self::$xml = $input_xml;
         }

@@ -80,7 +80,7 @@ class array2xml {
             if(isset($arr['@attributes'])) {
                 foreach($arr['@attributes'] as $key => $value) {
                     if(!self::isValidTagName($key)) {
-                        throw new Exception('[array2xml] Illegal character in attribute name. attribute: '.$key.' in node: '.$node_name);
+                        throw new \Exception('[array2xml] Illegal character in attribute name. attribute: '.$key.' in node: '.$node_name);
                     }
                     $node->setAttribute($key, self::bool2str($value));
                 }
@@ -107,7 +107,7 @@ class array2xml {
             // recurse to get the node for that key
             foreach($arr as $key=>$value){
                 if(!self::isValidTagName($key)) {
-                    throw new Exception('CODENAME_CORE_BACKEND_CLASS_ARRAY2XML_&CONVERT::ILLEGAL_CHARACTER', \codename\core\exception::$ERRORLEVEL_FATAL, "[array2xml] Illegal character in tag name. tag: '.$key.' in node: '.$node_name");
+                    throw new exception('CODENAME_CORE_BACKEND_CLASS_ARRAY2XML_&CONVERT::ILLEGAL_CHARACTER', \codename\core\exception::$ERRORLEVEL_FATAL, "[array2xml] Illegal character in tag name. tag: '.$key.' in node: '.$node_name");
                 }
                 if(is_array($value) && is_numeric(key($value))) {
                     // MORE THAN ONE NODE OF ITS KIND;
