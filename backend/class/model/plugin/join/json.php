@@ -73,8 +73,8 @@ class json extends \codename\core\model\plugin\join implements \codename\core\mo
       $found = false;
 
       if($this->joinByArrayKey) {
-        if(isset($rightValue[$leftValue[$leftField]])) {
-          $leftValue = array_merge($leftValue, $rightValue[$leftValue[$leftField]]);
+        if(isset($right[$leftValue[$leftField]])) {
+          $leftValue = array_merge($leftValue, $right[$leftValue[$leftField]]);
           $found = true;
         }
 
