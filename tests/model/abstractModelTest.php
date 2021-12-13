@@ -1395,6 +1395,48 @@ abstract class abstractModelTest extends base {
     $this->assertEquals(null, $res[1]['table2_value']);
   }
 
+  public function testTimemachineHistory(): void {
+    $model = $this->getTimemachineEnabledModel('testdata');
+    $model->save([
+      'testdata_text'     => 'tm_history',
+      'testdata_integer'  => 5555,
+    ]);
+    $tsAtCreation = \codename\core\helper\date::getCurrentTimestamp();
+    $id = $model->lastInsertId();
+    $this->assertNotEmpty($model->load($id));
+
+    $timemachine = new \codename\core\timemachine($model);
+
+    $this->assertEmpty($timemachine->getDeltaData($id, 0), 'Timemachine deltas should be empty at this point');
+    $this->assertEmpty($timemachine->getHistory($id), 'Timemachine history should be empty at this point');
+
+    // Emulate next second.
+    sleep(1);
+
+    $model->save([
+      'testdata_id'       => $id,
+      'testdata_integer'  => 5556,
+    ]);
+    $tsAtUpdate = \codename\core\helper\date::getCurrentTimestamp();
+
+    // Emulate next second.
+    sleep(1);
+    $tsAfterUpdate = \codename\core\helper\date::getCurrentTimestamp();
+
+    $this->assertEmpty($timemachine->getDeltaData($id, $tsAfterUpdate), 'Timemachine deltas should be empty due to late reference TS');
+    $this->assertNotEmpty($timemachine->getDeltaData($id, $tsAtCreation), 'Timemachine deltas should include the history');
+
+    $this->assertEquals(5555, $timemachine->getHistoricData($id, $tsAtCreation)['testdata_integer']);
+
+    $tsBeforeDelete = \codename\core\helper\date::getCurrentTimestamp();
+
+    $model->delete($id);
+    $this->assertEmpty($model->load($id));
+
+    // Ensure we have an entry for a deleted record
+    $this->assertEquals(5556, $timemachine->getHistoricData($id, $tsBeforeDelete)['testdata_integer']);
+  }
+
   /**
    * [testDeleteSinglePkeyTimemachineEnabled description]
    */

@@ -4,7 +4,7 @@ namespace codename\core;
 use \codename\core\model\timemachineInterface;
 use \codename\core\model\timemachineModelInterface;
 
-use codename\rest\app;
+use codename\core\app;
 
 /**
  * timemachine
@@ -121,7 +121,7 @@ class timemachine {
       $h = $state[$this->timemachineModel->getIdentifier() . '_data'];
       foreach($h as $key => $value) {
         if(!in_array($key, $excludedFields)) {
-          if((!array_key_exists($key, $delta)) || ($data[$key] != $value)) {
+          if((!array_key_exists($key, $delta)) || ($delta[$key] != $value)) { // TODO: CHECK
             // value differs or even the key doesn't exist
             $delta[$key] = $value;
           }
