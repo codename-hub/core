@@ -716,7 +716,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
                 }
                 $contexttype = (new \codename\core\config\json('config/context/' . $config['context'][$key]['type'] . '.json', true))->get();
 
-                if(count(self::getValidator('structure_config_context')->validate($contexttype)) > 0) {
+                if(count($errors = static::getValidator('structure_config_context')->reset()->validate($contexttype)) > 0) {
                     throw new \codename\core\exception(self::EXCEPTION_GETCONFIG_APPCONFIGCONTEXTTYPEINVALID, \codename\core\exception::$ERRORLEVEL_FATAL, $errors);
                 }
 
@@ -727,7 +727,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
                 }
             }
 
-            if (count($errors = self::getValidator('structure_config_app')->validate($config)) > 0) {
+            if (count($errors = static::getValidator('structure_config_app')->reset()->validate($config)) > 0) {
                 throw new \codename\core\exception(self::EXCEPTION_GETCONFIG_APPCONFIGFILEINVALID, \codename\core\exception::$ERRORLEVEL_FATAL, $errors);
             }
 
@@ -1239,7 +1239,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
             return $this;
         }
 
-        if(count($errors = self::getValidator('text_methodname')->validate($action)) > 0) {
+        if(count($errors = static::getValidator('text_methodname')->reset()->validate($action)) > 0) {
             throw new \codename\core\exception(self::EXCEPTION_DOACTION_ACTIONNAMEISINVALID, \codename\core\exception::$ERRORLEVEL_FATAL, $errors);
         }
 
@@ -1265,7 +1265,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     protected function doView() : \codename\core\app {
         $view = $this->getRequest()->getData('view');
 
-        if(count(self::getValidator('text_methodname')->validate($view)) > 0) {
+        if(count($errors = static::getValidator('text_methodname')->reset()->validate($view)) > 0) {
             throw new \codename\core\exception(self::EXCEPTION_DOVIEW_VIEWNAMEISINVALID, \codename\core\exception::$ERRORLEVEL_FATAL, $errors);
         }
 
@@ -1293,7 +1293,7 @@ abstract class app extends \codename\core\bootstrap implements \codename\core\ap
     protected function getContext() : \codename\core\context {
         $context = self::getRequest()->getData('context');
 
-        if(count($errors = self::getValidator('text_methodname')->validate($context)) > 0) {
+        if(count($errors = static::getValidator('text_methodname')->reset()->validate($context)) > 0) {
             throw new \codename\core\exception(self::EXCEPTION_GETCONTEXT_CONTEXTNAMEISINVALID, \codename\core\exception::$ERRORLEVEL_FATAL, $errors);
         }
 

@@ -1,5 +1,6 @@
 <?php
 namespace codename\core\validator\structure\upload;
+
 use \codename\core\app;
 
 /**
@@ -21,7 +22,7 @@ class image extends \codename\core\validator\structure\upload implements \codena
             return $this->errorstack->getErrors();
         }
 
-        if(count(app::getValidator('file_image')->validate($value['tmp_name'])) > 0) {
+        if(count($errors = app::getValidator('file_image')->reset()->validate($value['tmp_name'])) > 0) {
             $this->errorstack->addError('VALUE', 'IMAGE_INVALID', $errors);
             return $this->errorstack->getErrors();
         }
