@@ -1,19 +1,20 @@
 <?xml version="1.0"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="tests/autoload.php" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
+<phpunit
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.0/phpunit.xsd"
+  bootstrap="tests/autoload.php"
+  cacheDirectory=".phpunit.cache"
+  colors="true"
+>
   <php>
-    <ini name="memory_limit" value="4G" />
-    <!-- on error 255 (especially during coverage), enable error logging -->
-    <!-- <ini name="log_errors" value="On" />
-    <ini name="error_log" value="/usr/var/workspace/php-errors.log" /> -->
+    <ini name="memory_limit" value="4G"/>
   </php>
-  <coverage processUncoveredFiles="true">
+  <coverage>
     <include>
       <directory suffix=".php">backend/class/</directory>
     </include>
     <report>
-      <html outputDirectory=".phpunit/coverage-html" />
-      <!-- <clover outputFile=".phpunit/coverage.clover.xml" /> -->
-      <cobertura outputFile=".phpunit/coverage.cobertura.xml" />
+      <html outputDirectory=".phpunit/coverage-html"/>
     </report>
   </coverage>
   <testsuites>
@@ -53,6 +54,6 @@
   </testsuites>
   <logging>
     <!-- required for AWS CodeBuild reports -->
-    <junit outputFile=".phpunit/report.junit.xml" />
+    <junit outputFile=".phpunit/report.junit.xml"/>
   </logging>
 </phpunit>

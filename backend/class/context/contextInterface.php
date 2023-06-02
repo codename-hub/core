@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core\context;
 
 /**
@@ -6,13 +7,12 @@ namespace codename\core\context;
  * @package core
  * @since 2016-04-05
  */
-interface contextInterface {
-
+interface contextInterface
+{
     /**
      * Returns true if the given security action succeeds
      * @return bool
      * @access public
      */
-    public function isAllowed() : bool;
-
+    public function isAllowed(): bool;
 }

@@ -1,15 +1,18 @@
 <?php
+
 namespace codename\core\validator\text;
 
-class dummy extends \codename\core\validator\text implements \codename\core\validator\validatorInterface {
+use codename\core\validator\text;
+use codename\core\validator\validatorInterface;
 
+class dummy extends text implements validatorInterface
+{
     /**
      * @param bool $nullAllowed
      */
-    public function __CONSTRUCT(bool $nullAllowed = false) {
-        parent::__CONSTRUCT($nullAllowed, 0, 0, '', '');
+    public function __construct(bool $nullAllowed = false)
+    {
+        parent::__construct($nullAllowed);
         return $this;
     }
-
-
 }

@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core\model\plugin;
 
 /**
@@ -7,12 +8,12 @@ namespace codename\core\model\plugin;
  */
 interface sqlCteStatementInterface
 {
-  /**
-   * [getSqlCteStatement description]
-   * @param  string $cteName [description]
-   * @param  array  &$params [PDO params tracking]
-   * @param  string|null $refAlias
-   * @return string          [description]
-   */
-  function getSqlCteStatement(string $cteName, array &$params, string $refAlias = null): string;
+    /**
+     * [getSqlCteStatement description]
+     * @param string $cteName [description]
+     * @param array  &$params [PDO params tracking]
+     * @param string|null $refAlias
+     * @return string          [description]
+     */
+    public function getSqlCteStatement(string $cteName, array &$params, string $refAlias = null): string;
 }

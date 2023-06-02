@@ -1,5 +1,5 @@
 {
-  "extensions" : [
+  "extensions": [
     "codename_core_tests_extension_exampleextension"
   ],
   "defaultcontext": "testcontext",

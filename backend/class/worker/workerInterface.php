@@ -1,42 +1,44 @@
 <?php
+
 namespace codename\core\worker;
 
-interface workerInterface {
-    
+interface workerInterface
+{
     /**
      * I start the worker
+     * @param string $class
      * @return void
      */
-    public function start(string $class);
-    
+    public function start(string $class): void;
+
     /**
      * I stop the worker
      * @return void
      */
-    public function stop();
-    
+    public function stop(): void;
+
     /**
      * I pause the worker
      * @return void
      */
-    public function pause();
-    
+    public function pause(): void;
+
     /**
      * I resume the worker
      * @return void
      */
-    public function resume();
-    
+    public function resume(): void;
+
     /**
-     * I skip the current queue entry 
+     * I skip the current queue entry
      * @return void
      */
-    public function skip();
-    
+    public function skip(): void;
+
     /**
      * I work the given entry
+     * @param array $queue
      * @return void
      */
-    public function work(array $queue);
-    
+    public function work(array $queue): void;
 }

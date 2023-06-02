@@ -1,6 +1,9 @@
 <?php
+
 namespace codename\core\value;
 
-class text extends \codename\core\value {
-    
+use codename\core\value;
+
+class text extends value
+{
 }

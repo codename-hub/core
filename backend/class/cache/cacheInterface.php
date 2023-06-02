@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core\cache;
 
 /**
@@ -6,26 +7,27 @@ namespace codename\core\cache;
  * @package core
  * @since 2016-04-05
  */
-interface cacheInterface {
-
+interface cacheInterface
+{
     /**
      * Returns the value of the cache element identified by $group and $key. Returns null if the key cannot be found.
      * @param string $group
      * @param string $key
-     * @return mixed|null
+     * @return mixed
      * @access public
      */
-    public function get(string $group, string $key) ;
+    public function get(string $group, string $key): mixed;
 
     /**
-     * Stores the given $value in the cache. It is identified by it's $key and the $group. You can clear whole groups or only the $key
+     * Stores the given $value in the cache. It is identified by its $key and the $group. You can clear whole groups or only the $key
      * @param string $group
      * @param string $key
-     * @param mixed|null $value
+     * @param mixed $value
+     * @param int|null $timeout
      * @return void
      * @access public
      */
-    public function set(string $group, string $key, $value = null, int $timeout = null) ;
+    public function set(string $group, string $key, mixed $value = null, int $timeout = null): void;
 
     /**
      * Returns true if there is a cache entry identified by $group and $key.
@@ -34,7 +36,7 @@ interface cacheInterface {
      * @return bool
      * @access public
      */
-    public function isDefined(string $group, string $key) : bool ;
+    public function isDefined(string $group, string $key): bool;
 
     /**
      * Clears the cache element identified by $key in $group.
@@ -43,28 +45,27 @@ interface cacheInterface {
      * @return bool
      * @access public
      */
-    public function clearKey(string $group, string $key) ;
+    public function clearKey(string $group, string $key): bool;
 
 
     /**
      * Clears the given $key on the cache service
      * @param string $key
-     * @return void
+     * @return bool
      */
-    public function clear(string $key);
+    public function clear(string $key): bool;
 
     /**
      * Completely clears the given cache $group on the cache server.
      * @param string $group
-     * @return void
+     * @return bool
      * @access public
      */
-    public function clearGroup(string $group);
+    public function clearGroup(string $group): bool;
 
     /**
      * flushes the whole cache
-     * @return void
+     * @return bool
      */
-    public function flush();
-
+    public function flush(): bool;
 }

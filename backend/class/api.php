@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core;
 
 /**
@@ -6,29 +7,29 @@ namespace codename\core;
  * @package core
  * @since 2016-04-05
  */
-class api {
-
+class api
+{
     /**
      * Instance of the well-known errorstack class
-     * @var \codename\core\errorstack
+     * @var errorstack
      */
     protected $errorstack;
 
     /**
      * Holds application data
-     * @var \codename\core\datacontainer
+     * @var datacontainer
      */
-    protected $application;
+    protected datacontainer $application;
 
     /**
      * @-param string $header_app
      * @-param string $header_auth
      * @-param string $header_token
-     * @return \codename\core\api
+     * @return api
      */
-    public function __construct() {
-        $this->errorstack = new \codename\core\errorstack($this->type);
-        // $this->application = $application;
+    public function __construct()
+    {
+        $this->errorstack = new errorstack($this->type);
         return $this;
     }
 
@@ -36,24 +37,26 @@ class api {
      * Return the version string
      * NOTE: this relies on URI-based API-Versioning!
      *
-     * @example "v1"
      * @return string
+     * @example "v1"
      */
-    public static function getVersion() : string {
+    public static function getVersion(): string
+    {
         return explode('/', $_SERVER['REQUEST_URI'])[1];
     }
 
     /**
      * Return the endpoint of the request
-     * @example $host/v1/user/disable?...  will return the endpoint "UserDisable"
      * @return string
+     * @example $host/v1/user/disable?...  will return the endpoint "UserDisable"
      */
-    public static function getEndpoint() : string {
-        $endpoints =  explode('/', explode('?', $_SERVER['REQUEST_URI'])[0]);
+    public static function getEndpoint(): string
+    {
+        $endpoints = explode('/', explode('?', $_SERVER['REQUEST_URI'])[0]);
         unset($endpoints[1]);
 
         $ret = '';
-        foreach($endpoints as $endpoint) {
+        foreach ($endpoints as $endpoint) {
             $ret .= ucfirst($endpoint);
         }
         return $ret;
@@ -63,26 +66,15 @@ class api {
      * Is a helper for the printAnswer function that fills the data
      * @param mixed $data
      * @return void
+     * @throws exception
      */
-    protected function printSuccess($data) {
-        return $this->printAnswer(array(
-                'success' => 1,
-                'data' => $data
-            )
-        );
-    }
-
-    /**
-     * Is a helper for the printAnswer function that adds the 'error' key and fills it with the errorstack's content
-     * @param array $data
-     * @return void
-     */
-    protected function printError($data = array()) {
-        return $this->printAnswer(array(
-                'success' => 0,
-                'data' => $data,
-                'errors' => $this->errorstack->getErrors()
-            )
+    protected function printSuccess(mixed $data): void
+    {
+        $this->printAnswer(
+            [
+              'success' => 1,
+              'data' => $data,
+            ]
         );
     }
 
@@ -90,12 +82,29 @@ class api {
      * Outputs the JSON answer and ends the execution
      * @param array $data
      * @return void
+     * @throws exception
      */
-    protected function printAnswer(array $data) {
+    protected function printAnswer(array $data): void
+    {
         app::getResponse()->setHeader('Content-Type: application/json');
         echo json_encode($data);
         exit;
-        return;
     }
 
+    /**
+     * Is a helper for the printAnswer function that adds the 'error' key and fills it with the errorstack content
+     * @param array $data
+     * @return void
+     * @throws exception
+     */
+    protected function printError(array $data = []): void
+    {
+        $this->printAnswer(
+            [
+              'success' => 0,
+              'data' => $data,
+              'errors' => $this->errorstack->getErrors(),
+            ]
+        );
+    }
 }

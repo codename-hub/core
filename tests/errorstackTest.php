@@ -1,48 +1,50 @@
 <?php
+
 namespace codename\core\tests;
+
+use codename\core\errorstack;
 
 /**
  * Test some errorstack functionality
  */
-class errorstackTest extends base {
+class errorstackTest extends base
+{
+    /**
+     * @return void
+     */
+    public function testErrorstack(): void
+    {
+        $errorstack = new errorstack('example');
 
-  /**
-   * [testErrorstack description]
-   */
-  public function testErrorstack(): void {
-    $errorstack = new \codename\core\errorstack('example');
+        static::assertEquals([], $errorstack->jsonSerialize());
+        static::assertTrue($errorstack->isSuccess());
 
-    $this->assertEquals([], $errorstack->jsonSerialize());
-    $this->assertTrue($errorstack->isSuccess());
+        $errorstack->addError('example', 'test', 'lalelu');
+        $errorstack->addErrors($errorstack->getErrors());
 
-    $errorstack->addError('example', 'test', 'lalelu');
-    $errorstack->addErrors($errorstack->getErrors());
+        static::assertEquals([
+          [
+            '__IDENTIFIER' => 'example',
+            '__CODE' => 'EXAMPLE.test',
+            '__TYPE' => 'EXAMPLE',
+            '__DETAILS' => 'lalelu',
+          ],
+          [
+            '__IDENTIFIER' => 'example',
+            '__CODE' => 'EXAMPLE.test',
+            '__TYPE' => 'EXAMPLE',
+            '__DETAILS' => 'lalelu',
+          ],
+        ], $errorstack->getErrors());
 
-    $this->assertEquals([
-      [
-        '__IDENTIFIER'  => 'example',
-        '__CODE'        => 'EXAMPLE.test',
-        '__TYPE'        => 'EXAMPLE',
-        '__DETAILS'     => 'lalelu',
-      ],
-      [
-        '__IDENTIFIER'  => 'example',
-        '__CODE'        => 'EXAMPLE.test',
-        '__TYPE'        => 'EXAMPLE',
-        '__DETAILS'     => 'lalelu',
-      ]
-    ], $errorstack->getErrors());
+        static::assertFalse($errorstack->isSuccess());
 
-    $this->assertFalse($errorstack->isSuccess());
+        $errorstack->reset();
 
-    $errorstack->reset();
+        static::assertEmpty($errorstack->getErrors());
 
-    $this->assertEmpty($errorstack->getErrors());
+        $errorstack->addErrorstack((new errorstack('example')));
 
-    $errorstack->addErrorstack((new \codename\core\errorstack('example')));
-
-    $this->assertEmpty($errorstack->getErrors());
-
-  }
-
+        static::assertEmpty($errorstack->getErrors());
+    }
 }

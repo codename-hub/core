@@ -1,15 +1,18 @@
 <?php
+
 namespace codename\core\validator\structure;
 
-class request extends \codename\core\validator\structure implements \codename\core\validator\validatorInterface {
+use codename\core\validator\structure;
+use codename\core\validator\validatorInterface;
 
+class request extends structure implements validatorInterface
+{
     /**
      * Contains a list of array keys that MUST exist in the validated array
      * @var array
      */
-    public $arrKeys = array(
-            'context',
-            'view'
-    );
-    
+    public $arrKeys = [
+      'context',
+      'view',
+    ];
 }

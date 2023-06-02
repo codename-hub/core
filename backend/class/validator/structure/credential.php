@@ -1,9 +1,13 @@
 <?php
+
 namespace codename\core\validator\structure;
+
+use codename\core\validator\structure;
+use codename\core\validator\validatorInterface;
 
 /**
  * [credential description]
  */
-class credential extends \codename\core\validator\structure implements \codename\core\validator\validatorInterface {
-
+class credential extends structure implements validatorInterface
+{
 }

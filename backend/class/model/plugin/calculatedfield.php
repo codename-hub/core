@@ -1,35 +1,39 @@
 <?php
+
 namespace codename\core\model\plugin;
+
+use codename\core\model\plugin;
+use codename\core\model\plugin\calculatedfield\calculatedfieldInterface;
+use codename\core\value\text\modelfield;
 
 /**
  * Plugin for creating calculated fields and their alias
  * @package core
- * @author Kevin Dargel
  * @since 2017-05-18
  */
-abstract class calculatedfield extends \codename\core\model\plugin implements \codename\core\model\plugin\calculatedfield\calculatedfieldInterface {
-
+abstract class calculatedfield extends plugin implements calculatedfieldInterface
+{
     /**
      * Contains the $field to return
-     * @var \codename\core\value\text\modelfield $field
+     * @var null|modelfield $field
      */
-    public $field = null;
+    public ?modelfield $field = null;
 
     /**
      * contains the SQL query part where we construct our calculation
-     * @var string
+     * @var null|string
      */
-    public $calculation = null;
+    public ?string $calculation = null;
 
     /**
      *
      * {@inheritDoc}
-     * @see \codename\core\model_plugin_field_interface::__CONSTRUCT(string $field)
+     * @see \codename\core\model_plugin_field_interface::__construct(string $field)
      */
-    public function __CONSTRUCT(\codename\core\value\text\modelfield $field, string $calculation) {
+    public function __construct(modelfield $field, string $calculation)
+    {
         $this->field = $field;
         $this->calculation = $calculation;
         return $this;
     }
-
 }

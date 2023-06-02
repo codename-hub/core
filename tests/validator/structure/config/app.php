@@ -1,99 +1,121 @@
 <?php
+
 namespace codename\core\tests\validator\structure\config;
+
+use codename\core\exception;
+use codename\core\tests\validator\structure;
+use ReflectionException;
 
 /**
  * I will test the app validator
  * @package codename\core
  * @since 2016-11-02
  */
-class app extends \codename\core\tests\validator\structure {
-
+class app extends structure
+{
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueMissingArrKeys() {
+    public function testValueMissingArrKeys(): void
+    {
         $errors = $this->getValidator()->validate([]);
 
-        $this->assertNotEmpty($errors);
-        $this->assertCount(3, $errors);
-        $this->assertEquals('VALIDATION.ARRAY_MISSING_KEY', $errors[0]['__CODE'] );
-        $this->assertEquals('VALIDATION.ARRAY_MISSING_KEY', $errors[1]['__CODE'] );
-        $this->assertEquals('VALIDATION.ARRAY_MISSING_KEY', $errors[2]['__CODE'] );
+        static::assertNotEmpty($errors);
+        static::assertCount(3, $errors);
+        static::assertEquals('VALIDATION.ARRAY_MISSING_KEY', $errors[0]['__CODE']);
+        static::assertEquals('VALIDATION.ARRAY_MISSING_KEY', $errors[1]['__CODE']);
+        static::assertEquals('VALIDATION.ARRAY_MISSING_KEY', $errors[2]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueInvalidContext() {
-      $config = [
-        'context'    => [
-          []
-        ],
-        'defaultcontext'  => '*123ABC',
-        'defaulttemplate' => 'core',
-      ];
-      $this->assertEquals('VALIDATION.KEY_CONTEXT_INVALID', $this->getValidator()->validate($config)[0]['__CODE'] );
-    }
-
-    /**
-     * Testing validators for Erors
-     * @return void
-     */
-    public function testValueInvalidDefaultcontext() {
-      $config = [
-        'context'    => [
-        ],
-        'defaultcontext'  => '*123ABC',
-        'defaulttemplate' => 'core',
-      ];
-      $this->assertEquals('VALIDATION.KEY_DEFAULTCONTEXT_INVALID', $this->getValidator()->validate($config)[0]['__CODE'] );
-    }
-
-    /**
-     * Testing validators for Erors
-     * @return void
-     */
-    public function testValueInvalidDefaulttemplate() {
-      $config = [
-        'context'    => [
-        ],
-        'defaultcontext'  => 'core',
-        'defaulttemplate' => '*123ABC',
-      ];
-      $this->assertEquals('VALIDATION.KEY_DEFAULTTEMPLATE_INVALID', $this->getValidator()->validate($config)[0]['__CODE'] );
-    }
-
-    /**
-     * Testing validators for Erors
-     * @return void
-     */
-    public function testValueContextCustom() {
+    public function testValueInvalidContext(): void
+    {
         $config = [
-          'context'    => [
+          'context' => [
+            [],
+          ],
+          'defaultcontext' => '*123ABC',
+          'defaulttemplate' => 'core',
+        ];
+        static::assertEquals('VALIDATION.KEY_CONTEXT_INVALID', $this->getValidator()->validate($config)[0]['__CODE']);
+    }
+
+    /**
+     * Testing validators for Errors
+     * @return void
+     * @throws ReflectionException
+     * @throws exception
+     */
+    public function testValueInvalidDefaultcontext(): void
+    {
+        $config = [
+          'context' => [
+          ],
+          'defaultcontext' => '*123ABC',
+          'defaulttemplate' => 'core',
+        ];
+        static::assertEquals('VALIDATION.KEY_DEFAULTCONTEXT_INVALID', $this->getValidator()->validate($config)[0]['__CODE']);
+    }
+
+    /**
+     * Testing validators for Errors
+     * @return void
+     * @throws ReflectionException
+     * @throws exception
+     */
+    public function testValueInvalidDefaulttemplate(): void
+    {
+        $config = [
+          'context' => [
+          ],
+          'defaultcontext' => 'core',
+          'defaulttemplate' => '*123ABC',
+        ];
+        static::assertEquals('VALIDATION.KEY_DEFAULTTEMPLATE_INVALID', $this->getValidator()->validate($config)[0]['__CODE']);
+    }
+
+    /**
+     * Testing validators for Errors
+     * @return void
+     * @throws ReflectionException
+     * @throws exception
+     */
+    public function testValueContextCustom(): void
+    {
+        $config = [
+          'context' => [
             [
               'custom' => true,
-            ]
+            ],
           ],
-          'defaultcontext'  => 'core',
+          'defaultcontext' => 'core',
           'defaulttemplate' => 'core',
         ];
-        $this->assertEmpty($this->getValidator()->validate($config));
+        static::assertEmpty($this->getValidator()->validate($config));
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueValid() {
+    public function testValueValid(): void
+    {
         $config = [
-          'context'    => [
+          'context' => [
           ],
-          'defaultcontext'  => 'core',
+          'defaultcontext' => 'core',
           'defaulttemplate' => 'core',
         ];
-        $this->assertEmpty($this->getValidator()->validate($config));
+        static::assertEmpty($this->getValidator()->validate($config));
     }
-
 }

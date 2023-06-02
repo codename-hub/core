@@ -1,37 +1,48 @@
 <?php
+
 namespace codename\core\tests\validator\text;
 
-use \codename\core\app;
+use codename\core\exception;
+use codename\core\tests\validator\text;
+use ReflectionException;
 
 /**
  * I will test the json validator
  * @package codename\core
  * @since 2016-11-02
  */
-class json extends \codename\core\tests\validator\text {
-
+class json extends text
+{
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueEmptyString() {
-        $this->assertEmpty($this->getValidator()->validate('') );
+    public function testValueEmptyString(): void
+    {
+        static::assertEmpty($this->getValidator()->validate(''));
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueInvalidJson() {
-        $this->assertEquals('VALIDATION.JSON_INVALID', $this->getValidator()->validate('AAAAA')[0]['__CODE'] );
+    public function testValueInvalidJson(): void
+    {
+        static::assertEquals('VALIDATION.JSON_INVALID', $this->getValidator()->validate('AAAAA')[0]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueValid() {
-        $this->assertEmpty($this->getValidator()->validate('{"AAAAA":"AAAAA"}'));
+    public function testValueValid(): void
+    {
+        static::assertEmpty($this->getValidator()->validate('{"AAAAA":"AAAAA"}'));
     }
-
 }

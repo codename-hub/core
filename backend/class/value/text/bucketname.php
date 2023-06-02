@@ -1,12 +1,14 @@
 <?php
+
 namespace codename\core\value\text;
 
-class bucketname extends \codename\core\value\text {
+use codename\core\value\text;
 
+class bucketname extends text
+{
     /**
      * {@inheritDoc}
      * @see \codename\core\value::$validator
      */
-    protected $validator = 'text_bucketname';
-
+    protected string $validator = 'text_bucketname';
 }

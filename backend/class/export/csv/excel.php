@@ -1,13 +1,17 @@
 <?php
+
 namespace codename\core\export\csv;
+
+use codename\core\export\csv;
+use codename\core\export\exportInterface;
 
 /**
  * This is the CSV Exporter class
  * @package core
  * @since 2016-09-27
  */
-class excel extends \codename\core\export\csv implements \codename\core\export\exportInterface {
-
+class excel extends csv implements exportInterface
+{
     /**
      *
      * @var string
@@ -19,5 +23,4 @@ class excel extends \codename\core\export\csv implements \codename\core\export\e
      * @var string
      */
     protected $encoding = 'Windows-1252';
-
 }

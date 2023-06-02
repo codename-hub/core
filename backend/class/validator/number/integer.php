@@ -1,18 +1,22 @@
 <?php
+
 namespace codename\core\validator\number;
+
+use codename\core\validator\number;
+use codename\core\validator\validatorInterface;
 
 /**
  * Validating integers
  * @package core
- * @author Kevin Dargel
  * @since 2017-05-31
  */
-class integer extends \codename\core\validator\number implements \codename\core\validator\validatorInterface {
-  /**
-   * @inheritDoc
-   */
-  public function __CONSTRUCT(  bool $nullAllowed = true,float $minvalue = null,float $maxvalue = null,int $maxprecision = null) {
-    $value = parent::__CONSTRUCT($nullAllowed, $minvalue, $maxvalue, 0);
-    return $value;
-  }
+class integer extends number implements validatorInterface
+{
+    /**
+     * {@inheritDoc}
+     */
+    public function __construct(bool $nullAllowed = true, float $minvalue = null, float $maxvalue = null, int $maxprecision = null)
+    {
+        return parent::__construct($nullAllowed, $minvalue, $maxvalue, 0);
+    }
 }

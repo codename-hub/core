@@ -1,19 +1,23 @@
 <?php
+
 namespace codename\core\tests\request;
+
+use codename\core\request\cli;
+use codename\core\tests\requestTest;
 
 /**
  * Test some request functionality
  */
-class cliTest extends \codename\core\tests\requestTest {
+class cliTest extends requestTest
+{
+    /**
+     * @return void
+     */
+    public function testRequestDatacontainer(): void
+    {
+        static::markTestIncomplete('CLI Request may contain phpunit/unittest arguments!');
 
-  /**
-   * [testDatacontainer description]
-   */
-  public function testRequestDatacontainer(): void {
-    $this->markTestIncomplete('CLI Request may contain phpunit/unittest arguments!');
-
-    $request = new \codename\core\request\cli();
-    $this->assertEquals(array_merge([ 'lang' => 'de_DE']), $request->getData());
-  }
-
+        $request = new cli();
+        static::assertEquals(array_merge(['lang' => 'de_DE']), $request->getData());
+    }
 }

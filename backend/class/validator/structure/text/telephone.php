@@ -1,49 +1,57 @@
 <?php
+
 namespace codename\core\validator\structure\text;
 
 use codename\core\app;
+use codename\core\exception;
+use codename\core\validator;
+use codename\core\validator\structure;
+use ReflectionException;
 
 /**
  * validator that validates multiple telephone numbers at once
  */
-class telephone extends \codename\core\validator\structure
+class telephone extends structure
 {
-  /**
-   * [protected description]
-   * @var \codename\core\validator
-   */
-  protected $elementValidator = null;
+    /**
+     * [protected description]
+     * @var validator
+     */
+    protected validator $elementValidator;
 
-  /**
-   * @inheritDoc
-   */
-  public function __CONSTRUCT(bool $nullAllowed = true)
-  {
-    parent::__CONSTRUCT($nullAllowed);
-    $this->elementValidator = app::getValidator('text_telephone');
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public function validate($value) : array
-  {
-    if(count(parent::validate($value)) != 0) {
-        return $this->errorstack->getErrors();
+    /**
+     * {@inheritDoc}
+     * @param bool $nullAllowed
+     * @throws ReflectionException
+     * @throws exception
+     */
+    public function __construct(bool $nullAllowed = true)
+    {
+        parent::__construct($nullAllowed);
+        $this->elementValidator = app::getValidator('text_telephone');
     }
 
-    if(is_null($value)) {
-        return $this->errorstack->getErrors();
-    }
-
-    if(is_array($value)) {
-      foreach($value as $phoneNumber) {
-        if(count($errors = $this->elementValidator->reset()->validate($phoneNumber)) > 0) {
-          $this->errorstack->addError('VALUE', 'INVALID_PHONE_NUMBER', $errors);
+    /**
+     * {@inheritDoc}
+     */
+    public function validate(mixed $value): array
+    {
+        if (count(parent::validate($value)) != 0) {
+            return $this->errorstack->getErrors();
         }
-      }
-    }
 
-    return $this->getErrors();
-  }
+        if (is_null($value)) {
+            return $this->errorstack->getErrors();
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $phoneNumber) {
+                if (count($errors = $this->elementValidator->reset()->validate($phoneNumber)) > 0) {
+                    $this->errorstack->addError('VALUE', 'INVALID_PHONE_NUMBER', $errors);
+                }
+            }
+        }
+
+        return $this->getErrors();
+    }
 }

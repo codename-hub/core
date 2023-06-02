@@ -1,24 +1,28 @@
 <?php
+
 namespace codename\core\value\structure\api\codename;
+
+use codename\core\value\structure;
 
 /**
  * Data Object for serviceproviders containing all the required information
  * @package core
  * @since 2016-11-08
  */
-class serviceprovider extends \codename\core\value\structure {
-
+class serviceprovider extends structure
+{
     /**
      * {@inheritDoc}
      * @see \codename\core\value::$validator
      */
-    protected $validator = 'structure_api_codename_serviceprovider';
+    protected string $validator = 'structure_api_codename_serviceprovider';
 
     /**
      * Returns the host name of the service provider
      * @return string
      */
-    public function getHost() : string {
+    public function getHost(): string
+    {
         return $this->value['host'];
     }
 
@@ -26,7 +30,8 @@ class serviceprovider extends \codename\core\value\structure {
      * Returns the port number of the service provider
      * @return int
      */
-    public function getPort() : int {
+    public function getPort(): int
+    {
         return $this->value['port'];
     }
 
@@ -34,8 +39,8 @@ class serviceprovider extends \codename\core\value\structure {
      * Will return the complete URL to the service provider's base
      * @return string
      */
-    public function getUrl() : string {
+    public function getUrl(): string
+    {
         return $this->value['host'] . ':' . $this->value['port'];
     }
-
 }

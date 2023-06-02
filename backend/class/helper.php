@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core;
 
 /**
@@ -6,6 +7,6 @@ namespace codename\core;
  * @package codename\core
  * @since 2016-10-18
  */
-class helper {
-    
+class helper
+{
 }

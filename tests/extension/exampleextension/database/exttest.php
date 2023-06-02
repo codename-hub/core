@@ -1,14 +1,16 @@
 <?php
+
 namespace codename\core\tests\extension\exampleextension\database;
 
-class exttest extends \codename\core\database {
+use codename\core\database;
 
-  /**
-   * @inheritDoc
-   */
-  public function __construct(array $config)
-  {
-    // does nothing
-  }
-
+class exttest extends database
+{
+    /**
+     * {@inheritDoc}
+     */
+    public function __construct(array $config)
+    {
+        // does nothing
+    }
 }

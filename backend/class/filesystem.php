@@ -1,36 +1,44 @@
 <?php
+
 namespace codename\core;
+
+use codename\core\filesystem\filesystemInterface;
 
 /**
  * We want to be capable of handling files in different storage types
- * <br />(FTP, SMB, local Filesystem, Amazon S3, Dropbox, etc.)
+ * (FTP, SMB, local Filesystem, Amazon S3, Dropbox, etc.)
  * So this is our abstract filesystem class.
  * @package core
  * @since 2016-01-06
  */
-abstract class filesystem implements \codename\core\filesystem\filesystemInterface {
-
+abstract class filesystem implements filesystemInterface
+{
     /**
      * Contains an instance of the errorstack class
-     * @var \codename\core\errorstack
+     * @var null|errorstack
      */
-    protected $errorstack = null;
-    
+    protected ?errorstack $errorstack = null;
+    /**
+     * @var string
+     */
+    protected string $errormessage;
+
+    /**
+     * Creates the errorstack instance
+     * @return filesystem
+     */
+    public function __construct()
+    {
+        $this->errorstack = new errorstack('FILESYSTEM');
+        return $this;
+    }
+
     /**
      * Returns the error message
      * @return string
      */
-    public function getError() : string {
+    public function getError(): string
+    {
         return $this->errormessage;
     }
-    
-    /**
-     * Creates the errorstack instance
-     * @return \codename\core\filesystem
-     */
-    public function __construct() {
-        $this->errorstack = new \codename\core\errorstack('FILESYSTEM');
-        return $this;
-    }
-    
 }

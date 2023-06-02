@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core\model;
 
 /**
@@ -7,11 +8,11 @@ namespace codename\core\model;
  */
 interface discreteModelSchematicSqlInterface
 {
-  /**
-   * returns the (sub)query or arbitrary query
-   * that contains the model's data
-   * @param  array  &$params
-   * @return string
-   */
-  function getDiscreteModelQuery(array &$params) : string;
+    /**
+     * returns the (sub)query or arbitrary query
+     * that contains the model's data
+     * @param array  &$params
+     * @return string
+     */
+    public function getDiscreteModelQuery(array &$params): string;
 }
