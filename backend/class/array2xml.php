@@ -1,7 +1,13 @@
 <?php
+
 namespace codename\core;
+
+use DOMDocument;
+use DOMException;
+use DOMNode;
+
 /**
- * array2xml: A class to convert array in PHP to XML
+ * A class to convert array in PHP to XML
  * It also takes into account attributes names unlike SimpleXML in PHP
  * It returns the XML in form of DOMDocument class for further manipulation.
  * It throws exception if the tag name or attribute name has illegal chars.
@@ -13,7 +19,7 @@ namespace codename\core;
  * Version: 0.1 (10 July 2011)
  * Version: 0.2 (16 August 2011)
  *          - replaced htmlentities() with htmlspecialchars() (Thanks to Liel Dulev)
- *          - fixed a edge case where root node has a false/null/0 value. (Thanks to Liel Dulev)
+ *          - fixed an edge case where root node has a false/null/0 value. (Thanks to Liel Dulev)
  * Version: 0.3 (22 August 2011)
  *          - fixed tag sanitize regex which didn't allow tagnames with single character.
  * Version: 0.4 (18 September 2011)
@@ -31,31 +37,27 @@ namespace codename\core;
  *       $xml = array2xml::createXML('root_node_name', $php_array);
  *       echo $xml->saveXML();
  */
-
-class array2xml {
-
-    private static $xml = null;
-    private static $encoding = 'UTF-8';
-
+class array2xml
+{
     /**
-     * Initialize the root XML node [optional]
-     * @param $version
-     * @param $encoding
-     * @param $format_output
+     * @var null|DOMDocument
      */
-    public static function init($version = '1.0', $encoding = 'UTF-8', $format_output = true) {
-        self::$xml = new \DomDocument($version, $encoding);
-        self::$xml->formatOutput = $format_output;
-        self::$encoding = $encoding;
-    }
+    private static ?DOMDocument $xml = null;
+    /**
+     * @var string
+     */
+    private static string $encoding = 'UTF-8';
 
     /**
      * Convert an Array to XML
      * @param string $node_name - name of the root node to be converted
-     * @param array $arr - aray to be converterd
-     * @return \DomDocument
+     * @param array $arr - array to be converted
+     * @return null|DOMDocument
+     * @throws DOMException
+     * @throws exception
      */
-    public static function &createXML($node_name, $arr=array()) {
+    public static function &createXML(string $node_name, array $arr = []): ?DOMDocument
+    {
         $xml = self::getXMLRoot();
         $xml->appendChild(self::convert($node_name, $arr));
 
@@ -64,23 +66,53 @@ class array2xml {
     }
 
     /**
+     * @return DOMDocument|null
+     */
+    private static function getXMLRoot(): ?DOMDocument
+    {
+        if (empty(self::$xml)) {
+            self::init();
+        }
+        return self::$xml;
+    }
+
+    /**
+     * Initialize the root XML node [optional]
+     * @param string $version
+     * @param string $encoding
+     * @param bool $format_output
+     */
+    public static function init(string $version = '1.0', string $encoding = 'UTF-8', bool $format_output = true): void
+    {
+        self::$encoding = $encoding;
+        self::$xml = new DOMDocument($version, self::$encoding);
+        self::$xml->formatOutput = $format_output;
+    }
+
+    /*
+     * Get the root XML node, if there isn't one, create it.
+     */
+
+    /**
      * Convert an Array to XML
      * @param string $node_name - name of the root node to be converted
-     * @param array $arr - aray to be converterd
-     * @return \DOMNode
+     * @param array $arr - array to be converted
+     * @return DOMNode
+     * @throws DOMException
+     * @throws exception
      */
-    private static function &convert($node_name, $arr=array()) {
-
+    private static function &convert(string $node_name, array $arr = []): DOMNode
+    {
         //print_arr($node_name);
         $xml = self::getXMLRoot();
         $node = $xml->createElement($node_name);
 
-        if(is_array($arr)){
+        if (is_array($arr)) {
             // get the attributes first.;
-            if(isset($arr['@attributes'])) {
-                foreach($arr['@attributes'] as $key => $value) {
-                    if(!self::isValidTagName($key)) {
-                        throw new \Exception('[array2xml] Illegal character in attribute name. attribute: '.$key.' in node: '.$node_name);
+            if (isset($arr['@attributes'])) {
+                foreach ($arr['@attributes'] as $key => $value) {
+                    if (!self::isValidTagName($key)) {
+                        throw new \Exception('[array2xml] Illegal character in attribute name. attribute: ' . $key . ' in node: ' . $node_name);
                     }
                     $node->setAttribute($key, self::bool2str($value));
                 }
@@ -88,13 +120,13 @@ class array2xml {
             }
 
             // check if it has a value stored in @value, if yes store the value and return
-            // else check if its directly stored as string
-            if(isset($arr['@value'])) {
+            // else check if it's directly stored as string
+            if (isset($arr['@value'])) {
                 $node->appendChild($xml->createTextNode(self::bool2str($arr['@value'])));
                 unset($arr['@value']);    //remove the key from the array once done.
                 //return from recursion, as a note with value cannot have child nodes.
                 return $node;
-            } else if(isset($arr['@cdata'])) {
+            } elseif (isset($arr['@cdata'])) {
                 $node->appendChild($xml->createCDATASection(self::bool2str($arr['@cdata'])));
                 unset($arr['@cdata']);    //remove the key from the array once done.
                 //return from recursion, as a note with cdata cannot have child nodes.
@@ -103,17 +135,17 @@ class array2xml {
         }
 
         //create subnodes using recursion
-        if(is_array($arr)){
+        if (is_array($arr)) {
             // recurse to get the node for that key
-            foreach($arr as $key=>$value){
-                if(!self::isValidTagName($key)) {
-                    throw new exception('CODENAME_CORE_BACKEND_CLASS_ARRAY2XML_&CONVERT::ILLEGAL_CHARACTER', \codename\core\exception::$ERRORLEVEL_FATAL, "[array2xml] Illegal character in tag name. tag: '.$key.' in node: '.$node_name");
+            foreach ($arr as $key => $value) {
+                if (!self::isValidTagName($key)) {
+                    throw new exception('CODENAME_CORE_BACKEND_CLASS_ARRAY2XML_&CONVERT::ILLEGAL_CHARACTER', exception::$ERRORLEVEL_FATAL, "[array2xml] Illegal character in tag name. tag: '.$key.' in node: '.$node_name");
                 }
-                if(is_array($value) && is_numeric(key($value))) {
+                if (is_array($value) && is_numeric(key($value))) {
                     // MORE THAN ONE NODE OF ITS KIND;
                     // if the new array is numeric index, means it is array of nodes of the same kind
                     // it should follow the parent key name
-                    foreach($value as $k=>$v){
+                    foreach ($value as $v) {
                         $node->appendChild(self::convert($key, $v));
                     }
                 } else {
@@ -126,40 +158,34 @@ class array2xml {
 
         // after we are done with all the keys in the array (if it is one)
         // we check if it has any text value, if yes, append it.
-        if(!is_array($arr)) {
+        if (!is_array($arr)) {
             $node->appendChild($xml->createTextNode(self::bool2str($arr)));
         }
 
         return $node;
     }
 
-    /*
-     * Get the root XML node, if there isn't one, create it.
-     */
-    private static function getXMLRoot(){
-        if(empty(self::$xml)) {
-            self::init();
-        }
-        return self::$xml;
-    }
-
-    /*
+    /**
      * Get string representation of boolean value
+     * @param string $tag
+     * @return bool
      */
-    private static function bool2str($v){
-        //convert boolean to text value.
-        $v = $v === true ? 'true' : $v;
-        $v = $v === false ? 'false' : $v;
-        return $v;
-    }
-
-    /*
-     * Check if the tag name or attribute name contains illegal characters
-     * Ref: http://www.w3.org/TR/xml/#sec-common-syn
-     */
-    private static function isValidTagName($tag){
-        $pattern = '/^[a-z_]+[a-z0-9\:\-\.\_]*[^:]*$/i';
+    private static function isValidTagName(string $tag): bool
+    {
+        $pattern = '/^[a-z_]+[a-z0-9:\-._]*[^:]*$/i';
         return preg_match($pattern, $tag, $matches) && $matches[0] == $tag;
     }
+
+    /**
+     * Check if the tag name or attribute name contains illegal characters
+     * Ref: http://www.w3.org/TR/xml/#sec-common-syn
+     * @param mixed $v
+     * @return mixed
+     */
+    private static function bool2str(mixed $v): mixed
+    {
+        //convert boolean to text value.
+        $v = $v === true ? 'true' : $v;
+        return $v === false ? 'false' : $v;
+    }
 }
-?>

@@ -1,5 +1,7 @@
 <?php
+
 namespace codename\core\model\plugin\join;
+
 use codename\core\exception;
 use codename\core\model\plugin\join;
 
@@ -9,27 +11,27 @@ use codename\core\model\plugin\join;
  * @package core
  * @since 2017-11-28
  */
-class mysql extends \codename\core\model\plugin\join {
-
-  /**
-   * @inheritDoc
-   */
-  public function getJoinMethod(): string
-  {
-    switch($this->type) {
-      case self::TYPE_LEFT:
-        return 'LEFT JOIN';
-      case self::TYPE_RIGHT:
-        return 'RIGHT JOIN';
-      case self::TYPE_FULL:
-        // not supported on MySQL
-        throw new exception('EXCEPTION_MODEL_PLUGIN_JOIN_MYSQL_INVALID_JOIN_TYPE', exception::$ERRORLEVEL_ERROR, $this->type);
-      case self::TYPE_INNER:
-        return 'INNER JOIN';
-      case self::TYPE_DEFAULT:
-        return null;
+class mysql extends join
+{
+    /**
+     * {@inheritDoc}
+     * @return string
+     * @throws exception
+     */
+    public function getJoinMethod(): string
+    {
+        switch ($this->type) {
+            case self::TYPE_DEFAULT:
+            case self::TYPE_LEFT:
+                return 'LEFT JOIN';
+            case self::TYPE_RIGHT:
+                return 'RIGHT JOIN';
+            case self::TYPE_FULL:
+                // not supported on MySQL
+                throw new exception('EXCEPTION_MODEL_PLUGIN_JOIN_MYSQL_INVALID_JOIN_TYPE', exception::$ERRORLEVEL_ERROR, $this->type);
+            case self::TYPE_INNER:
+                return 'INNER JOIN';
+        }
+        throw new exception('EXCEPTION_MODEL_PLUGIN_JOIN_INVALID_JOIN_TYPE', exception::$ERRORLEVEL_ERROR, $this->type);
     }
-    throw new exception('EXCEPTION_MODEL_PLUGIN_JOIN_INVALID_JOIN_TYPE', exception::$ERRORLEVEL_ERROR, $this->type);
-  }
-
 }

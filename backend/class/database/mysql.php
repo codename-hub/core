@@ -1,46 +1,36 @@
 <?php
+
 namespace codename\core\database;
+
+use codename\core\database;
+use PDO;
 
 /**
  * MySQL/MariaDB db driver
  * @package core
- * @author Kevin Dargel
  * @since 2017-03-01
  */
-class mysql extends \codename\core\database {
-
+class mysql extends database
+{
     /**
-     * Contains the driver name
-     * @var string
-     */
-    public $driver = 'mysql';
-
-    /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function __construct(array $config)
     {
-      parent::__construct($config);
-      //
-      // We don't need to set this explicitly as of PHP8
-      // errors seem to have been gobbled up in the past.
-      //
-      // if(isset($config['charset'])) {
-      //   $exec = $this->connection->exec('SET NAMES ' . $config['charset'] . '; CHARACTER SET '.$config['charset'].';');
-      // }
-      return $this;
+        $this->driver = 'mysql';
+        parent::__construct($config);
+        return $this;
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     protected function getDefaultAttributes(): array
     {
-      return [
-        // CHANGED 2021-05-04: this fixes invalid rowcount
-        // on UPDATE where nothing really changed
-        \PDO::MYSQL_ATTR_FOUND_ROWS => true,
-      ];
+        return [
+            // CHANGED 2021-05-04: this fixes invalid rowcount
+            // on UPDATE where nothing really changed
+          PDO::MYSQL_ATTR_FOUND_ROWS => true,
+        ];
     }
-
 }

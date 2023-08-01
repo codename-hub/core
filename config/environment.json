@@ -1,27 +1,27 @@
 {
-  "production" : {
-    "templateengine" : {
-      "default" : {
-        "driver" : "simple"
+  "production": {
+    "templateengine": {
+      "default": {
+        "driver": "simple"
       }
     },
-    "translate" : {
-      "exception" : {
-        "driver" : "json",
-        "inherit" : true
+    "translate": {
+      "exception": {
+        "driver": "json",
+        "inherit": true
       }
     }
   },
-  "dev" : {
-    "templateengine" : {
-      "default" : {
-        "driver" : "simple"
+  "dev": {
+    "templateengine": {
+      "default": {
+        "driver": "simple"
       }
     },
-    "translate" : {
-      "exception" : {
-        "driver" : "json",
-        "inherit" : true
+    "translate": {
+      "exception": {
+        "driver": "json",
+        "inherit": true
       }
     }
   }

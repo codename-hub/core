@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core\model\plugin\limit;
 
 /**
@@ -6,12 +7,11 @@ namespace codename\core\model\plugin\limit;
  * @package core
  * @since 2016-02-04
  */
-interface limitInterface {
-
+interface limitInterface
+{
     /**
      * Creates the limit plugin and sets the important data ($limit)
      * @param int $limit
      */
-    public function __CONSTRUCT(int $limit);
-
+    public function __construct(int $limit);
 }

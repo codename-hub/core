@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core;
 
 /**
@@ -10,34 +11,34 @@ namespace codename\core;
  * - internal application hosts & access keys
  * - etc.
  */
-class sensitiveException extends \codename\core\exception {
+class sensitiveException extends exception
+{
+    /**
+     * [protected description]
+     * @var null|\Exception
+     */
+    protected ?\Exception $encapsulatedException = null;
 
     /**
      * @param \Exception $encapsulatedException
      */
     public function __construct(\Exception $encapsulatedException)
     {
-      $this->encapsulatedException = $encapsulatedException;
-      $this->message = $encapsulatedException->getMessage();
-      $this->line = $encapsulatedException->getLine();
-      $this->file = $encapsulatedException->getFile();
-      if($encapsulatedException instanceof \codename\core\exception) {
-        $this->info = $encapsulatedException->info;
-      }
+        $this->encapsulatedException = $encapsulatedException;
+        $this->message = $encapsulatedException->getMessage();
+        $this->line = $encapsulatedException->getLine();
+        $this->file = $encapsulatedException->getFile();
+        if ($encapsulatedException instanceof exception) {
+            $this->info = $encapsulatedException->info;
+        }
     }
-
-    /**
-     * [protected description]
-     * @var \Exception
-     */
-    protected $encapsulatedException = null;
 
     /**
      * [getEncapsulatedException description]
      * @return \Exception [description]
      */
-    public function getEncapsulatedException() : \Exception {
-      return $this->encapsulatedException;
+    public function getEncapsulatedException(): \Exception
+    {
+        return $this->encapsulatedException;
     }
-
 }

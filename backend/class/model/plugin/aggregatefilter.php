@@ -1,44 +1,50 @@
 <?php
+
 namespace codename\core\model\plugin;
+
+use codename\core\model\plugin;
+use codename\core\model\plugin\filter\filterInterface;
+use codename\core\value\text\modelfield;
 
 /**
  * Apply data filters on the results
  * @package core
  * @since 2016-02-04
  */
-class aggregatefilter extends \codename\core\model\plugin implements \codename\core\model\plugin\filter\filterInterface {
-
+class aggregatefilter extends plugin implements filterInterface
+{
     /**
      * $field that is used to filter data from the model
-     * @var \codename\core\value\text\modelfield $field
+     * @var null|modelfield $field
      */
-    public $field = null;
+    public ?modelfield $field = null;
 
     /**
      * Contains the value to searched in the $field
-     * @var string
+     * @var mixed
      */
-    public $value = null;
+    public mixed $value = null;
 
     /**
      * Contains the $operator for the $field
      * @var string $operator
      */
-    public $operator = "=";
+    public string $operator = "=";
 
     /**
      * the conjunction to be used (AND, OR, XOR, ...)
      * may be null
-     * @var string $conjunction
+     * @var null|string $conjunction
      */
-    public $conjunction = null;
+    public ?string $conjunction = null;
 
     /**
      *
      * {@inheritDoc}
-     * @see \codename\core\model_plugin_filter::__CONSTRUCT(string $field, string $value, string $operator)
+     * @see \codename\core\model_plugin_filter::__construct(string $field, string $value, string $operator)
      */
-    public function __CONSTRUCT(\codename\core\value\text\modelfield $field, $value = null, string $operator, string $conjunction = null) {
+    public function __construct(modelfield $field, mixed $value, string $operator, string $conjunction = null)
+    {
         $this->field = $field;
         $this->value = $value;
         $this->operator = $operator;
@@ -47,11 +53,10 @@ class aggregatefilter extends \codename\core\model\plugin implements \codename\c
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
-    public function getFieldValue(string $tableAlias = null) : string
+    public function getFieldValue(?string $tableAlias = null): string
     {
-      return $this->field->getValue();
+        return $this->field->getValue();
     }
-
 }

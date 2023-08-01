@@ -3,6 +3,7 @@
 This framework for PHP applications delivers a vastly different approach to writing PHP applications for web and CLI.
 
 The core principles and concepts are
+
 - platform/runtime agnostic approach (cloud, local, containerized)
 - abstraction and modularization
 - vendor-lock-in avoidance
@@ -15,16 +16,17 @@ The core principles and concepts are
 
 While applications solely based on this package (`codename/core`) do run on their own,
 you might take advantage of several additional packages (sometimes even 'apps' on their own):
+
 - **architect**: [Repository](https://github.com/codename-hub/architect), [Package](https://packagist.org/packages/codename/architect)
-  - creating and migrating database/table schemas
-  - executing deployment and migration tasks
+    - creating and migrating database/table schemas
+    - executing deployment and migration tasks
 - **core-ui**: [Repository](https://github.com/codename-hub/core-ui), [Package](https://packagist.org/packages/codename/core-ui)
-  - Generic CRUD and Form components
-  - UI-related components (web UI and CLI 'ui')
+    - Generic CRUD and Form components
+    - UI-related components (web UI and CLI 'ui')
 - **core-io**: [Repository](https://github.com/codename-hub/core-io), [Package](https://packagist.org/packages/codename/core-io)
-  - data handling (load, transform, output), esp. for mass data
+    - data handling (load, transform, output), esp. for mass data
 - **rest**: [Repository](https://github.com/codename-hub/rest), [Package](https://packagist.org/packages/codename/rest)
-  - supporting components for writing REST-endpoints and REST-style apps (or mixed ones)
+    - supporting components for writing REST-endpoints and REST-style apps (or mixed ones)
 
 They're all installable and auto-loadable via Composer.
 

@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core\model\plugin\join;
 
 /**
@@ -7,11 +8,11 @@ namespace codename\core\model\plugin\join;
  */
 interface dynamicJoinInterface
 {
-  /**
-   * [performDynamicJoin description]
-   * @param  array       $result        [base result before dynamic join/query]
-   * @param  array|null  $params        [internal parameter handling]
-   * @return array                      [modified result]
-   */
-  function dynamicJoin(array $result, ?array $params = null) : array;
+    /**
+     * [performDynamicJoin description]
+     * @param array $result [base result before dynamic join/query]
+     * @param array|null $params [internal parameter handling]
+     * @return array                      [modified result]
+     */
+    public function dynamicJoin(array $result, ?array $params = null): array;
 }

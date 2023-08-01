@@ -1,14 +1,18 @@
 {
-  "extensions" : [ ],
+  "extensions": [],
   "defaultcontext": "testcontext",
-  "x-defaulttemplateengine" : "twig_default",
+  "x-defaulttemplateengine": "twig_default",
   "defaulttemplate": "blank",
   "context": {
     "testcontext": {
       "defaultview": "default",
       "view": {
-        "default": { "public": true },
-        "nonexisting_function": { "public": true }
+        "default": {
+          "public": true
+        },
+        "nonexisting_function": {
+          "public": true
+        }
       }
     },
     "disallowedcontext": {

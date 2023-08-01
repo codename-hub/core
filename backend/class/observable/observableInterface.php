@@ -1,31 +1,33 @@
 <?php
+
 namespace codename\core\observable;
+
+use codename\core\observer;
 
 /**
  * Observable interface
  * @package core
  * @since 2016-06-09
  */
-interface observableInterface  {
-    
+interface observableInterface
+{
     /**
      * Add another observer to this observable class instance
-     * @param \codename\core\observer $observer
+     * @param observer $observer
      * @return void
      */
-    public function attach(\codename\core\observer $observer);
-    
+    public function attach(observer $observer): void;
+
     /**
      * Remove an observer from this observable class instance
-     * @param \codename\core\observer $observer
+     * @param observer $observer
      * @return void
      */
-    public function detach(\codename\core\observer $observer);
-    
+    public function detach(observer $observer): void;
+
     /**
      * Poll for changes in the current class instance
      * @return void
      */
-    public function notify();
-    
+    public function notify(): void;
 }

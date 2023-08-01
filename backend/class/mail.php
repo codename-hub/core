@@ -1,25 +1,28 @@
 <?php
+
 namespace codename\core;
+
+use codename\core\mail\mailInterface;
 
 /**
  * Sending email and attachments.
  * @package core
  * @since 2016-02-26
  */
-abstract class mail implements \codename\core\mail\mailInterface {
-
+abstract class mail implements mailInterface
+{
     /**
      * Contains the class that represents the client library's main class.
-     * @var object $client
+     * @var null|object $client
      */
-    protected $client = null;
+    protected ?object $client = null;
 
     /**
      * Returns the mail client that was stored in the instance previously
-     * @return object
+     * @return null|object
      */
-    public function getClient() {
+    public function getClient(): ?object
+    {
         return $this->client;
     }
-
 }

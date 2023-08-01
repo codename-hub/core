@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core;
 
 /**
@@ -6,6 +7,6 @@ namespace codename\core;
  * @package core
  * @since 2016-09-13
  */
-class factory {
-
+class factory
+{
 }

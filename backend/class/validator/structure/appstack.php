@@ -1,24 +1,29 @@
 <?php
+
 namespace codename\core\validator\structure;
+
+use codename\core\validator\structure;
+use codename\core\validator\validatorInterface;
 
 /**
  * Validating appstack arrays
  * @package core
  * @since 2016-04-28
  */
-class appstack extends \codename\core\validator\structure implements \codename\core\validator\validatorInterface {
-
+class appstack extends structure implements validatorInterface
+{
     /**
      *
      * {@inheritDoc}
      * @see \codename\core\validator_interface::validate($value)
      */
-    public function validate($value) : array {
-        if(count(parent::validate($value)) != 0) {
+    public function validate(mixed $value): array
+    {
+        if (count(parent::validate($value)) != 0) {
             return $this->errorstack->getErrors();
         }
 
-        if(is_null($value)) {
+        if (is_null($value)) {
             return $this->errorstack->getErrors();
         }
 
@@ -28,5 +33,4 @@ class appstack extends \codename\core\validator\structure implements \codename\c
 
         return $this->errorstack->getErrors();
     }
-    
 }

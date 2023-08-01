@@ -1,6 +1,10 @@
 <?php
+
 namespace codename\core\validator\text;
 
-class url extends \codename\core\validator\text implements \codename\core\validator\validatorInterface {
+use codename\core\validator\text;
+use codename\core\validator\validatorInterface;
 
+class url extends text implements validatorInterface
+{
 }

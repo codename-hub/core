@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core;
 
 /**
@@ -6,8 +7,8 @@ namespace codename\core;
  * @package core
  * @since 2016-01-25
  */
-abstract class response extends \codename\core\datacontainer {
-
+abstract class response extends datacontainer
+{
     /**
      * Status Constant: Successful response
      * @var string
@@ -15,7 +16,7 @@ abstract class response extends \codename\core\datacontainer {
     public const STATUS_SUCCESS = 'STATUS_SUCCESS';
 
     /**
-     * Status Constant: Errorneous response
+     * Status Constant: Erroneous response
      * @var string
      */
     public const STATUS_INTERNAL_ERROR = 'STATUS_INTERNAL_ERROR';
@@ -61,26 +62,33 @@ abstract class response extends \codename\core\datacontainer {
      * Contains the derived output
      * @var string
      */
-    protected $output = '';
+    protected string $output = '';
 
     /**
      * I contain various frontend resources
      * @var array
      */
-    protected $resources = array();
+    protected array $resources = [];
+    /**
+     * [protected description]
+     * @var [type]
+     */
+    protected $status = null;
 
     /**
      * Creates instance and sets the data equal to the request container
      * @return response
      */
-    public function __CONSTRUCT() {
+    public function __construct()
+    {
+        parent::__construct();
         $this->status = $this->getDefaultStatus();
-        $this->addData(array(
-            'context' => app::getRequest()->getData('context'),
-            'view' => app::getRequest()->getData('view'),
-            'action' => app::getRequest()->getData('action'),
-            'template' => app::getRequest()->getData('template')
-        ));
+        $this->addData([
+          'context' => app::getRequest()->getData('context'),
+          'view' => app::getRequest()->getData('view'),
+          'action' => app::getRequest()->getData('action'),
+          'template' => app::getRequest()->getData('template'),
+        ]);
 
         // set appserver header
         $this->setHeader("APP-SRV: " . gethostname());
@@ -92,22 +100,9 @@ abstract class response extends \codename\core\datacontainer {
      * [getDefaultStatus description]
      * @return string
      */
-    protected function getDefaultStatus() {
-      return self::STATUS_SUCCESS;
-    }
-
-    /**
-     * [protected description]
-     * @var [type]
-     */
-    protected $status = null;
-
-    /**
-     * [setStatus description]
-     * @param string $status [description]
-     */
-    public function setStatus(string $status) {
-      $this->status = $status;
+    protected function getDefaultStatus(): string
+    {
+        return self::STATUS_SUCCESS;
     }
 
     /**
@@ -115,52 +110,63 @@ abstract class response extends \codename\core\datacontainer {
      * mostly for http responses
      * @param string $header
      */
-    public abstract function setHeader(string $header);
+    abstract public function setHeader(string $header);
+
+    /**
+     * [setStatus description]
+     * @param string $status [description]
+     */
+    public function setStatus(string $status): void
+    {
+        $this->status = $status;
+    }
 
     /**
      * [setRedirect description]
-     * @param string $string  [description]
-     * @param [type] $context [description]
-     * @param [type] $view    [description]
-     * @param [type] $action  [description]
+     * @param string $string [description]
+     * @param string|null $context
+     * @param string|null $view
+     * @param string|null $action
      */
-    public function setRedirect(string $string, string $context = null, string $view = null, string $action = null) {
-      return;
+    public function setRedirect(string $string, string $context = null, string $view = null, string $action = null)
+    {
     }
 
     /**
      * perform the configured redirect
      */
-    public function doRedirect() {
-      return;
+    public function doRedirect()
+    {
     }
 
     /**
      * [getStatuscode description]
      * @return int [description]
      */
-    public function getStatuscode() : int {
-      return $this->translateStatus();
+    public function getStatuscode(): int
+    {
+        return $this->translateStatus();
     }
 
     /**
-     * translate current internal status to a responsetype specific one
+     * translate current internal status to a response type specific one
      * @var [type]
      */
-    protected abstract function translateStatus();
+    abstract protected function translateStatus();
 
     /**
      * Push output to whatever we're outputting to.
      * Depends on the response type (inherited class)
      * @return void
      */
-    public abstract function pushOutput();
+    abstract public function pushOutput(): void;
 
     /**
      * Returns the output content of this response
      * @return string
      */
-    public function getOutput() : string {
+    public function getOutput(): string
+    {
         return $this->output;
     }
 
@@ -169,18 +175,18 @@ abstract class response extends \codename\core\datacontainer {
      * @param string $output
      * @return void
      */
-    public function setOutput(string $output) {
+    public function setOutput(string $output): void
+    {
         $this->output = $output;
-        return;
     }
 
     /**
      * [displayException description]
-     * @param  \Exception $e [description]
-     * @return [type]       [description]
+     * @param \Exception $e [description]
+     * @return void [type]       [description]
      */
-    public function displayException(\Exception $e) {
+    public function displayException(\Exception $e): void
+    {
         echo($e->getMessage());
     }
-
 }

@@ -1,40 +1,41 @@
 <?php
+
 namespace codename\core\translate;
 
-use \codename\core\app;
-use \codename\core\exception;
+use codename\core\app;
+use codename\core\config;
 
-class dummy extends json {
-
+class dummy extends json
+{
     /**
-     * [getSourceInstance description]
-     * @param  string                $name [description]
-     * @return \codename\core\config|null            [description]
-     */
-    protected function getSourceInstance(string $name) : ?\codename\core\config {
-      $stackname = 'translation/' . $this->getPrefix() . '/' . $name . '.json';
-      if(array_key_exists($stackname, $this->instances)) {
-        return $this->instances[$stackname];
-      } else {
-        $this->instances[$stackname] = new \codename\core\config([]);
-      }
-      return $this->instances[$stackname];
-    }
-
-    /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function getAllTranslations(string $prefix): ?array
     {
-      return $this->getSourceInstance($prefix) ? $this->getSourceInstance($prefix)->get() : null;
+        return $this->getSourceInstance($prefix) ? $this->getSourceInstance($prefix)->get() : null;
     }
 
     /**
-     * @inheritDoc
+     * [getSourceInstance description]
+     * @param string $name [description]
+     * @return config|null            [description]
+     */
+    protected function getSourceInstance(string $name): ?config
+    {
+        $stackname = 'translation/' . $this->getPrefix() . '/' . $name . '.json';
+        if (array_key_exists($stackname, $this->instances)) {
+            return $this->instances[$stackname];
+        } else {
+            $this->instances[$stackname] = new config([]);
+        }
+        return $this->instances[$stackname];
+    }
+
+    /**
+     * {@inheritDoc}
      */
     public function getPrefix(): string
     {
-      return app::getRequest()->getData('lang');
+        return app::getRequest()->getData('lang');
     }
-
 }

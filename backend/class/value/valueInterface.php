@@ -1,12 +1,12 @@
 <?php
+
 namespace codename\core\value;
 
-interface valueInterface {
-
+interface valueInterface
+{
     /**
-     * This method will releive the contents of the instance
-     * @return
+     * This method will relive the contents of the instance
+     * @return mixed
      */
-    public function get();
-
+    public function get(): mixed;
 }

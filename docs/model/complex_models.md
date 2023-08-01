@@ -2,6 +2,7 @@
 
 In addition to the example model `stuff` from the model basics,
 let's assume we have a secondary model `part` with the following config:
+
 ~~~json
 {
   "field" : [
@@ -39,9 +40,7 @@ If you have your model class(es) ready, you can now do something like this:
 ~~~php
 $model = app::getModel('stuff')
   ->addModel(app::getModel('part'));
-
 print_r($model->search()->getResult());
-
 // example resultset
 // for clarity as a PHP array
 // We assume just one entry in `stuff` and `part` respectively
@@ -61,6 +60,7 @@ $expectedExampleResultset = [
 ~~~
 
 This effectively performs a LEFT JOIN (in SQL-terms) with both models:
+
 ~~~sql
 SELECT *
 FROM `stuff`
@@ -83,6 +83,7 @@ $model = app::getModel('customer')->setVirtualFieldResult(true)
 ~~~
 
 Given some imagination and common sense, this could yield datasets like this (_created and _modified fields left out for the sake of readability):
+
 ~~~php
 [
   'customer_id'         => 234,
@@ -124,12 +125,14 @@ Given some imagination and common sense, this could yield datasets like this (_c
 ~~~
 
 We assume several models in this example:
+
 * **customer**: a customer dataset containing the name(s) and a reference to an `address` dataset
 * **address**: an address
 * **invoice**: an invoice containing date, paid status and net sum, referencing the associated customer in a FKEY
 * **invoiceitem**: a single item on an invoice, referencing the invoice in a FKEY
 
 Effectively leveraging the ORM featureset of the core framework and abstracting all the 'heavy lifting' work behind the scenes:
+
 * **customer_address** is a virtual (non-existing) field that is dynamically filled with the **address** dataset identified by the FKEY **customer_address_id**  
   (Reference: `customer.customer_address_id`->`address.address_id`)
 * **customer_invoices** is a virtual (non-existing) collection field that is dynamically filled with an **array** of **invoice** datasets  

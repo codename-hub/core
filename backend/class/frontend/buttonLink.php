@@ -1,32 +1,49 @@
 <?php
+
 namespace codename\core\frontend;
 
 /**
  * Button Link creation/link class, extended
  * @package core
- * @author Kevin Dargel
  * @since 2017-01-05
  */
-class buttonLink extends link {
+class buttonLink extends link
+{
+    /**
+     * {@inheritDoc}
+     */
+    public function __construct(array $urlParams, string $content = '', string $title = '', array $cssClasses = [], array $attributes = [], string $iconCss = '')
+    {
+        $content = "<span class=\"$iconCss\"></span>" . ($content != '' ? '&nbsp;' . $content : '');
+        return parent::__construct($urlParams, $content, $title, $cssClasses, $attributes);
+    }
 
-  /**
-   * @inheritDoc
-   */
-  public function __construct(array $urlParams, $iconCss = '', $title = '', array $cssClasses = array(), array $attributes = array(), $content = '')
-  {
-    $content = "<span class=\"{$iconCss}\"></span>" . ($content != '' ? '&nbsp;' . $content : '');
-    $value = parent::__construct($urlParams,$content,$title,$cssClasses,$attributes);
-    return $value;
-  }
+    /**
+     * @param array $urlParams
+     * @param string $content
+     * @param string $title
+     * @param array $cssClasses
+     * @param array $attributes
+     * @param string $iconCss
+     * @return string
+     */
+    public static function getHtml(array $urlParams, string $content = '', string $title = '', array $cssClasses = [], array $attributes = [], string $iconCss = ''): string
+    {
+        $link = new self($urlParams, $content, $title, $cssClasses, $attributes, $iconCss);
+        return $link->output();
+    }
 
-  public static function getHtml(array $urlParams, $iconCss = '', $title = '', array $cssClasses = array(), array $attributes = array(), $content = '') : string {
-    $link = new self($urlParams,$iconCss,$title,$cssClasses,$attributes,$content);
-    return $link->output();
-  }
-
-  public static function create(array $urlParams, $iconCss = '', $title = '', array $cssClasses = array(), array $attributes = array(), $content = '') : element {
-    $link = new self($urlParams,$iconCss,$title,$cssClasses,$attributes,$content);
-    return $link;
-  }
-
+    /**
+     * @param array $urlParams
+     * @param string $content
+     * @param string $title
+     * @param array $cssClasses
+     * @param array $attributes
+     * @param string $iconCss
+     * @return element
+     */
+    public static function create(array $urlParams, string $content = '', string $title = '', array $cssClasses = [], array $attributes = [], string $iconCss = ''): element
+    {
+        return new self($urlParams, $content, $title, $cssClasses, $attributes, $iconCss);
+    }
 }

@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core\request;
 
 /**
@@ -6,6 +7,6 @@ namespace codename\core\request;
  * @package core
  * @since 2016-05-31
  */
-class json extends \codename\core\request\http {
-  
+class json extends http
+{
 }

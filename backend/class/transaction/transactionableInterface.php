@@ -1,20 +1,20 @@
 <?php
+
 namespace codename\core\transaction;
 
-interface transactionableInterface {
+interface transactionableInterface
+{
+    /**
+     * [beginTransaction description]
+     * @param string $transactionName [description]
+     * @return void [type]                  [description]
+     */
+    public function beginTransaction(string $transactionName): void;
 
-  /**
-   * [beginTransaction description]
-   * @param  string $transactionName [description]
-   * @return [type]                  [description]
-   */
-  function beginTransaction(string $transactionName);
-
-  /**
-   * [endTransaction description]
-   * @param  string $transactionName [description]
-   * @return [type]                  [description]
-   */
-  function endTransaction(string $transactionName);
-
+    /**
+     * [endTransaction description]
+     * @param string $transactionName [description]
+     * @return void [type]                  [description]
+     */
+    public function endTransaction(string $transactionName): void;
 }

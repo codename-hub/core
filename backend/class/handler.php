@@ -1,45 +1,45 @@
 <?php
+
 namespace codename\core;
 
 /**
  * handler base class
  * this defines field and/or value handlers
  */
-abstract class handler {
+abstract class handler
+{
+    /**
+     * [protected description]
+     * @var null|config
+     */
+    protected ?config $config = null;
 
-  /**
-   * [protected description]
-   * @var \codename\core\config
-   */
-  protected $config = null;
+    /**
+     * initialize a new handler using a given config
+     * @param array $config [description]
+     */
+    public function __construct(array $config)
+    {
+        $this->config = new config($config);
+    }
 
-  /**
-   * initialize a new handler using a given config
-   * @param array $config [description]
-   */
-  public function __construct(array $config)
-  {
-    $this->config = new \codename\core\config($config);
-  }
+    /**
+     * handles an incoming value
+     * and transforms it on need
+     *
+     * @param  [type] $data    [description]
+     * @param array $context [description]
+     * @return mixed [type]          [description]
+     */
+    abstract public function handleValue($data, array $context): mixed;
 
-  /**
-   * handles an incoming value
-   * and transforms it on need
-   *
-   * @param  [type] $data    [description]
-   * @param  array  $context [description]
-   * @return [type]          [description]
-   */
-  public abstract function handleValue($data, array $context);
-
-  /**
-   * handle output value
-   * transform on need
-   *
-   * @param  [type] $data    [description]
-   * @param  array  $context [description]
-   * @return [type]          [description]
-   */
-  public abstract function getOutput($data, array $context);
-
+    /**
+     * handle output value
+     * transform on need
+     *
+     * @param  [type] $data    [description]
+     * @param array $context [description]
+     * @return mixed [type]          [description]
+     */
+    abstract public function getOutput($data, array $context): mixed;
 }

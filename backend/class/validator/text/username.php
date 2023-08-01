@@ -1,16 +1,20 @@
 <?php
+
 namespace codename\core\validator\text;
 
-class username extends \codename\core\validator\text implements \codename\core\validator\validatorInterface {
+use codename\core\validator\text;
+use codename\core\validator\validatorInterface;
 
+class username extends text implements validatorInterface
+{
     /**
-     * 
+     *
      * @param bool $nullAllowed
-     * @return \codename\core\validator\text\username
+     * @return username
      */
-    public function __CONSTRUCT(bool $nullAllowed = false) {
-        parent::__CONSTRUCT($nullAllowed, 5, 10, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
+    public function __construct(bool $nullAllowed = false)
+    {
+        parent::__construct($nullAllowed, 5, 10, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
         return $this;
     }
-
 }

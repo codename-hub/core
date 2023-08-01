@@ -1,12 +1,14 @@
 <?php
+
 namespace codename\core\value\text;
 
-class filerelative extends \codename\core\value\text {
+use codename\core\value\text;
 
+class filerelative extends text
+{
     /**
      * {@inheritDoc}
      * @see \codename\core\value::$validator
      */
-    protected $validator = 'text_filepath_relative';
-    
+    protected string $validator = 'text_filepath_relative';
 }

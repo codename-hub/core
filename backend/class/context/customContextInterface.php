@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core\context;
 
 /**
@@ -9,15 +10,15 @@ namespace codename\core\context;
  */
 interface customContextInterface
 {
-  /**
-   * defines the run method of the this context
-   * @return void
-   */
-  function run();
+    /**
+     * defines the run method of the context
+     * @return void
+     */
+    public function run(): void;
 
-  /**
-   * whether context allows public (unauthenticated) access
-   * @return bool
-   */
-  function isPublic() : bool;
+    /**
+     * whether context allows public (unauthenticated) access
+     * @return bool
+     */
+    public function isPublic(): bool;
 }

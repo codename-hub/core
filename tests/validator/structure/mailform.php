@@ -1,149 +1,175 @@
 <?php
+
 namespace codename\core\tests\validator\structure;
 
-use \codename\core\app;
+use codename\core\exception;
+use codename\core\tests\validator\structure;
+use ReflectionException;
 
 /**
  * I will test the mailform validator
  * @package codename\core
  * @since 2016-11-02
  */
-class mailform extends \codename\core\tests\validator\structure {
-
+class mailform extends structure
+{
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueMissingArrKeys() {
+    public function testValueMissingArrKeys(): void
+    {
         $errors = $this->getValidator()->validate([]);
 
-        $this->assertNotEmpty($errors);
-        $this->assertCount(3, $errors);
-        $this->assertEquals('VALIDATION.ARRAY_MISSING_KEY', $errors[0]['__CODE'] );
-        $this->assertEquals('VALIDATION.ARRAY_MISSING_KEY', $errors[1]['__CODE'] );
-        $this->assertEquals('VALIDATION.ARRAY_MISSING_KEY', $errors[2]['__CODE'] );
+        static::assertNotEmpty($errors);
+        static::assertCount(3, $errors);
+        static::assertEquals('VALIDATION.ARRAY_MISSING_KEY', $errors[0]['__CODE']);
+        static::assertEquals('VALIDATION.ARRAY_MISSING_KEY', $errors[1]['__CODE']);
+        static::assertEquals('VALIDATION.ARRAY_MISSING_KEY', $errors[2]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testTextInvalidEmailRecipient() {
+    public function testTextInvalidEmailRecipient(): void
+    {
         $config = [
           'recipient' => '.@example.com',
-          'subject'   => 'example',
-          'body'      => 'example'
+          'subject' => 'example',
+          'body' => 'example',
         ];
         $errors = $this->getValidator()->validate($config);
 
-        $this->assertNotEmpty($errors);
-        $this->assertCount(2, $errors);
-        $this->assertEquals('VALIDATION.EMAIL_INVALID', $errors[0]['__CODE'] );
-        $this->assertEquals('VALIDATION.INVALID_EMAIL_ADDRESS', $errors[1]['__CODE'] );
+        static::assertNotEmpty($errors);
+        static::assertCount(2, $errors);
+        static::assertEquals('VALIDATION.EMAIL_INVALID', $errors[0]['__CODE']);
+        static::assertEquals('VALIDATION.INVALID_EMAIL_ADDRESS', $errors[1]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testTextInvalidEmailCc() {
+    public function testTextInvalidEmailCc(): void
+    {
         $config = [
           'recipient' => 'example@example.com',
-          'cc'        => '.@example.com',
-          'subject'   => 'example',
-          'body'      => 'example'
+          'cc' => '.@example.com',
+          'subject' => 'example',
+          'body' => 'example',
         ];
         $errors = $this->getValidator()->validate($config);
 
-        $this->assertNotEmpty($errors);
-        $this->assertCount(2, $errors);
-        $this->assertEquals('VALIDATION.EMAIL_INVALID', $errors[0]['__CODE'] );
-        $this->assertEquals('VALIDATION.INVALID_EMAIL_ADDRESS', $errors[1]['__CODE'] );
+        static::assertNotEmpty($errors);
+        static::assertCount(2, $errors);
+        static::assertEquals('VALIDATION.EMAIL_INVALID', $errors[0]['__CODE']);
+        static::assertEquals('VALIDATION.INVALID_EMAIL_ADDRESS', $errors[1]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testTextInvalidEmailBcc() {
+    public function testTextInvalidEmailBcc(): void
+    {
         $config = [
           'recipient' => 'example@example.com',
-          'bcc'       => '.@example.com',
-          'subject'   => 'example',
-          'body'      => 'example'
+          'bcc' => '.@example.com',
+          'subject' => 'example',
+          'body' => 'example',
         ];
         $errors = $this->getValidator()->validate($config);
 
-        $this->assertNotEmpty($errors);
-        $this->assertCount(2, $errors);
-        $this->assertEquals('VALIDATION.EMAIL_INVALID', $errors[0]['__CODE'] );
-        $this->assertEquals('VALIDATION.INVALID_EMAIL_ADDRESS', $errors[1]['__CODE'] );
+        static::assertNotEmpty($errors);
+        static::assertCount(2, $errors);
+        static::assertEquals('VALIDATION.EMAIL_INVALID', $errors[0]['__CODE']);
+        static::assertEquals('VALIDATION.INVALID_EMAIL_ADDRESS', $errors[1]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testTextInvalidEmailReplyTo() {
+    public function testTextInvalidEmailReplyTo(): void
+    {
         $config = [
           'recipient' => 'example@example.com',
-          'reply-to'  => '.@example.com',
-          'subject'   => 'example',
-          'body'      => 'example'
+          'reply-to' => '.@example.com',
+          'subject' => 'example',
+          'body' => 'example',
         ];
         $errors = $this->getValidator()->validate($config);
 
-        $this->assertNotEmpty($errors);
-        $this->assertCount(2, $errors);
-        $this->assertEquals('VALIDATION.EMAIL_INVALID', $errors[0]['__CODE'] );
-        $this->assertEquals('VALIDATION.INVALID_EMAIL_ADDRESS', $errors[1]['__CODE'] );
+        static::assertNotEmpty($errors);
+        static::assertCount(2, $errors);
+        static::assertEquals('VALIDATION.EMAIL_INVALID', $errors[0]['__CODE']);
+        static::assertEquals('VALIDATION.INVALID_EMAIL_ADDRESS', $errors[1]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testTextInvalidSubject() {
+    public function testTextInvalidSubject(): void
+    {
         $config = [
           'recipient' => 'example@example.com',
-          'subject'   => '',
-          'body'      => 'example'
+          'subject' => '',
+          'body' => 'example',
         ];
         $errors = $this->getValidator()->validate($config);
 
-        $this->assertNotEmpty($errors);
-        $this->assertCount(1, $errors);
-        $this->assertEquals('VALIDATION.INVALID_EMAIL_SUBJECT', $errors[0]['__CODE'] );
+        static::assertNotEmpty($errors);
+        static::assertCount(1, $errors);
+        static::assertEquals('VALIDATION.INVALID_EMAIL_SUBJECT', $errors[0]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testTextInvalidBody() {
+    public function testTextInvalidBody(): void
+    {
         $config = [
           'recipient' => 'example@example.com',
-          'subject'   => 'example',
-          'body'      => ''
+          'subject' => 'example',
+          'body' => '',
         ];
         $errors = $this->getValidator()->validate($config);
 
-        $this->assertNotEmpty($errors);
-        $this->assertCount(1, $errors);
-        $this->assertEquals('VALIDATION.INVALID_EMAIL_BODY', $errors[0]['__CODE'] );
+        static::assertNotEmpty($errors);
+        static::assertCount(1, $errors);
+        static::assertEquals('VALIDATION.INVALID_EMAIL_BODY', $errors[0]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueValid() {
+    public function testValueValid(): void
+    {
         $config = [
           'recipient' => 'example@example.com',
-          'subject'   => 'example',
-          'body'      => 'example'
+          'subject' => 'example',
+          'body' => 'example',
         ];
-        $this->assertEmpty($this->getValidator()->validate($config));
+        static::assertEmpty($this->getValidator()->validate($config));
     }
-
 }

@@ -27,40 +27,40 @@ The schema translates to DB Schemata (or, if you're using MySQL, it matches up w
 
 ~~~json
 {
-  "field" : [
+  "field": [
     "stuff_id",
     "stuff_created",
     "stuff_modified",
     "stuff_name"
   ],
-  "primary" : [
+  "primary": [
     "stuff_id"
   ],
-  "datatype" : {
-    "stuff_id" : "number_natural",
-    "stuff_created" : "text_timestamp",
-    "stuff_modified" : "text_timestamp",
-    "stuff_name" : "text"
+  "datatype": {
+    "stuff_id": "number_natural",
+    "stuff_created": "text_timestamp",
+    "stuff_modified": "text_timestamp",
+    "stuff_name": "text"
   },
-  "options" : {
-    "stuff_name" : {
-      length: 64
+  "options": {
+    "stuff_name": {
+      "length": 64
     }
   },
-  "connection" : "myconnection"
+  "connection": "myconnection"
 }
 ~~~
 
 __NOTES:__
 
 * Required keys:
-   field (array of field names / column names)
-   primary (array of fields to be the primary key - should be only 1 (!) at this time)
-   datatype (the core-framework-specific datatypes - one of those: text, number, number_natural, boolean, text, structure, ... - you can even use text_email)
+  field (array of field names / column names)
+  primary (array of fields to be the primary key - should be only 1 (!) at this time)
+  datatype (the core-framework-specific datatypes - one of those: text, number, number_natural, boolean, text, structure, ... - you can even use text_email)
 * Optional keys:
-   foreign (for foreign key definitions)
-   db_column_type (see below)
-   connection (for using a specific db connection defined in environment.json)
+  foreign (for foreign key definitions)
+  db_column_type (see below)
+  connection (for using a specific db connection defined in environment.json)
 * You may use "db_column_type" to specify the exact database-specific datatype. If undefined for a given key, the default values are used.
 
 - - - -
@@ -92,8 +92,8 @@ class stuff extends \codename\core\model\schematic\mysql {
    *
    * {@inheritDoc}
    */
-  public function __CONSTRUCT(array $modeldata) {
-      parent::__CONSTRUCT($modeldata);
+  public function __construct(array $modeldata) {
+      parent::__construct($modeldata);
       $this->setConfig(null, 'demo', 'stuff');
   }
 

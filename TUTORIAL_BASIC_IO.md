@@ -63,8 +63,7 @@ __Step 2: Create your view code__
 Create a new PHP file (depending on your preferred templating engine)
 at frontend/view/__your-context__/__your-view__.php
 This may be the raw HTML/PHP-Inline code of your view.
-If you're using __Twig__ for templating/writing views, it may be called __your-view__.twig
-
+If you're using __Twig__ for templating/writing views, it may be called "__your-view__.twig"
 
 ~~~php
 <?php namespace codename\demo;?>
@@ -76,7 +75,7 @@ _NOTES:_
 
 * The example is a bare inline PHP code
 * Don't forget to namespace the code if you're using *.php files (irrelevant if you're using Twig)
-* Then, you can access the response constainer via app::getResponse()->getData( ... );
+* Then, you can access the response container via app::getResponse()->getData( ... );
 
 - - - -
 
@@ -85,35 +84,31 @@ __Step 3: Allow your view to be accessed__
 Open your app configuration at __config/app.json__.
 Under the key "__context__" create a json object declaring your context outline:
 
-
 ~~~json
 {
-	...
-	"context": {
-		"mycontext": {
-			"defaultview": "myview",
-			"view": {
-				"myview": {
-					"public": true
-				}
-			}
-		},
-        ...
+  "context": {
+    "mycontext": {
+      "defaultview": "myview",
+      "view": {
+        "myview": {
+          "public": true
+        }
+      }
     }
+  }
 }
 ~~~
 
 _NOTES:_
 
 * Required keys for each context:
-   defaultview
-   view
+  defaultview
+  view
 * Set __"public" : true__ for a view to be accessed without authentication. This is fine for testing purposes.
 * Optional keys:
-   "type": optionally, you can define "crud" or another inheritable context type. Then, you might not need to define stuff that is already present in the base context type.
-   "template": explicitly use a template here
-   "defaulttemplateengine": explicitly use a template engine defined in environment.json here
-
+  "type": optionally, you can define "crud" or another inheritable context type. Then, you might not need to define stuff that is already present in the base context type.
+  "template": explicitly use a template here
+  "defaulttemplateengine": explicitly use a template engine defined in environment.json here
 
 __Step 3.5: Test!__
 

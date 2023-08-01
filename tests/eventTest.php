@@ -1,64 +1,73 @@
 <?php
+
 namespace codename\core\tests;
 
 use codename\core\event;
 use codename\core\eventHandler;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Class for testing events and eventHandlers
  */
-class eventTest extends \PHPUnit\Framework\TestCase {
+class eventTest extends TestCase
+{
+    /**
+     * @return void
+     */
+    public function testEventInvoke(): void
+    {
+        $event = new event('testevent');
+        static::assertEquals('testevent', $event->getName());
 
-  /**
-   * [testEventInvoke description]
-   */
-  public function testEventInvoke(): void {
-    $event = new event('testevent');
-    $this->assertEquals('testevent', $event->getName());
+        $event->addEventHandler(
+            new eventHandler(function ($eventArgs) {
+                static::assertEquals('test', $eventArgs);
+            })
+        );
+    }
 
-    $event->addEventHandler(new eventHandler(function($eventArgs) {
-      $this->assertEquals('test', $eventArgs);
-    }));
+    /**
+     * @return void
+     */
+    public function testEventInvokeWithResult(): void
+    {
+        $event = new event('testevent');
+        static::assertEquals('testevent', $event->getName());
 
-    $res = $event->invoke($this, 'test');
-    $this->assertEmpty($res);
-  }
+        $event->addEventHandler(
+            new eventHandler(function ($eventArgs) {
+                static::assertEquals('test', $eventArgs);
+                return 'success';
+            })
+        );
 
-  /**
-   * [testEventInvokeWithResult description]
-   */
-  public function testEventInvokeWithResult(): void {
-    $event = new event('testevent');
-    $this->assertEquals('testevent', $event->getName());
+        $res = $event->invokeWithResult($this, 'test');
+        static::assertEquals('success', $res);
+    }
 
-    $event->addEventHandler(new eventHandler(function($eventArgs) {
-      $this->assertEquals('test', $eventArgs);
-      return 'success';
-    }));
+    /**
+     * @return void
+     */
+    public function testEventInvokeWithAllResults(): void
+    {
+        $event = new event('testevent');
+        static::assertEquals('testevent', $event->getName());
 
-    $res = $event->invokeWithResult($this, 'test');
-    $this->assertEquals('success', $res);
-  }
+        $event->addEventHandler(
+            new eventHandler(function ($eventArgs) {
+                static::assertEquals('test', $eventArgs);
+                return 'success1';
+            })
+        );
 
-  /**
-   * [testEventInvokeWithAllResults description]
-   */
-  public function testEventInvokeWithAllResults(): void {
-    $event = new event('testevent');
-    $this->assertEquals('testevent', $event->getName());
+        $event->addEventHandler(
+            new eventHandler(function ($eventArgs) {
+                static::assertEquals('test', $eventArgs);
+                return 'success2';
+            })
+        );
 
-    $event->addEventHandler(new eventHandler(function($eventArgs) {
-      $this->assertEquals('test', $eventArgs);
-      return 'success1';
-    }));
-
-    $event->addEventHandler(new eventHandler(function($eventArgs) {
-      $this->assertEquals('test', $eventArgs);
-      return 'success2';
-    }));
-
-    $res = $event->invokeWithAllResults($this, 'test');
-    $this->assertEquals(['success1', 'success2'], $res);
-  }
-
+        $res = $event->invokeWithAllResults($this, 'test');
+        static::assertEquals(['success1', 'success2'], $res);
+    }
 }

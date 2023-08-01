@@ -1,30 +1,37 @@
 <?php
+
 namespace codename\core\tests\validator\structure;
 
-use \codename\core\app;
+use codename\core\exception;
+use codename\core\tests\validator\structure;
+use ReflectionException;
 
 /**
  * I will test the cart validator
  * @package codename\core
  * @since 2016-11-02
  */
-class cart extends \codename\core\tests\validator\structure {
-
+class cart extends structure
+{
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testTextInvalidProduct() {
-        $this->assertEquals('VALIDATION.INVALID_PRODUCT_FOUND', $this->getValidator()->validate([[]])[0]['__CODE'] );
-        return;
+    public function testTextInvalidProduct(): void
+    {
+        static::assertEquals('VALIDATION.INVALID_PRODUCT_FOUND', $this->getValidator()->validate([[]])[0]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueValid() {
-        $this->assertEmpty($this->getValidator()->validate([]));
+    public function testValueValid(): void
+    {
+        static::assertEmpty($this->getValidator()->validate([]));
     }
-
 }

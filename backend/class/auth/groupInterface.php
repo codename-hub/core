@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core\auth;
 
 /**
@@ -7,13 +8,12 @@ namespace codename\core\auth;
  * @package core
  * @since 2018-02-22
  */
-interface groupInterface {
-
+interface groupInterface
+{
     /**
      * Returns true if the current user/credential/client is member of the given "group"".
      * @param string $groupName
      * @return bool
      */
-    public function memberOf(string $groupName) : bool;
-
+    public function memberOf(string $groupName): bool;
 }

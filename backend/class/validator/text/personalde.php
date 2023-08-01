@@ -1,6 +1,10 @@
 <?php
+
 namespace codename\core\validator\text;
 
-class personalde extends \codename\core\validator\text implements \codename\core\validator\validatorInterface {
+use codename\core\validator\text;
+use codename\core\validator\validatorInterface;
 
+class personalde extends text implements validatorInterface
+{
 }

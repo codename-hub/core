@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core\model;
 
 /**
@@ -6,6 +7,6 @@ namespace codename\core\model;
  * @package core
  * @since 2016-02-04
  */
-class plugin {
-    
+class plugin
+{
 }
