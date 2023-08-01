@@ -6,25 +6,24 @@ A contexts consists of the respective config in the app.json (to make it availab
 
 ~~~php
 class start extends \codename\core\context {
-
   public function view_default(): void {
     // a default view
   }
-
   public function action_special(): void {
     // an action
   }
-
 }
 ~~~
 
 ## Naming convention
 
 For every context, regardless of implementation, this is obligatory:
+
 - Contexts must be named all lowercase, w/o special characters
 - Contexts must be placed in backend/class/**context/** (depending on autoloading configuration)
 
 Depending on the used context base class (e.g. `\codename\core\context`), the following may apply:
+
 - Views in a Context are functions prefixed with **view_** and the respective view names.
 - View names may contain underscores, but must be named all lowercase, too.
 - Actions in a Context are functions prefixed with **action_** and the respective action name.
@@ -55,43 +54,35 @@ This is meant as
 
 ~~~php
 namespace codename\example\context;
-
 /**
  * A basic context class
  */
 class testcontext extends \codename\core\context {
-
   /**
    * The default view function of this context
    * @return void
    */
   public function view_default(): void {
-
     // get request parameter
     $someParameter = $this->getRequest()->getData('some_parameter');
-
     // get model
     $model = $this->getModel('test');
-
     // store data
     $model->save([
       'test_data' => $someParameter
     ]);
-
     // get the ID/PKEY value we just created
     $id = $model->lastInsertId();
-
     // load the freshly created dataset
     $dataset = $model->load($id);
-
     // put into response
     $this->getResponse()->setData('output_key', $dataset);
   }
-
 }
 ~~~
 
 If you're using a REST-enabled application and call your endpoint (`/testcontext/default?some_parameter=abc`) the response could look like:
+
 ~~~json
 {
   "success": 1,

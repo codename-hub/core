@@ -1,53 +1,70 @@
 <?php
+
 namespace codename\core\tests\validator\text\color;
 
-use \codename\core\app;
+use codename\core\exception;
+use codename\core\tests\validator\text;
+use ReflectionException;
 
 /**
  * I will test the hex validator
  * @package codename\core
  * @since 2016-11-02
  */
-class hex extends \codename\core\tests\validator\text {
-
+class hex extends text
+{
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueTooShort() {
-        $this->assertEquals('VALIDATION.STRING_TOO_SHORT', $this->getValidator()->validate('A')[0]['__CODE'] );
+    public function testValueTooShort(): void
+    {
+        static::assertEquals('VALIDATION.STRING_TOO_SHORT', $this->getValidator()->validate('A')[0]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueTooLong() {
-        $this->assertEquals('VALIDATION.STRING_TOO_LONG', $this->getValidator()->validate('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')[0]['__CODE'] );
+    public function testValueTooLong(): void
+    {
+        static::assertEquals('VALIDATION.STRING_TOO_LONG', $this->getValidator()->validate('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')[0]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueInvalidchars() {
-        $this->assertEquals('VALIDATION.STRING_CONTAINS_INVALID_CHARACTERS', $this->getValidator()->validate('*ASDASD')[0]['__CODE'] );
+    public function testValueInvalidchars(): void
+    {
+        static::assertEquals('VALIDATION.STRING_CONTAINS_INVALID_CHARACTERS', $this->getValidator()->validate('*ASDASD')[0]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueInvalidHexString() {
-        $this->assertEquals('VALIDATION.VALUE_NOT_HEX_STRING', $this->getValidator()->validate('ABCDEFF')[0]['__CODE'] );
+    public function testValueInvalidHexString(): void
+    {
+        static::assertEquals('VALIDATION.VALUE_NOT_HEX_STRING', $this->getValidator()->validate('ABCDEFF')[0]['__CODE']);
     }
 
     /**
-     * Testing validators for Erors
+     * Testing validators for Errors
      * @return void
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function testValueValid() {
-        $this->assertEmpty($this->getValidator()->validate('#AABBCC'));
+    public function testValueValid(): void
+    {
+        static::assertEmpty($this->getValidator()->validate('#AABBCC'));
     }
-
 }

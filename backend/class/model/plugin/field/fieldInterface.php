@@ -1,21 +1,22 @@
 <?php
+
 namespace codename\core\model\plugin\field;
+
+use codename\core\value\text\modelfield;
 
 /**
  * Definition for \codename\core\model\plugin\field
  * @package core
  * @since 2016-02-04
  */
-interface fieldInterface {
-
+interface fieldInterface
+{
     /**
      * Sets the field for this instance and returns the instance
      * Use it to add fields to a model request
      *
-     * @param  \codename\core\value\text\modelfield       $field [description]
-     * @param  \codename\core\value\text\modelfield|null  $alias [description]
-     * @return [type]                                  [description]
+     * @param modelfield $field [description]
+     * @param modelfield|null $alias [description]
      */
-    public function __construct(\codename\core\value\text\modelfield $field, ?\codename\core\value\text\modelfield $alias);
-
+    public function __construct(modelfield $field, ?modelfield $alias);
 }

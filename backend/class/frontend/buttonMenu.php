@@ -1,65 +1,85 @@
 <?php
+
 namespace codename\core\frontend;
 
 /**
  * Menu Button Link creation/link class
  * @package core
- * @author Kevin Dargel
  * @since 2017-01-05
  */
-class buttonMenu extends element {
+class buttonMenu extends element
+{
+    /**
+     * array of menu elements
+     * @var element[]
+     */
+    public array $items = [];
 
-  /**
-   * array of menu elements
-   * @var element[]
-   */
-  public $items = array();
+    /**
+     * {@inheritDoc}
+     */
+    public function __construct(array $items, $iconCss = '', $title = '', array $cssClasses = [], array $attributes = [])
+    {
+        $attributes['title'] = $title;
+        $this->items = $items;
+        $configArray = [
+          'title' => $title,
+          'css' => $cssClasses,
+          'attributes' => $attributes,
+        ];
+        return parent::__construct($configArray);
+    }
 
-  /**
-   * @inheritDoc
-   */
-  public function __construct(array $items, $iconCss = '', $title = '', array $cssClasses = array(), array $attributes = array())
-  {
-    $attributes['title'] = $title;
-    $this->items = $items;
-    $configArray = array(
-      'title' => $title,
-      'css' => $cssClasses,
-      'attributes' => $attributes,
-    );
-    $value = parent::__construct($configArray);
-    return $value;
-  }
+    /**
+     * @param array $items
+     * @param string $iconCss
+     * @param string $title
+     * @param array $cssClasses
+     * @param array $attributes
+     * @return string
+     */
+    public static function getHtml(array $items, string $iconCss = '', string $title = '', array $cssClasses = [], array $attributes = []): string
+    {
+        $link = new self($items, $iconCss, $title, $cssClasses, $attributes);
+        return $link->output();
+    }
 
-  /**
-   * @inheritDoc
-   */
-  public function output(): string
-  {
-    $title = $this->config->get('title');
-    $html = "<button type=\"button\" class=\"btn btn-xs btn-default dropdown-toggle\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">
-  	 <i class=\"icon icon-cogs\"></i> {$title} <span class=\"caret\"></span>
+    /**
+     * @return string
+     */
+    public function output(): string
+    {
+        $title = $this->config->get('title');
+        $html = "<button type=\"button\" class=\"btn btn-xs btn-default dropdown-toggle\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">
+  	 <i class=\"icon icon-cogs\"></i> $title <span class=\"caret\"></span>
     </button>
     <ul class=\"dropdown-menu\">";
-    foreach($this->items as $item) {
-      $html .= "<li>" . $item->output() . "</li>";
+        foreach ($this->items as $item) {
+            $html .= "<li>" . $item->output() . "</li>";
+        }
+        $html .= "</ul>";
+        return $html;
     }
-    $html .= "</ul>";
-    return $html;
-  }
 
-  public function addItem(element $ele) {
-    $this->items[] = $ele;
-  }
+    /**
+     * @param array $items
+     * @param string $iconCss
+     * @param string $title
+     * @param array $cssClasses
+     * @param array $attributes
+     * @return element
+     */
+    public static function create(array $items, string $iconCss = '', string $title = '', array $cssClasses = [], array $attributes = []): element
+    {
+        return new self($items, $iconCss, $title, $cssClasses, $attributes);
+    }
 
-  public static function getHtml(array $items, $iconCss = '', $title = '', array $cssClasses = array(), array $attributes = array()) : string {
-    $link = new self($items,$iconCss,$title,$cssClasses,$attributes);
-    return $link->output();
-  }
-
-  public static function create(array $items, $iconCss = '', $title = '', array $cssClasses = array(), array $attributes = array()) : element {
-    $element = new self($items,$iconCss,$title,$cssClasses,$attributes);
-    return $element;
-  }
-
+    /**
+     * @param element $element
+     * @return void
+     */
+    public function addItem(element $element): void
+    {
+        $this->items[] = $element;
+    }
 }

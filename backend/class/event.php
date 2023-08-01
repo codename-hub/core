@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core;
 
 /**
@@ -6,85 +7,87 @@ namespace codename\core;
  */
 class event
 {
-  /**
-   * [protected description]
-   * @var string
-   */
-  protected $name;
+    /**
+     * [protected description]
+     * @var string
+     */
+    protected string $name;
+    /**
+     * [protected description]
+     * @var eventHandler[]
+     */
+    protected array $eventHandlers = [];
 
-  /**
-   * [getName description]
-   * @return [type] [description]
-   */
-  public function getName()
-  {
-    return $this->name;
-  }
-
-  /**
-   * [__construct description]
-   * @param string $name [description]
-   */
-  public function __construct(string $name)
-  {
-    $this->name = $name;
-  }
-
-  /**
-   * invoke all event handlers without return value
-   * @param  [type] $sender    [description]
-   * @param  [type] $eventArgs [description]
-   * @return [type]            [description]
-   */
-  public function invoke($sender, $eventArgs) {
-    foreach($this->eventHandlers as $eventHandler) {
-      $eventHandler->invoke($sender, $eventArgs);
+    /**
+     * [__construct description]
+     * @param string $name [description]
+     */
+    public function __construct(string $name)
+    {
+        $this->name = $name;
     }
-  }
 
-  /**
-   * [invokeWithResult description]
-   * only the last eventHandler gets to return his return value
-   * @param  [type] $sender    [description]
-   * @param  [type] $eventArgs [description]
-   * @return [type]            [description]
-   */
-  public function invokeWithResult($sender, $eventArgs) {
-    $ret = null;
-    foreach($this->eventHandlers as $eventHandler) {
-      $ret = $eventHandler->invoke($sender, $eventArgs);
+    /**
+     * [getName description]
+     * @return string [type] [description]
+     */
+    public function getName(): string
+    {
+        return $this->name;
     }
-    return $ret;
-  }
 
-  /**
-   * [invokeWithAllResults description]
-   * @param  [type] $sender    [description]
-   * @param  [type] $eventArgs [description]
-   * @return array
-   */
-  public function invokeWithAllResults($sender, $eventArgs) : array {
-    $ret = array();
-    foreach($this->eventHandlers as $eventHandler) {
-      $ret[] = $eventHandler->invoke($sender, $eventArgs);
+    /**
+     * [invokeWithResult description]
+     * only the last eventHandler gets to return his return value
+     * @param $sender
+     * @param $eventArgs
+     * @return mixed [type]            [description]
+     */
+    public function invokeWithResult($sender, $eventArgs): mixed
+    {
+        $ret = null;
+        foreach ($this->eventHandlers as $eventHandler) {
+            $ret = $eventHandler->invoke($sender, $eventArgs);
+        }
+        return $ret;
     }
-    return $ret;
-  }
 
-  /**
-   * [protected description]
-   * @var eventHandler[]
-   */
-  protected $eventHandlers = array();
+    /**
+     * invoke all event handlers without return value
+     * @param $sender
+     * @param $eventArgs
+     * @return void [type]            [description]
+     */
+    public function invoke($sender, $eventArgs): void
+    {
+        foreach ($this->eventHandlers as $eventHandler) {
+            $eventHandler->invoke($sender, $eventArgs);
+        }
+    }
 
-  /**
-   * [addEventHandler description]
-   * @param  eventHandler $eventHandler [description]
-   * @return event                      [description]
-   */
-  public function addEventHandler(eventHandler $eventHandler) : event {
-    $this->eventHandlers[] = $eventHandler;
-    return $this;
-  }
+    /**
+     * [invokeWithAllResults description]
+     * @param  [type] $sender    [description]
+     * @param  [type] $eventArgs [description]
+     * @return array
+     */
+    public function invokeWithAllResults($sender, $eventArgs): array
+    {
+        $ret = [];
+        foreach ($this->eventHandlers as $eventHandler) {
+            $ret[] = $eventHandler->invoke($sender, $eventArgs);
+        }
+        return $ret;
+    }
 
+    /**
+     * [addEventHandler description]
+     * @param eventHandler $eventHandler [description]
+     * @return event                      [description]
+     */
+    public function addEventHandler(eventHandler $eventHandler): event
+    {
+        $this->eventHandlers[] = $eventHandler;
+        return $this;
+    }
 }

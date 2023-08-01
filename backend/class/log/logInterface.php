@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core\log;
 
 /**
@@ -6,8 +7,8 @@ namespace codename\core\log;
  * @package core
  * @since 2016-04-05
  */
-interface logInterface {
-    
+interface logInterface
+{
     /**
      * Writes data to the emergency log
      * @param string $text content to write to the log file
@@ -49,12 +50,12 @@ interface logInterface {
      * @param string $text content to write to the log file
      */
     public function info(string $text);
-    
+
     /**
      * Writes the given text to the log file that was instanced before
      * @param string $text Text to be written to the index
+     * @param int $level
      * @return void
      */
-    public function write(string $text, int $level);
-    
+    public function write(string $text, int $level): void;
 }

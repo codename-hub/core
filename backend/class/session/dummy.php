@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core\session;
 
 /**
@@ -6,14 +7,15 @@ namespace codename\core\session;
  * @package core
  * @since 2016-02-04
  */
-class dummy extends \codename\core\session implements \codename\core\session\sessionInterface {
-
+class dummy extends \codename\core\session implements sessionInterface
+{
     /**
      *
      * {@inheritDoc}
      * @see \codename\core\session_interface::start($data)
      */
-    public function start(array $data) : \codename\core\session {
+    public function start(array $data): \codename\core\session
+    {
         return $this;
     }
 
@@ -22,8 +24,8 @@ class dummy extends \codename\core\session implements \codename\core\session\ses
      * {@inheritDoc}
      * @see \codename\core\session_interface::destroy()
      */
-    public function destroy() {
-        return;
+    public function destroy()
+    {
     }
 
     /**
@@ -31,7 +33,8 @@ class dummy extends \codename\core\session implements \codename\core\session\ses
      * {@inheritDoc}
      * @see \codename\core\session_interface::getData($key)
      */
-    public function getData(string $key='') {
+    public function getData(string $key = ''): mixed
+    {
         return null;
     }
 
@@ -40,8 +43,8 @@ class dummy extends \codename\core\session implements \codename\core\session\ses
      * {@inheritDoc}
      * @see \codename\core\session_interface::setData($key, $value)
      */
-    public function setData(string $key, $value) {
-        return;
+    public function setData(string $key, mixed $data): void
+    {
     }
 
     /**
@@ -49,22 +52,23 @@ class dummy extends \codename\core\session implements \codename\core\session\ses
      * {@inheritDoc}
      * @see \codename\core\session_interface::isDefined($key)
      */
-    public function isDefined(string $key) : bool {
+    public function isDefined(string $key): bool
+    {
         return false;
     }
 
     /**
      * @return bool
      */
-    public function identify() : bool {
+    public function identify(): bool
+    {
         return false;
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
-    public function invalidate($sessionId)
+    public function invalidate(int|string $sessionId): void
     {
     }
-
 }

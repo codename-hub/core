@@ -2,21 +2,21 @@ version: '0.2'
 phases:
   install:
     runtime-versions:
-      php: '7.3'
+      php: '8.1'
     commands:
       # pre-build custom image/container
-      - docker-compose -f docker-compose.unittest.yml build unittest-php73
+      - docker-compose -f docker-compose.unittest.yml build unittest-php81
       # install using integrated composer - NOTE: passthrough env var 'COMPOSER_AUTH'
-      - docker-compose -f docker-compose.unittest.yml run --no-deps -e COMPOSER_AUTH unittest-php73 composer update
+      - docker-compose -f docker-compose.unittest.yml run --no-deps -e COMPOSER_AUTH unittest-php81 composer update
       # alternatively: install on agent, w/o platform checks
       # - composer update --ignore-platform-reqs --no-progress --no-interaction
 
   build:
     commands:
-      - docker-compose -f docker-compose.unittest.yml up unittest-php73
+      - docker-compose -f docker-compose.unittest.yml up unittest-php81
 
       # full run including coverage report
-      # - docker-compose -f docker-compose.unittest.yml run unittest-php73 vendor/bin/phpunit
+      # - docker-compose -f docker-compose.unittest.yml run unittest-php81 vendor/bin/phpunit
 
   post_build:
     commands:

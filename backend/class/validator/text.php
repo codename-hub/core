@@ -1,49 +1,51 @@
 <?php
+
 namespace codename\core\validator;
-use codename\core\exception;
+
+use codename\core\validator;
 
 /**
  * validate texts for length, (in)valid characters and regular expressions
  * @package core
  * @since 2016-02-04
  */
-class text extends \codename\core\validator {
-
+class text extends validator
+{
     /**
      * What is the minimum length
-     * @var integer
+     * @var int
      */
-    protected $minlength = 0;
+    protected int $minlength = 0;
 
     /**
      * What is the maximum length
-     * @var integer
+     * @var int
      */
-    protected $maxlength = 0;
+    protected int $maxlength = 0;
 
     /**
      * Contains allowed characters for the string
      * @var string
      */
-    protected $allowedchars = '';
+    protected string $allowedchars = '';
 
     /**
      * Contains forbidden characters
      * @var string
      */
-    protected $forbiddenchars = '';
+    protected string $forbiddenchars = '';
 
     /**
      * Contains preg_quoted allowed characters for the string
      * @var string
      */
-    protected $quotedAllowedchars = '';
+    protected string $quotedAllowedchars = '';
 
     /**
      * Contains preg_quoted forbidden characters
      * @var string
      */
-    protected $quotedForbiddenchars = '';
+    protected string $quotedForbiddenchars = '';
 
     /**
      * @param bool $nullAllowed
@@ -52,10 +54,11 @@ class text extends \codename\core\validator {
      * @param string $allowedchars
      * @param string $forbiddenchars
      */
-    public function __CONSTRUCT(bool $nullAllowed = false, int $minlength = 0, int $maxlength = 0, string $allowedchars = '', string $forbiddenchars = '') {
-        parent::__CONSTRUCT($nullAllowed);
-        $this->minlength = (int) $minlength;
-        $this->maxlength = (int) $maxlength;
+    public function __construct(bool $nullAllowed = false, int $minlength = 0, int $maxlength = 0, string $allowedchars = '', string $forbiddenchars = '')
+    {
+        parent::__construct($nullAllowed);
+        $this->minlength = $minlength;
+        $this->maxlength = $maxlength;
         $this->allowedchars = $allowedchars;
         $this->forbiddenchars = $forbiddenchars;
 
@@ -67,22 +70,23 @@ class text extends \codename\core\validator {
      * {@inheritDoc}
      * @see \codename\core\validator_interface::validate($value)
      */
-    public function validate($value) : array {
-        if(count(parent::validate($value)) != 0) {
+    public function validate(mixed $value): array
+    {
+        if (count(parent::validate($value)) != 0) {
             return $this->getErrors();
         }
 
-        if(!is_string($value)) {
+        if (!is_string($value)) {
             $this->errorstack->addError('VALUE', 'VALUE_NOT_A_STRING', $value);
             return $this->errorstack->getErrors();
         }
 
-        if($this->getMinlength() > 0 && strlen($value) < $this->getMinlength()) {
+        if ($this->getMinlength() > 0 && strlen($value) < $this->getMinlength()) {
             $this->errorstack->addError('VALUE', 'STRING_TOO_SHORT', $value);
             return $this->errorstack->getErrors();
         }
 
-        if($this->getMaxlength() > 0 && strlen($value) > $this->getMaxlength()) {
+        if ($this->getMaxlength() > 0 && strlen($value) > $this->getMaxlength()) {
             $this->errorstack->addError('VALUE', 'STRING_TOO_LONG', $value);
             return $this->errorstack->getErrors();
         }
@@ -90,36 +94,20 @@ class text extends \codename\core\validator {
         // search forbidden characters
 
         if (strlen($this->getAllowedchars()) > 0) {
-          // match characters that are NOT in allowed chars
-          if(preg_match('/[^'.$this->getQuotedAllowedchars().']/', $value, $matches) !== 0) {
-            $this->errorstack->addError('VALUE', 'STRING_CONTAINS_INVALID_CHARACTERS', array('value' => $value, 'matches' => $matches));
-            return $this->errorstack->getErrors();
-          }
+            // match characters that are NOT in allowed chars
+            if (preg_match('/[^' . $this->getQuotedAllowedchars() . ']/', $value, $matches) !== 0) {
+                $this->errorstack->addError('VALUE', 'STRING_CONTAINS_INVALID_CHARACTERS', ['value' => $value, 'matches' => $matches]);
+                return $this->errorstack->getErrors();
+            }
         }
 
         if (strlen($this->getForbiddenchars()) > 0) {
-          // match characters that are explicitly in forbidden chars
-          if(preg_match('/['.$this->getQuotedForbiddenchars().']/', $value, $matches) !== 0) {
-            $this->errorstack->addError('VALUE', 'STRING_CONTAINS_INVALID_CHARACTERS', array('value' => $value, 'matches' => $matches));
-            return $this->errorstack->getErrors();
-          }
+            // match characters that are explicitly in forbidden chars
+            if (preg_match('/[' . $this->getQuotedForbiddenchars() . ']/', $value, $matches) !== 0) {
+                $this->errorstack->addError('VALUE', 'STRING_CONTAINS_INVALID_CHARACTERS', ['value' => $value, 'matches' => $matches]);
+                return $this->errorstack->getErrors();
+            }
         }
-
-        /*
-        for($position = 0; $position <= strlen($value)-1; $position++) {
-            if (strlen($this->getAllowedchars()) > 0) {
-                if(strpos($this->getAllowedchars(), $value[$position]) === false) {
-                    $this->errorstack->addError('VALUE', 'STRING_CONTAINS_INVALID_CHARACTERS', array('value' => $value, 'position' => $position));
-                    break;
-                }
-            }
-            if (strlen($this->getForbiddenchars()) > 0) {
-                if(strpos($this->getForbiddenchars(), $value[$position]) !== false) {
-                    $this->errorstack->addError('VALUE', 'STRING_CONTAINS_INVALID_CHARACTERS', array('value' => $value, 'position' => $position));
-                    break;
-                }
-            }
-        }*/
 
         return $this->errorstack->getErrors();
     }
@@ -128,15 +116,17 @@ class text extends \codename\core\validator {
      * Returns the minimum length property
      * @return int
      */
-    protected function getMinlength() : int {
-        return (int) $this->minlength;
+    protected function getMinlength(): int
+    {
+        return $this->minlength;
     }
 
     /**
      * Returns the max length property
      * @return int
      */
-    protected function getMaxlength() : int {
+    protected function getMaxlength(): int
+    {
         return $this->maxlength;
     }
 
@@ -144,7 +134,8 @@ class text extends \codename\core\validator {
      * Returns the allowed characters
      * @return string
      */
-    protected function getAllowedchars() : string {
+    protected function getAllowedchars(): string
+    {
         return $this->allowedchars;
     }
 
@@ -152,18 +143,20 @@ class text extends \codename\core\validator {
      * Returns the preq_quoted allowed characters
      * @return string
      */
-    protected function getQuotedAllowedchars() : string {
-        if($this->quotedAllowedchars == null) {
-          $this->quotedAllowedchars = preg_quote($this->getAllowedchars(), '//');
+    protected function getQuotedAllowedchars(): string
+    {
+        if ($this->quotedAllowedchars == null) {
+            $this->quotedAllowedchars = preg_quote($this->getAllowedchars(), '//');
         }
         return $this->quotedAllowedchars;
     }
 
     /**
-     * Returns the forbidden cahracters
+     * Returns the forbidden characters
      * @return string
      */
-    protected function getForbiddenchars() : string {
+    protected function getForbiddenchars(): string
+    {
         return $this->forbiddenchars;
     }
 
@@ -171,11 +164,11 @@ class text extends \codename\core\validator {
      * Returns the preq_quoted forbidden characters
      * @return string
      */
-    protected function getQuotedForbiddenchars() : string {
-        if($this->quotedForbiddenchars == null) {
-          $this->quotedForbiddenchars = preg_quote($this->getForbiddenchars(), '//');
+    protected function getQuotedForbiddenchars(): string
+    {
+        if ($this->quotedForbiddenchars == null) {
+            $this->quotedForbiddenchars = preg_quote($this->getForbiddenchars(), '//');
         }
         return $this->quotedForbiddenchars;
     }
-
 }

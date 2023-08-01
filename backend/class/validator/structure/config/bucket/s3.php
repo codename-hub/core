@@ -1,30 +1,32 @@
 <?php
+
 namespace codename\core\validator\structure\config\bucket;
+
+use codename\core\validator\structure\config\bucket;
+use codename\core\validator\validatorInterface;
 
 /**
  * validator for configs for bucket driver s3
  */
-class s3 extends \codename\core\validator\structure\config\bucket implements \codename\core\validator\validatorInterface {
-
+class s3 extends bucket implements validatorInterface
+{
     /**
      * Contains a list of array keys that MUST exist in the validated array
      * @var array
      */
-    public $arrKeys = array(
+    public $arrKeys = [
       'bucket',
-    );
+    ];
 
     /**
      *
      * {@inheritDoc}
      * @see \codename\core\validator_interface::validate($value)
      */
-    public function validate($value) : array {
+    public function validate(mixed $value): array
+    {
         parent::validate($value);
-        if(count($this->errorstack->getErrors()) > 0) {
-            return $this->errorstack->getErrors();
-        }
+
         return $this->errorstack->getErrors();
     }
-
 }

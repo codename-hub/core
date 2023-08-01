@@ -1,55 +1,32 @@
 <?php
+
 namespace codename\core;
+
+use function array_key_exists;
+use function strlen;
 
 /**
  * Containing data
  * @package core
  * @since 2016-04-29
  */
-class datacontainer {
-
+class datacontainer
+{
     /**
      * Contains the data of this instance
      * @var array
      */
-    protected $data = array();
+    protected array $data = [];
 
     /**
      * Creates the instance and imports the $data object into this instance
      * @param array $data
-     * @return \codename\core\datacontainer
+     * @return datacontainer
      */
-    public function __construct(array $data = array()) {
+    public function __construct(array $data = [])
+    {
         $this->data = $data;
         return $this;
-    }
-
-    /**
-     * Stores the given $data value under the given $key in this instance's data property
-     * @param string $key
-     * @param mixed|null $data
-     */
-    public function setData(string $key, $data) {
-        if(strlen($key) == 0) {
-            return;
-        }
-        if(strpos($key, '>') !== false) {
-            // NOTE/CHANGED 2020-12-07: ::setData no longer sets literal '>' keys
-            // As this caused a general functionality disadvantage
-            // ::isDefined returned true for already set sub-keys
-            // and therefore, continued to set literals.
-            $myConfig = &$this->data;
-            foreach(explode('>', $key) as $myKey) {
-                if($myConfig !== null && !array_key_exists($myKey, $myConfig)) {
-                    $myConfig[$myKey] = null;
-                }
-                $myConfig = &$myConfig[$myKey];
-            }
-            $myConfig = $data;
-        } else {
-            $this->data[$key] = $data;
-        }
-        return;
     }
 
     /**
@@ -57,34 +34,35 @@ class datacontainer {
      * @param array $data
      * @return void
      */
-    public function addData(array $data) {
+    public function addData(array $data): void
+    {
         foreach ($data as $key => $value) {
             $this->setData($key, $value);
         }
-        return;
     }
 
     /**
      * Return the value of the given key. Either pass a direct name, or use a tree to navigate through the data set
-     * <br /> ->get('my>config>key')
+     * ->get('my>config>key')
      * @param string $key
-     * @return mixed|null
+     * @return mixed
      */
-    public function getData(string $key = '') {
-        if(\strlen($key) == 0) {
+    public function getData(string $key = ''): mixed
+    {
+        if (strlen($key) == 0) {
             return $this->data;
         }
 
-        if(\strpos($key, '>') === false) {
-            if($this->isDefined($key)) {
+        if (!str_contains($key, '>')) {
+            if ($this->isDefined($key)) {
                 return $this->data[$key];
             }
             return null;
         }
 
         $myConfig = $this->data;
-        foreach(explode('>', $key) as $myKey) {
-            if(!\array_key_exists($myKey, $myConfig)) {
+        foreach (explode('>', $key) as $myKey) {
+            if (!array_key_exists($myKey, $myConfig)) {
                 return null;
             }
             $myConfig = $myConfig[$myKey];
@@ -94,22 +72,51 @@ class datacontainer {
     }
 
     /**
+     * Stores the given $data value under the given $key in this instance's data property
+     * @param string $key
+     * @param mixed|null $data
+     */
+    public function setData(string $key, mixed $data): void
+    {
+        if (strlen($key) == 0) {
+            return;
+        }
+        if (str_contains($key, '>')) {
+            // NOTE/CHANGED 2020-12-07: ::setData no longer sets literal '>' keys
+            // As this caused a general functionality disadvantage
+            // ::isDefined returned true for already set sub-keys
+            // and therefore, continued to set literals.
+            $myConfig = &$this->data;
+            foreach (explode('>', $key) as $myKey) {
+                if ($myConfig !== null && !array_key_exists($myKey, $myConfig)) {
+                    $myConfig[$myKey] = null;
+                }
+                $myConfig = &$myConfig[$myKey];
+            }
+            $myConfig = $data;
+        } else {
+            $this->data[$key] = $data;
+        }
+    }
+
+    /**
      * Returns true if there is a value with name $key in this instance's data set
      * @param string $key
      * @return bool
      */
-    public function isDefined(string $key) : bool {
-        if(\strpos($key, '>') === false) {
-          return \array_key_exists($key, $this->data);
+    public function isDefined(string $key): bool
+    {
+        if (!str_contains($key, '>')) {
+            return array_key_exists($key, $this->data);
         } else {
-          $myConfig = $this->data;
-          foreach(explode('>', $key) as $myKey) {
-              if(!\array_key_exists($myKey, $myConfig)) {
-                  return false;
-              }
-              $myConfig = $myConfig[$myKey];
-          }
-          return true;
+            $myConfig = $this->data;
+            foreach (explode('>', $key) as $myKey) {
+                if (!array_key_exists($myKey, $myConfig)) {
+                    return false;
+                }
+                $myConfig = $myConfig[$myKey];
+            }
+            return true;
         }
     }
 
@@ -117,16 +124,15 @@ class datacontainer {
      * Removes the given $key from this instance's data set
      * @param string $key
      */
-    public function unsetData(string $key) {
-        if(strlen($key) == 0) {
-            return $this->data;
+    public function unsetData(string $key): void
+    {
+        if (strlen($key) == 0) {
+            return;
         }
-        if(!$this->isDefined($key)) {
+        if (!$this->isDefined($key)) {
             return;
         }
 
         unset($this->data[$key]);
-        return;
     }
-
 }

@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core;
 
 /**
@@ -6,29 +7,29 @@ namespace codename\core;
  */
 class eventHandler
 {
-  /**
-   * the internal callable (function)
-   * @var callable
-   */
-  protected $callable;
+    /**
+     * the internal callable (function)
+     * @var callable
+     */
+    protected $callable;
 
-  /**
-   * [__construct description]
-   * @param callable $function [description]
-   */
-  public function __construct(callable $function)
-  {
-    $this->callable = $function;
-  }
+    /**
+     * [__construct description]
+     * @param callable $function [description]
+     */
+    public function __construct(callable $function)
+    {
+        $this->callable = $function;
+    }
 
-  /**
-  *  invoke the stored function in this eventhandler
-   * @param  mixed|null  $sender    [description]
-   * @param  mixed|null  $arguments [description]
-   * @return mixed|null             [description]
-   */
-  public function invoke($sender, $arguments) {
-    return call_user_func($this->callable, $arguments);
-  }
-
+    /**
+     * invoke the stored function in this eventhandler
+     * @param mixed $sender [description]
+     * @param mixed $arguments [description]
+     * @return mixed             [description]
+     */
+    public function invoke(mixed $sender, mixed $arguments): mixed
+    {
+        return call_user_func($this->callable, $arguments);
+    }
 }

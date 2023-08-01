@@ -1,50 +1,51 @@
 <?php
+
 namespace codename\core;
+
+use codename\core\observable\observableInterface;
 
 /**
  * Observable interface
  * @package core
  * @since 2016-06-09
  */
-abstract class observable implements \codename\core\observable\observableInterface {
-
+abstract class observable implements observableInterface
+{
     /**
      * Contains the observers for this instance
-     * @var \codename\core\observer[]
+     * @var observer[]
      */
-    protected $observers = array();
+    protected array $observers = [];
 
     /**
      *
      * {@inheritDoc}
-     * @see \codename\core\observable\observableInterface::attach()
+     * @see observableInterface::attach
      */
-    public function attach(\codename\core\observer $observer) {
+    public function attach(observer $observer): void
+    {
         $this->observers[] = $observer;
-        return;
     }
 
     /**
      *
      * {@inheritDoc}
-     * @see \codename\core\observable\observableInterface::detach()
+     * @see observableInterface::detach
      */
-    public function detach(\codename\core\observer $observer) {
-        $this->observers = array_diff($this->observers, array($observer));
-        return;
+    public function detach(observer $observer): void
+    {
+        $this->observers = array_diff($this->observers, [$observer]);
     }
 
     /**
      *
      * {@inheritDoc}
-     * @see \codename\core\observable\observableInterface::notify()
+     * @see observableInterface::notify
      */
-    public function notify(string $type = '') {
-        foreach($this->observers as $observer) {
+    public function notify(string $type = ''): void
+    {
+        foreach ($this->observers as $observer) {
             $observer->update($this, $type);
         }
-        return;
     }
-
-
 }

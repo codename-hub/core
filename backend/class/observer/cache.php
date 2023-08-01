@@ -1,44 +1,49 @@
 <?php
+
 namespace codename\core\observer;
+
+use codename\core\observable;
+use codename\core\observer;
 
 /**
  * Observer Class for monitoring cache server usage
  * @package core
  * @since 2016-08-31
  */
-class cache extends \codename\core\observer implements \codename\core\observer\observerInterface {
-
+class cache extends observer implements observerInterface
+{
     /**
      * Contains the amount of cache gets that did not response usable data
-     * @var integer
+     * @var int
      */
-    public static $miss = 0;
+    public static int $miss = 0;
 
     /**
      * Contains the amount of hits
-     * @var integer
+     * @var int
      */
-    public static $hit = 0;
+    public static int $hit = 0;
 
     /**
      * Contains the amount of set calls
-     * @var integer
+     * @var int
      */
-    public static $set = 0;
+    public static int $set = 0;
 
     /**
      * Contains the amount of get calls
-     * @var integer
+     * @var int
      */
-    public static $get = 0;
+    public static int $get = 0;
 
     /**
      *
      * {@inheritDoc}
-     * @see \codename\core\observer\observerInterface::update()
+     * @see observerInterface::update
      */
-    public function update(\codename\core\observable $observable, string $type) {
-        switch($type) {
+    public function update(observable $observable, string $type): void
+    {
+        switch ($type) {
             case 'CACHE_SET':
                 self::$set++;
                 break;
@@ -53,5 +58,4 @@ class cache extends \codename\core\observer implements \codename\core\observer\o
                 break;
         }
     }
-
 }

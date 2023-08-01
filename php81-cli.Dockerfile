@@ -1,13 +1,12 @@
-FROM php:7.4-cli
+FROM php:8.1.17-cli
 
 # get apt-get lists for the first time
 RUN apt-get update
 
-## install zip extension using debian buster repo (which is now available)
+## install zip extension
 ## we need zip-1.14 or higher and libzip 1.2 or higher for ZIP encryption support
 RUN apt-get update && apt-get install -y zlib1g-dev libzip-dev \
     && pecl install zip \
-    # && docker-php-ext-configure zip --with-libzip \ # not required for PHP 7.4+
     && docker-php-ext-install zip
 
 ## configure and install php-intl extension (and dependencies)
@@ -16,7 +15,7 @@ RUN apt-get update && apt-get install -y libicu-dev \
     && docker-php-ext-install intl
 
 # install some php extensions
-RUN docker-php-ext-install pdo pdo_mysql opcache bcmath
+RUN docker-php-ext-install pdo pdo_mysql opcache zip bcmath
 
 # install gmp
 RUN apt-get -y install libgmp-dev && \
@@ -35,7 +34,7 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     curl
 
-RUN pecl install memcached-3.1.5 \
+RUN pecl install memcached-3.2.0 \
     && docker-php-ext-enable memcached
 
 # install ssh2 ext and deps
@@ -48,7 +47,7 @@ RUN apt-get update \
 # RUN  pecl install xdebug \
 #   && docker-php-ext-enable xdebug
 
-RUN  pecl install pcov-1.0.9 \
+RUN  pecl install pcov-1.0.11 \
   && docker-php-ext-enable pcov
 
 # Programmatically install composer

@@ -1,38 +1,43 @@
 <?php
+
 namespace codename\core;
+
+use codename\core\value\text\actionname;
+use codename\core\value\text\contextname;
+use codename\core\value\text\viewname;
 
 /**
  * Collecting and accessing data that is sent by the request
  * @package core
  * @since 2016-01-24
  */
-class request extends \codename\core\datacontainer {
-
+class request extends datacontainer
+{
     /**
      * Contains the context
-     * @var \codename\core\value\text\contextname
+     * @var null|contextname
      */
-    private $context = null;
+    private ?value\text\contextname $context = null;
 
     /**
      * contains the view name
-     * @var \codename\core\value\text\viewname
+     * @var null|viewname
      */
-    private $view = null;
+    private ?value\text\viewname $view = null;
 
     /**
      * Contains the action
-     * @var \codename\core\value\text\actionname
+     * @var null|actionname
      */
-    private $action = null;
+    private ?value\text\actionname $action = null;
 
     /**
-     * Create instance of request, merge _POST and _GET superglobals to the instane data
-     * @return \codename\core\request
+     * Create instance of request, merge _POST and _GET super globals to the instance data
+     * @return request
      */
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
         return $this;
     }
-
 }

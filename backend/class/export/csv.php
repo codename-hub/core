@@ -1,15 +1,22 @@
 <?php
+
 namespace codename\core\export;
 
-use \codename\core\app;
+use codename\core\app;
+use codename\core\datacontainer;
+use codename\core\exception;
+use codename\core\export;
+use codename\core\value\text;
+use codename\core\value\text\fileabsolute;
+use ReflectionException;
 
 /**
  * This is the CSV Exporter class
  * @package core
  * @since 2016-09-27
  */
-class csv extends \codename\core\export implements \codename\core\export\exportInterface {
-
+class csv extends export implements exportInterface
+{
     /**
      * This separator is used between each field
      * @var string
@@ -20,85 +27,73 @@ class csv extends \codename\core\export implements \codename\core\export\exportI
      * this separator is used between each row
      * @var string
      */
-    protected $separator_row = '
+    protected string $separator_row = '
 ';
 
     /**
      * Contains the file name
-     * @var \codename\core\value\text\fileabsolute
+     * @var fileabsolute
      */
-    protected $filename;
-    
+    protected fileabsolute $filename;
+
     /**
      * Contains the file's character encoding
      * @var string
      */
     protected $encoding = 'UTF-8';
-    
+
     /**
      * Using the custom generate-method, the file will be written to the given path
      * @param string $filename
-     * @return \codename\core\export
+     * @return export
+     * @throws ReflectionException
+     * @throws exception
      */
-    public function setFilename(string $filename) : \codename\core\export {
-        $this->filename = new \codename\core\value\text\fileabsolute($filename);
+    public function setFilename(string $filename): export
+    {
+        $this->filename = new fileabsolute($filename);
         return $this;
     }
 
     /**
      *
      * {@inheritDoc}
-     * @see \codename\core\export\exportInterface::export()
+     * @return bool
+     * @throws ReflectionException
+     * @throws exception
+     * @see exportInterface::export
      */
-    public function export() : bool {
+    public function export(): bool
+    {
         $_ret = '';
-        foreach($this->fields as $field) {
+        foreach ($this->fields as $field) {
             $_ret .= $field->get();
             $_ret .= $this->separator_field;
         }
         $_ret .= $this->separator_row;
 
-        foreach($this->data as $row) {
-            foreach($this->fields as $field) {
+        foreach ($this->data as $row) {
+            foreach ($this->fields as $field) {
                 $_ret .= $row->getData($field->get());
                 $_ret .= $this->separator_field;
             }
             $_ret .= $this->separator_row;
         }
-        
+
         app::getFilesystem()->fileDelete($this->filename->get());
-        app::getFilesystem('local')->fileWrite($this->filename->get(), mb_convert_encoding($_ret, $this->encoding, 'UTF-8'));
-        
+        app::getFilesystem()->fileWrite($this->filename->get(), mb_convert_encoding($_ret, $this->encoding, 'UTF-8'));
+
         return true;
     }
 
     /**
      *
      * {@inheritDoc}
-     * @see \codename\core\export\exportInterface::addField()
+     * @see exportInterface::addFields
      */
-    public function addField(\codename\core\value\text $field) : \codename\core\export {
-        $this->fields[] = $field;
-        return $this;
-    }
-
-    /**
-     *
-     * {@inheritDoc}
-     * @see \codename\core\export\exportInterface::addRow()
-     */
-    public function addRow(\codename\core\datacontainer $data) : \codename\core\export {
-        $this->data[] = $data;
-        return $this;
-    }
-
-    /**
-     *
-     * {@inheritDoc}
-     * @see \codename\core\export\exportInterface::addFields()
-     */
-    public function addFields(array $fields) : \codename\core\export {
-        foreach($fields as $field) {
+    public function addFields(array $fields): export
+    {
+        foreach ($fields as $field) {
             $this->addField($field);
         }
         return $this;
@@ -107,13 +102,35 @@ class csv extends \codename\core\export implements \codename\core\export\exportI
     /**
      *
      * {@inheritDoc}
-     * @see \codename\core\export\exportInterface::addRows()
+     * @see exportInterface::addField
      */
-    public function addRows(array $rows) : \codename\core\export {
-        foreach($rows as $row) {
+    public function addField(text $field): export
+    {
+        $this->fields[] = $field;
+        return $this;
+    }
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see exportInterface::addRows
+     */
+    public function addRows(array $rows): export
+    {
+        foreach ($rows as $row) {
             $this->addRow($row);
         }
         return $this;
     }
 
+    /**
+     *
+     * {@inheritDoc}
+     * @see exportInterface::addRow
+     */
+    public function addRow(datacontainer $data): export
+    {
+        $this->data[] = $data;
+        return $this;
+    }
 }

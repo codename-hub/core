@@ -1,58 +1,61 @@
 <?php
+
 namespace codename\core\response;
 
-class callback extends \codename\core\response {
+use codename\core\response;
+use LogicException;
+
+class callback extends response
+{
+    /**
+     * @var array
+     */
+    protected array $javascriptActions = [];
 
     /**
      * @todo DOCUMENTATION
      */
-    protected $javascriptActions = array();
+    public function addNotification(string $subject, string $text, string $image, string $sound): void
+    {
+        $this->addJs("joNotify('$subject', '$text', '$image', '$sound'");
+    }
 
     /**
      * @todo DOCUMENTATION
      */
-    public function addJs(string $js) {
+    public function addJs(string $js): void
+    {
         $jsdo = $this->getData('jsdo');
 
-        if(is_null($jsdo)) {
-            $jsdo = array();
+        if (is_null($jsdo)) {
+            $jsdo = [];
         }
 
         $jsdo[] = $js;
         $this->setData('jsdo', $jsdo);
-        return;
     }
 
     /**
-     * @todo DOCUMENTATION
-     */
-    public function addNotification(string $subject, string $text, string $image, string $sound) {
-        $this->addJs("joNotify('{$subject}', '{$text}', '{$image}', '{$sound}'");
-        return;
-    }
-
-    /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function setHeader(string $header)
     {
-      throw new \LogicException('Not implemented'); // TODO
+        throw new LogicException('Not implemented'); // TODO
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
-    protected function translateStatus()
+    public function pushOutput(): void
     {
-      throw new \LogicException('Not implemented'); // TODO
+        throw new LogicException('Not implemented'); // TODO
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
-    public function pushOutput()
+    protected function translateStatus(): mixed
     {
-      throw new \LogicException('Not implemented'); // TODO
+        throw new LogicException('Not implemented'); // TODO
     }
-
 }

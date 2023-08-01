@@ -1,12 +1,14 @@
 <?php
+
 namespace codename\core\value\text;
 
-class actionname extends \codename\core\value\text {
+use codename\core\value\text;
 
+class actionname extends text
+{
     /**
      * {@inheritDoc}
      * @see \codename\core\value::$validator
      */
-    protected $validator = 'text_methodname';
-
+    protected string $validator = 'text_methodname';
 }

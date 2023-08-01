@@ -1,10 +1,10 @@
 {
   "mixed-in-key": "mixed-in-value",
-  "some-object" : {
+  "some-object": {
     "key5": "added-value"
   },
-  "some-array" : [
+  "some-array": [
     "new-item"
   ],
-  "some-key2" : "other-value"
+  "some-key2": "other-value"
 }

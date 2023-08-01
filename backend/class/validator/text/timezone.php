@@ -1,5 +1,11 @@
 <?php
+
 namespace codename\core\validator\text;
+
+use codename\core\validator\text;
+use codename\core\validator\validatorInterface;
+use DateTimeZone;
+use Exception;
 
 /**
  * Timezone Validator for timezone declarations like:
@@ -7,38 +13,34 @@ namespace codename\core\validator\text;
  * or
  * +0200
  */
-class timezone extends \codename\core\validator\text implements \codename\core\validator\validatorInterface {
-
+class timezone extends text implements validatorInterface
+{
     /**
      *
      * {@inheritDoc}
      * @see \codename\core\validator_text::__construct($nullAllowed, $minlength, $maxlength, $allowedchars, $forbiddenchars)
      */
-    public function __CONSTRUCT(bool $nullAllowed = false) {
-        parent::__CONSTRUCT($nullAllowed, 3, 32, '0123456789+ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz/_-');
+    public function __construct(bool $nullAllowed = false)
+    {
+        parent::__construct($nullAllowed, 3, 32, '0123456789+ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz/_-');
         return $this;
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
-    public function validate($value) : array
+    public function validate(mixed $value): array
     {
-      if(count(parent::validate($value)) > 0) {
-        return $this->getErrors();
-      }
-
-      try {
-        $dtz = new \DateTimeZone($value);
-
-        if($dtz === false) {
-          $this->errorstack->addError('VALUE', 'INVALID_TIMEZONE', $value);
+        if (count(parent::validate($value)) > 0) {
+            return $this->getErrors();
         }
-      } catch (\Exception $e) {
-        $this->errorstack->addError('VALUE', 'INVALID_TIMEZONE', $value);
-      }
 
-      return $this->getErrors();
+        try {
+            new DateTimeZone($value);
+        } catch (Exception) {
+            $this->errorstack->addError('VALUE', 'INVALID_TIMEZONE', $value);
+        }
+
+        return $this->getErrors();
     }
-
 }

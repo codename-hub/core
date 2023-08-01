@@ -1,6 +1,8 @@
 {
   "some-key": "some-value",
-  "some-array": [ "some-item" ],
+  "some-array": [
+    "some-item"
+  ],
   "some-object": {
     "key1": "value1",
     "key2": "value2",

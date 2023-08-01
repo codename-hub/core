@@ -1,12 +1,14 @@
 <?php
+
 namespace codename\core\value\text;
 
-class iban extends \codename\core\value\text {
+use codename\core\value\text;
 
+class iban extends text
+{
     /**
      * {@inheritDoc}
      * @see \codename\core\value::$validator
      */
-    protected $validator = 'text_iban';
-    
+    protected string $validator = 'text_iban';
 }

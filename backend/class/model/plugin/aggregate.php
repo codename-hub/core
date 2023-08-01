@@ -1,44 +1,47 @@
 <?php
+
 namespace codename\core\model\plugin;
+
+use codename\core\model\plugin;
+use codename\core\model\plugin\aggregate\aggregateInterface;
+use codename\core\value\text\modelfield;
 
 /**
  * Plugin for creating calculation (aggregate function) fields by types and their alias
  * @package core
- * @author Kevin Dargel
  * @since 2017-05-18
  */
-abstract class aggregate extends \codename\core\model\plugin implements \codename\core\model\plugin\aggregate\aggregateInterface {
-
+abstract class aggregate extends plugin implements aggregateInterface
+{
     /**
      * Contains the $field to return
-     * @var \codename\core\value\text\modelfield $field
+     * @var modelfield $field
      */
-    public $field = null;
+    public modelfield $field;
 
     /**
      * contains a known type of calculation
      * @var string
      */
-    public $calculationType = null;
+    public string $calculationType;
 
     /**
      * field the calculation relies on
-     * @var \codename\core\value\text\modelfield
+     * @var modelfield
      */
-    public $fieldBase = null;
+    public modelfield $fieldBase;
 
     /**
-     * [__CONSTRUCT description]
-     * @param  \codename\core\value\text\modelfield $field           [description]
-     * @param  string                          $calculationType [description]
-     * @param  \codename\core\value\text\modelfield $fieldBase       [description]
-     * @return [type]                                           [description]
+     * [__construct description]
+     * @param modelfield $field [description]
+     * @param string $calculationType [description]
+     * @param modelfield $fieldBase [description]
      */
-    public function __CONSTRUCT(\codename\core\value\text\modelfield $field, string $calculationType, \codename\core\value\text\modelfield $fieldBase) {
+    public function __construct(modelfield $field, string $calculationType, modelfield $fieldBase)
+    {
         $this->field = $field;
         $this->fieldBase = $fieldBase;
         $this->calculationType = $calculationType;
         return $this;
     }
-
 }

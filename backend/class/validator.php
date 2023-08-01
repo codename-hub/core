@@ -1,52 +1,36 @@
 <?php
+
 namespace codename\core;
+
+use codename\core\validator\validatorInterface;
 
 /**
  * Validate everything!
  * @package core
  * @since 2016-01-23
  */
-class validator implements \codename\core\validator\validatorInterface {
-
+class validator implements validatorInterface
+{
     /**
      * Holds true if the value can be null
      * @var bool $nullAllowed
      */
-    protected $nullAllowed = null;
+    protected bool $nullAllowed;
 
     /**
      * Contains the errors as instance of \codename\core\errorstack
-     * @var \codename\core\errorstack
+     * @var errorstack
      */
-    protected $errorstack = null;
+    protected errorstack $errorstack;
 
     /**
      * @param bool $nullAllowed
      */
-    public function __CONSTRUCT(bool $nullAllowed = true) {
-        $this->errorstack = new \codename\core\errorstack('VALIDATION');
+    public function __construct(bool $nullAllowed = true)
+    {
+        $this->errorstack = new errorstack('VALIDATION');
         $this->nullAllowed = $nullAllowed;
         return $this;
-    }
-
-    /**
-     *
-     * {@inheritDoc}
-     * @see \codename\core\validator_interface::validate($value)
-     */
-    public function validate($value) : array {
-        if (is_null($value) && !$this->nullAllowed) {
-            $this->errorstack->addError('VALIDATOR', 'VALUE_IS_NULL');
-        }
-        return $this->getErrors();
-    }
-
-    /**
-     * Returns the errors that occured during validation of this value
-     * @return array
-     */
-    final public function getErrors() : array {
-        return $this->errorstack->getErrors();
     }
 
     /**
@@ -54,16 +38,39 @@ class validator implements \codename\core\validator\validatorInterface {
      * @param mixed|null $value
      * @return bool
      */
-    final public function isValid($value) : bool {
+    final public function isValid(mixed $value): bool
+    {
         return (count($this->validate($value)) == 0);
     }
 
     /**
-     * @inheritDoc
+     *
+     * {@inheritDoc}
+     * @see validator_interface::validate
      */
-    public function reset() : \codename\core\validator
+    public function validate(mixed $value): array
     {
-      $this->errorstack->reset();
-      return $this;
+        if (is_null($value) && !$this->nullAllowed) {
+            $this->errorstack->addError('VALIDATOR', 'VALUE_IS_NULL');
+        }
+        return $this->getErrors();
+    }
+
+    /**
+     * Returns the errors that occurred during validation of this value
+     * @return array
+     */
+    final public function getErrors(): array
+    {
+        return $this->errorstack->getErrors();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function reset(): validator
+    {
+        $this->errorstack->reset();
+        return $this;
     }
 }

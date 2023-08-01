@@ -1,4 +1,5 @@
 <?php
+
 namespace codename\core\model;
 
 /**
@@ -6,5 +7,4 @@ namespace codename\core\model;
  */
 class servicing
 {
-  
 }
